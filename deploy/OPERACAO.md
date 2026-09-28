@@ -14,32 +14,39 @@ Navegador  →  Nginx  →  Ticket Manager (Gunicorn)  →  PostgreSQL
 - **Nginx** recebe os acessos em `http://IP-DO-SERVIDOR` e repassa ao sistema.
 - **Ticket Manager** roda como serviço (`ticket-manager`): liga sozinho quando o servidor
   reinicia e se reinicia sozinho se travar. Não precisa de ninguém logado no servidor.
-- **PostgreSQL** guarda contas, chamados e comentários. Os **anexos** ficam em disco.
+- **PostgreSQL** guarda contas, chamados, comentários e o inventário. Os **anexos** ficam em disco.
 - **Backup** automático todo dia às 2h30, guardando 14 dias.
 
-Os usuários não instalam nada: acessam pelo navegador (computador ou celular).
+Os usuários não instalam nada: acessam pelo navegador (computador ou celular). O botão no
+canto da tela alterna entre modo claro e escuro, e cada navegador lembra a escolha.
 
 ## Tarefas do administrador (pelo navegador)
 
 | Situação | O que fazer |
 |---|---|
 | Pessoa nova | Ela mesma cria a conta em **Crie sua conta** na tela de login |
-| Alguém vai atender chamados do setor | **Usuários** → confira o **Setor** → marque **Atende chamados** → **Salvar** |
-| Alguém deixou de atender | Desmarque **Atende chamados**; os chamados em aberto com ela ficam sem responsável |
-| Mudou de setor | **Usuários** → troque o **Setor** → **Salvar** (a pessoa não consegue mudar sozinha) |
+| Alguém vai atender chamados do setor | **Usuários** → confira o **Setor** → marque **Atende chamados** → **Salvar alterações** |
+| Alguém deixou de atender | Desmarque **Atende chamados** → **Salvar alterações**; os chamados em aberto com ela ficam sem responsável |
+| Mudou de setor | **Usuários** → troque o **Setor** → **Salvar alterações** (a pessoa não consegue mudar sozinha) |
 | Esqueceu a senha | **Usuários** → **Redefinir senha** → passe a senha temporária à pessoa; no próximo acesso ela cria uma nova |
 | Saiu da empresa | **Usuários** → **Desativar** (o acesso é cortado na hora; os chamados dela continuam no histórico) |
-| Outro administrador | **Usuários** → perfil **Administrador** → **Salvar** (vê todos os chamados; o sistema sempre mantém pelo menos um) |
+| Outro administrador | **Usuários** → perfil **Administrador** → **Salvar alterações** (vê todos os chamados; o sistema sempre mantém pelo menos um) |
 | Apagar um chamado | Só o administrador: abra o chamado → **Apagar chamado** (permanente) |
+
+Na tela **Usuários**, dá para mexer em várias linhas e salvar tudo de uma vez no botão
+**Salvar alterações**, no rodapé. As linhas alteradas ficam destacadas, e o navegador avisa se
+você tentar sair sem salvar. Se alguma linha tiver problema, nada é gravado.
 
 Um setor só aparece na tela de novo chamado quando tem pelo menos uma pessoa marcada como
 **Atende chamados**.
 
 ### Quem vê o quê
 
-- **Usuário:** só os chamados que ele mesmo abriu.
-- **Quem atende chamados:** os chamados do seu setor, mais os que ele abriu para outros setores.
-- **Administrador:** todos.
+| | Chamados | Painel e relatório | Inventário | Usuários |
+|---|---|---|---|---|
+| **Usuário** | só os que ele abriu | — | — | — |
+| **Quem atende chamados** | os do seu setor + os que ele abriu | do seu setor | só quem atende a **T.I** | — |
+| **Administrador** | todos | todos os setores (com filtro) | sim | sim |
 
 Para impedir que qualquer pessoa crie conta, defina `cadastro_aberto = false` no
 `config.ini` (veja [Mudar a configuração](#mudar-a-configuração)).
@@ -60,6 +67,13 @@ Menu **Inventário**, visível para administradores e para quem atende chamados 
 
 Cada cadastro, troca de usuário, setor ou situação e edição fica no **Histórico** do equipamento,
 com data e quem fez. Só o administrador pode apagar um equipamento de vez (prefira "Descartado").
+
+## Painel e relatório
+
+- **Painel:** números do setor (ou de todos, para o admin, com filtro de setor) nos últimos 30 dias,
+  90 dias ou 12 meses: em aberto, sem responsável, abertos e encerrados no período e o **tempo
+  médio até encerrar** (ex.: "3 h 20 min", "2 d 4 h"). Os gráficos levam à lista já filtrada.
+- **Relatório:** chamados abertos num período, em **Excel** ou **PDF**.
 
 ## Comandos úteis no servidor
 
@@ -85,8 +99,13 @@ sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin
 sudo systemctl restart ticket-manager
 ```
 
-Os dados não se perdem: `migrar` só ajusta a estrutura do banco quando necessário.
-Se mudou algum arquivo de `deploy/` (serviço ou Nginx), o aviso vem junto com a atualização.
+Os dados não se perdem: `migrar` só ajusta a estrutura do banco quando necessário, e pode ser
+rodado sempre, mesmo quando não há mudança no banco.
+
+- Se a atualização trouxer uma opção nova de configuração, ela aparece no `config.example.ini`;
+  copie para o `/etc/ticket-manager/config.ini` só se quiser usar (sem ela vale o padrão).
+- Se mudou algum arquivo de `deploy/` (serviço ou Nginx), o aviso vem junto com a atualização.
+- Os navegadores pegam o visual novo sozinhos (não precisa de Ctrl+F5).
 
 ## Mudar a configuração
 
@@ -94,6 +113,16 @@ Se mudou algum arquivo de `deploy/` (serviço ou Nginx), o aviso vem junto com a
 sudo nano /etc/ticket-manager/config.ini
 sudo systemctl restart ticket-manager
 ```
+
+| Seção | Opção | Para que serve |
+|---|---|---|
+| `[banco]` | `url` | endereço e senha do PostgreSQL |
+| `[servidor]` | `secret_key` | chave que protege as sessões (não compartilhe; trocar desconecta todo mundo) |
+| | `anexos_pasta`, `anexo_max_mb` | onde ficam os anexos e o tamanho máximo de cada um |
+| | `sessao_horas` | depois de quantas horas a pessoa precisa entrar de novo |
+| | `cadastro_aberto` | `false` impede que novas pessoas criem conta sozinhas |
+| | `atras_de_proxy`, `cookie_seguro` | `true` com Nginx na frente / com HTTPS |
+| `[email]` | ver [Avisos por e-mail](#avisos-por-e-mail) | servidor SMTP dos avisos |
 
 ## Avisos por e-mail
 
@@ -263,6 +292,8 @@ sudo systemctl start ticket-manager
 | Sintoma | O que verificar |
 |---|---|
 | Página não abre | O servidor está ligado? `sudo systemctl status nginx ticket-manager --no-pager` |
+| Visual antigo ou botão que não responde depois de atualizar | Recarregue com **Ctrl+F5** (só pode acontecer com quem abriu o sistema antes da atualização que passou a versionar os arquivos) |
+| Menu **Inventário** não aparece | A pessoa precisa estar no setor **T.I** com **Atende chamados** marcado (ou ser administrador) |
 | `502 Bad Gateway` | Serviço parado ou com erro: veja os erros com `journalctl` (tabela acima) |
 | Ninguém consegue entrar como administrador | `sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py tornar-admin LOGIN` (dentro de `/opt/ticket-manager`) |
 | Disco cheio | `df -h /`; anexos antigos e backups ocupam espaço |

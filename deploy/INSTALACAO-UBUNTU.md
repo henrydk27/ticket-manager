@@ -10,6 +10,7 @@ Resultado final: **Nginx** (porta 80) → **Gunicorn** (serviço `ticket-manager
 | `/opt/ticket-manager` | código (clone deste repositório, branch `main`) e ambiente Python (`.venv/`) |
 | `/etc/ticket-manager/config.ini` | configuração com a senha do banco (só root e o serviço leem) |
 | `/var/lib/ticket-manager/anexos` | arquivos anexados aos chamados |
+| `/etc/ticket-manager/certificado-email.crt` | (opcional) certificado do servidor de e-mail interno |
 | `/var/backups/ticket-manager` | backups diários |
 
 | Nome | O que é |
@@ -115,7 +116,9 @@ hostname -I                    # mostra o IP do servidor
 Abra `http://IP-DO-SERVIDOR` num computador da rede e clique em **Crie sua conta**.
 
 **A primeira conta criada é a de administrador** — crie a sua antes de divulgar o endereço.
-As próximas entram como usuário comum; promova os técnicos em **Usuários**.
+As próximas entram como usuário comum. Depois, em **Usuários**, confira o setor de cada pessoa e
+marque **Atende chamados** em quem recebe pedidos (quem atende a **T.I** também cuida do
+inventário) → **Salvar alterações**.
 
 (Alternativa pelo terminal: `manage.py criar-admin LOGIN`, com o mesmo `sudo -u ticketapp
 TICKET_MANAGER_CONFIG=...` do passo 5.)
