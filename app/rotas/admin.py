@@ -56,18 +56,27 @@ def _alvo(usuario_id: int) -> Usuario:
     return u
 
 
-@bp.route("/usuarios/<int:usuario_id>", methods=["POST"])
+@bp.route("/usuarios", methods=["POST"])
 @admin_obrigatorio
-def usuario_salvar(usuario_id: int):
-    u = _alvo(usuario_id)
+def usuarios_salvar():
+    """Salva de uma vez as alterações de setor, "atende" e perfil de todas as linhas."""
     f = request.form
-    papel = f.get("papel", u.papel) if u.id != g.usuario.id else u.papel  # ninguém rebaixa a si mesmo
+    mudancas = {}
+    for uid in f.getlist("ids"):
+        if uid.isdigit():
+            mudancas[int(uid)] = (f.get(f"setor_{uid}", ""), f.get(f"atende_{uid}") == "1",
+                                  f.get(f"papel_{uid}", ""))
     try:
-        servicos.atualizar_usuario(db(), u, f.get("setor", ""), f.get("atende") == "1", papel)
-        flash(f"Dados de {u.nome} salvos.", "ok")
+        alterados = servicos.atualizar_usuarios(db(), mudancas, g.usuario)
     except servicos.ErroValidacao as e:
-        flash(str(e), "erro")
-    return redirect(url_for("admin.usuarios") + f"#u{u.id}")
+        flash(f"Nada foi salvo: {e}", "erro")
+    else:
+        if alterados:
+            nomes = ", ".join(sorted(u.nome for u in alterados))
+            flash(f"Alterações salvas ({len(alterados)}): {nomes}.", "ok")
+        else:
+            flash("Nenhuma alteração para salvar.", "info")
+    return redirect(url_for("admin.usuarios"))
 
 
 @bp.route("/usuarios/<int:usuario_id>/ativo", methods=["POST"])

@@ -22,14 +22,18 @@ def tamanho(n) -> str:
     return f"{n / 1024 / 1024:.1f} MB"
 
 
-def dias(v) -> str:
-    """Duração em dias (float) como texto legível."""
-    if not v:
+def duracao(v) -> str:
+    """Duração em dias (float) como "2 d 4 h", "3 h 20 min" ou "45 min"."""
+    if v is None:
         return "—"
-    horas = float(v) * 24
-    if horas < 24:
-        return f"{horas:.1f} h".replace(".", ",")
-    return f"{float(v):.1f} dias".replace(".", ",")
+    minutos = max(0, round(float(v) * 24 * 60))
+    d, resto = divmod(minutos, 24 * 60)
+    h, m = divmod(resto, 60)
+    if d:
+        return f"{d} d {h} h" if h else f"{d} d"
+    if h:
+        return f"{h} h {m} min" if m else f"{h} h"
+    return f"{m} min"
 
 
 _CLASSE_STATUS = {
@@ -51,5 +55,5 @@ def prioridade(v) -> Markup:
 
 
 def registrar(app) -> None:
-    for nome in ("data", "data_hora", "tamanho", "dias", "status", "prioridade"):
+    for nome in ("data", "data_hora", "tamanho", "duracao", "status", "prioridade"):
         app.jinja_env.filters[nome] = globals()[nome]

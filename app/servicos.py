@@ -133,6 +133,36 @@ def atualizar_usuario(s: Session, alvo: Usuario, setor: str, atende: bool, papel
     s.commit()
 
 
+def atualizar_usuarios(s: Session, mudancas: dict[int, tuple[str, bool, str]], ator: Usuario) -> list[Usuario]:
+    """Salva de uma vez setor, "atende" e perfil de várias contas: {id: (setor, atende, papel)}.
+
+    Tudo ou nada: se algo for inválido, nada é gravado. A regra de ter pelo menos um admin
+    ativo vale para o resultado final (dá para promover um e rebaixar outro juntos).
+    Ninguém muda o próprio perfil. Devolve as contas que mudaram.
+    """
+    alterados = []
+    for uid, (setor, atende, papel) in mudancas.items():
+        u = s.get(Usuario, uid)
+        if u is None:
+            continue
+        if u.id == ator.id:
+            papel = u.papel
+        if setor not in SETORES or papel not in PAPEIS:
+            s.rollback()
+            raise ErroValidacao(f"Dados inválidos para {u.nome}.")
+        if (u.setor, u.atende, u.papel) != (setor, atende, papel):
+            u.setor, u.atende, u.papel = setor, atende, papel
+            alterados.append(u)
+    s.flush()
+    if _admins_ativos(s) < 1:
+        s.rollback()
+        raise ErroValidacao("O sistema precisa de pelo menos um administrador ativo.")
+    for u in alterados:
+        _liberar_chamados(s, u)
+    s.commit()
+    return alterados
+
+
 def definir_ativo(s: Session, alvo: Usuario, ativo: bool) -> None:
     if not ativo and alvo.is_admin and alvo.ativo and _admins_ativos(s) <= 1:
         raise ErroValidacao("O sistema precisa de pelo menos um administrador ativo.")

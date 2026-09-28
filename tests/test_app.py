@@ -38,12 +38,20 @@ def sair(client):
     client.post("/logout", data={"csrf": csrf(client, "/conta/")})
 
 
+def salvar_usuarios(client, s, linhas: dict):
+    """Envia a tela de Usuários: {login: (setor, atende, papel)}."""
+    dados = {"csrf": csrf(client, "/usuarios"), "ids": []}
+    for login, (setor, atende, papel) in linhas.items():
+        u = usuario(s, login)
+        dados["ids"].append(u.id)
+        dados[f"setor_{u.id}"], dados[f"papel_{u.id}"] = setor, papel
+        if atende:
+            dados[f"atende_{u.id}"] = "1"
+    return client.post("/usuarios", data=dados, follow_redirects=True)
+
+
 def salvar_usuario(client, s, login, setor, atende, papel="usuario"):
-    u = usuario(s, login)
-    dados = {"csrf": csrf(client, "/usuarios"), "setor": setor, "papel": papel}
-    if atende:
-        dados["atende"] = "1"
-    return client.post(f"/usuarios/{u.id}", data=dados)
+    return salvar_usuarios(client, s, {login: (setor, atende, papel)})
 
 
 # ─── cadastro e login ───────────────────────────────────────────────────────
@@ -573,3 +581,61 @@ def test_config_email_servidor_interno(tmp_path, monkeypatch):
     ini.write_text(base + "[email]\nhost = mail\nremetente = a@b.com\nverificar_certificado = false\n", encoding="utf-8")
     ctx = _contexto_ssl(carregar_config().email)
     assert ctx.verify_mode == ssl.CERT_NONE and not ctx.check_hostname
+
+
+
+# ─── ajustes de interface ───────────────────────────────────────────────────
+
+def test_salvar_geral_varios_usuarios_de_uma_vez(client, s, contas):
+    entrar(client, "admin", "admin123")
+    html = salvar_usuarios(client, s, {
+        "bruno": ("Manutenção", True, "usuario"),
+        "ana": ("Fiscal", False, "admin"),
+        "carlos": ("T.I", True, "usuario"),          # sem mudança
+    }).get_data(as_text=True)
+    assert "Alterações salvas (2): Ana Souza, Bruno Lima." in html
+    assert usuario(s, "bruno").setor == "Manutenção" and usuario(s, "bruno").atende
+    assert usuario(s, "ana").is_admin
+
+
+def test_salvar_geral_tudo_ou_nada(client, s, contas):
+    entrar(client, "admin", "admin123")
+    html = salvar_usuarios(client, s, {
+        "bruno": ("Manutenção", True, "usuario"),
+        "ana": ("Setor que não existe", False, "usuario"),
+    }).get_data(as_text=True)
+    assert "Nada foi salvo" in html
+    assert usuario(s, "bruno").setor == "Vendas"      # a linha válida também não foi gravada
+
+
+def test_salvar_geral_troca_de_admin_no_mesmo_envio(client, s, contas):
+    entrar(client, "admin", "admin123")
+    salvar_usuarios(client, s, {"carlos": ("T.I", True, "admin")})
+    sair(client)
+    entrar(client, "carlos", "carlos123")            # carlos promove ana e rebaixa admin juntos
+    salvar_usuarios(client, s, {"ana": ("Fiscal", False, "admin"), "admin": ("T.I", True, "usuario")})
+    assert usuario(s, "ana").is_admin and not usuario(s, "admin").is_admin
+
+
+def test_salvar_geral_nao_muda_o_proprio_perfil(client, s, contas):
+    entrar(client, "admin", "admin123")
+    salvar_usuarios(client, s, {"admin": ("T.I", True, "usuario")})
+    assert usuario(s, "admin").is_admin
+
+
+def test_tempo_medio_em_dias_horas_e_minutos():
+    from app.formatos import duracao
+    minuto = 1 / (24 * 60)
+    assert duracao(None) == "—"
+    assert duracao(0) == "0 min"
+    assert duracao(45 * minuto) == "45 min"
+    assert duracao(3 / 24 + 20 * minuto) == "3 h 20 min"
+    assert duracao(2 / 24) == "2 h"
+    assert duracao(2 + 4 / 24 + 10 * minuto) == "2 d 4 h"
+    assert duracao(1) == "1 d"
+
+
+def test_botao_de_tema_e_script_no_cabecalho(client, contas):
+    html = client.get("/login").get_data(as_text=True)
+    assert "data-alternar-tema" in html and "tema.js" in html
+    assert html.index("tema.js") < html.index("style.css")   # aplica o tema antes de desenhar
