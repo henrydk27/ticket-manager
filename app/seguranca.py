@@ -68,6 +68,17 @@ def atendente_obrigatorio(view):
     return wrapper
 
 
+def inventario_obrigatorio(view):
+    """Administradores e quem atende chamados da T.I."""
+    @wraps(view)
+    @login_obrigatorio
+    def wrapper(*args, **kwargs):
+        if not g.usuario.cuida_inventario:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapper
+
+
 def admin_obrigatorio(view):
     @wraps(view)
     @login_obrigatorio

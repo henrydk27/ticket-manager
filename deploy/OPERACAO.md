@@ -44,6 +44,23 @@ Um setor só aparece na tela de novo chamado quando tem pelo menos uma pessoa ma
 Para impedir que qualquer pessoa crie conta, defina `cadastro_aberto = false` no
 `config.ini` (veja [Mudar a configuração](#mudar-a-configuração)).
 
+## Inventário de TI
+
+Menu **Inventário**, visível para administradores e para quem atende chamados da **T.I**.
+
+| Situação | O que fazer |
+|---|---|
+| Cadastrar um equipamento | **+ Novo equipamento** → informe o nº de patrimônio que já está na etiqueta, o tipo e o que souber |
+| Entregar a alguém | Abra o equipamento → escolha o **Usuário** (o setor dele é preenchido) → **Salvar alterações** |
+| Deixar num setor, sem pessoa | Escolha só o **Setor** (ex.: impressora do Fiscal) |
+| Voltou para a T.I | **Usuário** = Ninguém, **Setor** = Nenhum, **Situação** = Em estoque |
+| Foi para conserto | **Situação** = Em manutenção |
+| Não serve mais | **Situação** = Descartado (sai da lista, mas continua em "Todas as situações" com o histórico) |
+| Planilha do inventário | **Exportar Excel** baixa a lista com os filtros aplicados |
+
+Cada cadastro, troca de usuário, setor ou situação e edição fica no **Histórico** do equipamento,
+com data e quem fez. Só o administrador pode apagar um equipamento de vez (prefira "Descartado").
+
 ## Comandos úteis no servidor
 
 | Para | Comando |

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block titulo %}Inventário{% endblock %}
+
+{% macro ordenar(coluna, rotulo) -%}
+  {%- set ativa = f.ordenar == coluna -%}
+  {%- set nova = 'desc' if (ativa and f.direcao == 'asc') else 'asc' -%}
+  <a class="ordenar{{ ' ativa' if ativa }}"
+     href="{{ url_for('inventario.lista', ordenar=coluna, direcao=nova, **base) }}"
+     aria-sort="{{ ('ascending' if f.direcao == 'asc' else 'descending') if ativa else 'none' }}">
+    {{ rotulo }}<span class="seta" aria-hidden="true">{{ ('▲' if f.direcao == 'asc' else '▼') if ativa }}</span>
+  </a>
+{%- endmacro %}
+
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>Inventário</h1>
+  <div class="acoes-cabecalho">
+    <a class="botao" href="{{ url_for('inventario.exportar', ordenar=f.ordenar, direcao=f.direcao, **base) }}">Exportar Excel</a>
+    <a class="botao botao-primario" href="{{ url_for('inventario.novo') }}">+ Novo equipamento</a>
+  </div>
+</div>
+
+<div class="resumo-situacoes">
+  {% for s in SITUACOES %}
+  <a class="resumo-situacao{{ ' ativa' if f.situacao == s }}" href="{{ url_for('inventario.lista', situacao=s) }}">
+    <span class="resumo-numero">{{ contagem.get(s, 0) }}</span> {{ s }}
+  </a>
+  {% endfor %}
+</div>
+
+<form class="filtros" method="get" action="{{ url_for('inventario.lista') }}">
+  <input type="search" name="q" value="{{ f.texto }}" class="filtro-busca" aria-label="Buscar"
+         placeholder="Buscar por patrimônio, modelo, série, hostname, IP ou usuário">
+  <select name="tipo" aria-label="Tipo" data-enviar-ao-mudar>
+    <option value="">Todos os tipos</option>
+    {% for t in TIPOS %}<option {{ 'selected' if f.tipo == t }}>{{ t }}</option>{% endfor %}
+  </select>
+  <select name="setor" aria-label="Setor" data-enviar-ao-mudar>
+    <option value="">Todos os setores</option>
+    <option value="sem" {{ 'selected' if f.setor == 'sem' }}>Sem setor</option>
+    {% for s in SETORES %}<option {{ 'selected' if f.setor == s }}>{{ s }}</option>{% endfor %}
+  </select>
+  <select name="situacao" aria-label="Situação" data-enviar-ao-mudar>
+    <option value="">Ativos (sem descartados)</option>
+    {% for s in SITUACOES %}<option {{ 'selected' if f.situacao == s }}>{{ s }}</option>{% endfor %}
+    <option value="todas" {{ 'selected' if f.situacao == 'todas' }}>Todas as situações</option>
+  </select>
+  <input type="hidden" name="ordenar" value="{{ f.ordenar }}">
+  <input type="hidden" name="direcao" value="{{ f.direcao }}">
+  <button class="botao botao-primario" type="submit">Buscar</button>
+  {% if base %}<a class="botao" href="{{ url_for('inventario.lista') }}">Limpar</a>{% endif %}
+</form>
+
+{% if itens %}
+<p class="suave">{{ total }} equipamento{{ 's' if total != 1 }}</p>
+<div class="tabela-rolagem">
+<table class="tabela">
+  <thead>
+    <tr>
+      <th>{{ ordenar('patrimonio', 'Patrimônio') }}</th>
+      <th>{{ ordenar('tipo', 'Tipo') }}</th>
+      <th>{{ ordenar('modelo', 'Marca / modelo') }}</th>
+      <th>{{ ordenar('setor', 'Setor') }}</th>
+      <th>{{ ordenar('usuario', 'Usuário') }}</th>
+      <th>{{ ordenar('situacao', 'Situação') }}</th>
+      <th>Rede</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in itens %}
+    {% set link = url_for('inventario.equipamento', equipamento_id=e.id) %}
+    <tr data-href="{{ link }}" class="{{ 'linha-inativa' if e.situacao == 'Descartado' }}">
+      <td><a href="{{ link }}"><strong>{{ e.patrimonio }}</strong></a></td>
+      <td>{{ e.tipo }}</td>
+      <td class="col-titulo">{{ e.descricao }}
+        {% if e.numero_serie %}<div class="subtitulo">S/N {{ e.numero_serie }}</div>{% endif %}</td>
+      <td>{{ e.setor or '—' }}</td>
+      <td>{{ e.usuario.nome if e.usuario else '—' }}</td>
+      <td><span class="badge badge-sit-{{ {'Em uso': 'uso', 'Em estoque': 'estoque', 'Em manutenção': 'manutencao'}.get(e.situacao, 'descartado') }}">{{ e.situacao }}</span></td>
+      <td>{% if e.hostname or e.ip %}{{ e.hostname or '' }}<div class="subtitulo">{{ e.ip or '' }}</div>{% else %}<span class="suave">—</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if paginas > 1 %}
+<nav class="paginacao" aria-label="Páginas">
+  {% if f.pagina > 1 %}
+  <a class="botao" href="{{ url_for('inventario.lista', pagina=f.pagina - 1, ordenar=f.ordenar, direcao=f.direcao, **base) }}">‹ Anterior</a>
+  {% endif %}
+  <span>Página {{ f.pagina }} de {{ paginas }}</span>
+  {% if f.pagina < paginas %}
+  <a class="botao" href="{{ url_for('inventario.lista', pagina=f.pagina + 1, ordenar=f.ordenar, direcao=f.direcao, **base) }}">Próxima ›</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="vazio">
+  {% if base %}
+  <h2>Nenhum equipamento com esses filtros</h2>
+  <p><a class="botao" href="{{ url_for('inventario.lista') }}">Limpar filtros</a></p>
+  {% else %}
+  <h2>Nenhum equipamento cadastrado</h2>
+  <p class="suave">Cadastre os equipamentos com o nº de patrimônio que eles já têm.</p>
+  <p><a class="botao botao-primario" href="{{ url_for('inventario.novo') }}">Cadastrar equipamento</a></p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

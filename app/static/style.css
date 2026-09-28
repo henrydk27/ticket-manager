@@ -374,3 +374,25 @@ a.usuario-nome { color: var(--texto); }
 }
 .tabela tbody tr.linha-alterada { background: var(--info-fundo); }
 .tabela tbody tr.linha-alterada td:first-child { box-shadow: inset 3px 0 0 var(--serie); }
+
+/* ─── Inventário ───────────────────────────────────────────────────────── */
+.acoes-cabecalho { display: flex; gap: 8px; flex-wrap: wrap; }
+.resumo-situacoes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.resumo-situacao {
+  padding: 6px 12px; border: 1px solid var(--borda); border-radius: 999px; background: var(--superficie);
+  color: var(--texto-2); font-size: .88rem;
+}
+.resumo-situacao:hover { text-decoration: none; border-color: var(--serie); color: var(--texto); }
+.resumo-situacao.ativa { border-color: var(--primaria); color: var(--primaria); background: var(--primaria-suave); }
+.resumo-numero { font-weight: 700; color: var(--texto); font-variant-numeric: tabular-nums; }
+.badge-sit-uso { background: var(--ok-fundo); color: var(--ok-texto); }
+.badge-sit-estoque { background: var(--st-aberto-f); color: var(--st-aberto-t); }
+.badge-sit-manutencao { background: var(--st-andamento-f); color: var(--st-andamento-t); }
+.badge-sit-descartado { background: var(--st-fechado-f); color: var(--st-fechado-t); }
+.formulario-equipamento { max-width: none; }
+.grade-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0 16px; }
+.grade-campos label { margin-top: 10px; }
+.espaco-secao { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--borda); }
+.historico-equipamento { list-style: none; padding: 0; margin: 0; font-size: .9rem; }
+.historico-equipamento li { padding: 8px 0 8px 12px; border-left: 3px solid var(--borda); }
+.historico-equipamento li + li { margin-top: 2px; }

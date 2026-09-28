@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block titulo %}{{ ('Equipamento ' ~ eq.patrimonio) if eq else 'Novo equipamento' }}{% endblock %}
+
+{% macro campo(nome, rotulo, max=100, dica='', tipo='text') %}
+  <div>
+    <label for="{{ nome }}">{{ rotulo }}</label>
+    <input id="{{ nome }}" name="{{ nome }}" type="{{ tipo }}" maxlength="{{ max }}" value="{{ dados.get(nome) or '' }}"
+           {% if dica %}placeholder="{{ dica }}"{% endif %}>
+  </div>
+{% endmacro %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('inventario.lista') }}">‹ Inventário</a></p>
+<div class="cabecalho">
+  <div>
+    {% if eq %}<p class="suave numero">{{ eq.tipo }} · atualizado em {{ eq.atualizado_em|data_hora }}</p>{% endif %}
+    <h1>{{ ('Patrimônio ' ~ eq.patrimonio) if eq else 'Novo equipamento' }}</h1>
+  </div>
+</div>
+
+<div class="detalhe-grade">
+  <section class="detalhe-principal">
+    <form class="cartao formulario formulario-equipamento" method="post" id="form-equipamento"
+          action="{{ url_for('inventario.equipamento', equipamento_id=eq.id) if eq else url_for('inventario.novo') }}"
+          data-avisar-alteracoes>
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+      <h2 class="cartao-titulo">Identificação</h2>
+      <div class="grade-campos">
+        <div>
+          <label for="patrimonio">Nº de patrimônio</label>
+          <input id="patrimonio" name="patrimonio" maxlength="50" required value="{{ dados.get('patrimonio') or '' }}"
+                 placeholder="O número da etiqueta" {{ 'autofocus' if not eq }}>
+        </div>
+        <div>
+          <label for="tipo">Tipo</label>
+          <select id="tipo" name="tipo" required data-tipo-equipamento data-computador="{{ TIPOS_COMPUTADOR|join('|') }}">
+            <option value="">Selecione</option>
+            {% for t in TIPOS %}<option {{ 'selected' if dados.get('tipo') == t }}>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        {{ campo('marca', 'Marca', 60, 'Ex.: Dell') }}
+        {{ campo('modelo', 'Modelo', 100, 'Ex.: OptiPlex 3080') }}
+        {{ campo('numero_serie', 'Nº de série', 100) }}
+      </div>
+
+      <h2 class="cartao-titulo espaco-secao">Com quem está</h2>
+      <div class="grade-campos">
+        <div>
+          <label for="situacao">Situação</label>
+          <select id="situacao" name="situacao" required>
+            {% for s in SITUACOES %}<option {{ 'selected' if dados.get('situacao') == s }}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="usuario_id">Usuário</label>
+          <select id="usuario_id" name="usuario_id" data-usuario-equipamento>
+            <option value="">Ninguém</option>
+            {% for u in usuarios %}
+            <option value="{{ u.id }}" data-setor="{{ u.setor }}" {{ 'selected' if dados.get('usuario_id') == u.id|string }}>{{ u.nome }} · {{ u.setor }}</option>
+            {% endfor %}
+            {% if eq and eq.usuario and not eq.usuario.ativo %}
+            <option value="{{ eq.usuario.id }}" selected>{{ eq.usuario.nome }} (conta desativada)</option>
+            {% endif %}
+          </select>
+        </div>
+        <div>
+          <label for="setor">Setor</label>
+          <select id="setor" name="setor" data-setor-equipamento>
+            <option value="">Nenhum</option>
+            {% for s in SETORES %}<option {{ 'selected' if dados.get('setor') == s }}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <p class="dica">Escolhendo um usuário, o setor dele é preenchido. Atribuído a alguém, o equipamento
+        passa de "Em estoque" para "Em uso"; descartado, deixa de estar com qualquer pessoa ou setor.</p>
+
+      <div data-campos-computador>
+        <h2 class="cartao-titulo espaco-secao">Configuração</h2>
+        <div class="grade-campos">
+          {{ campo('processador', 'Processador', 100, 'Ex.: Intel Core i5-10500') }}
+          {{ campo('memoria', 'Memória', 50, 'Ex.: 16 GB') }}
+          {{ campo('armazenamento', 'Armazenamento', 100, 'Ex.: SSD 512 GB') }}
+          {{ campo('sistema_operacional', 'Sistema operacional', 100, 'Ex.: Windows 11 Pro') }}
+        </div>
+      </div>
+
+      <h2 class="cartao-titulo espaco-secao">Rede</h2>
+      <div class="grade-campos">
+        {{ campo('hostname', 'Hostname', 100, 'Ex.: FISCAL-01') }}
+        {{ campo('ip', 'IP', 45, 'Ex.: 192.168.0.25') }}
+        {{ campo('mac', 'MAC', 17, 'Ex.: AA:BB:CC:DD:EE:FF') }}
+      </div>
+
+      <label for="observacoes">Observações</label>
+      <textarea id="observacoes" name="observacoes" rows="3">{{ dados.get('observacoes') or '' }}</textarea>
+
+      <div class="acoes">
+        <a class="botao" href="{{ url_for('inventario.lista') }}">Cancelar</a>
+        <button class="botao botao-primario" type="submit">{{ 'Salvar alterações' if eq else 'Cadastrar' }}</button>
+      </div>
+    </form>
+  </section>
+
+  {% if eq %}
+  <aside class="detalhe-lateral">
+    <div class="cartao">
+      <h2 class="cartao-titulo">Histórico</h2>
+      <ol class="historico-equipamento">
+        {% for m in eq.historico %}
+        <li>
+          <div class="texto-livre">{{ m.descricao }}</div>
+          <div class="subtitulo">{{ m.momento|data_hora }} · {{ m.autor.nome if m.autor else '—' }}</div>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    {% if usuario.is_admin %}
+    <form method="post" action="{{ url_for('inventario.apagar', equipamento_id=eq.id) }}"
+          data-confirmar="Apagar o equipamento {{ eq.patrimonio }} do inventário, com todo o histórico? Para tirar de uso, prefira a situação Descartado.">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="botao botao-perigo botao-largo" type="submit">Apagar do inventário</button>
+    </form>
+    {% endif %}
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}

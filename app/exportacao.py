@@ -91,3 +91,45 @@ def gerar_pdf(chamados: list, inicio: date, fim: date) -> io.BytesIO:
     ], onFirstPage=rodape, onLaterPages=rodape)
     buf.seek(0)
     return buf
+
+
+# ─── inventário ─────────────────────────────────────────────────────────────
+
+COLUNAS_INVENTARIO = [
+    ("Patrimônio", lambda e: e.patrimonio, 14),
+    ("Tipo", lambda e: e.tipo, 14),
+    ("Marca", lambda e: e.marca, 14),
+    ("Modelo", lambda e: e.modelo, 24),
+    ("Nº de série", lambda e: e.numero_serie, 20),
+    ("Situação", lambda e: e.situacao, 14),
+    ("Setor", lambda e: e.setor, 14),
+    ("Usuário", lambda e: e.usuario.nome if e.usuario else None, 22),
+    ("Processador", lambda e: e.processador, 22),
+    ("Memória", lambda e: e.memoria, 10),
+    ("Armazenamento", lambda e: e.armazenamento, 16),
+    ("Sistema operacional", lambda e: e.sistema_operacional, 20),
+    ("Hostname", lambda e: e.hostname, 16),
+    ("IP", lambda e: e.ip, 15),
+    ("MAC", lambda e: e.mac, 18),
+    ("Observações", lambda e: e.observacoes, 40),
+    ("Atualizado em", lambda e: formatos.data_hora(e.atualizado_em), 16),
+]
+
+
+def gerar_excel_inventario(equipamentos: list) -> io.BytesIO:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Inventário"
+    fundo, fonte = PatternFill("solid", fgColor=AZUL), Font(bold=True, color="FFFFFF")
+    for col, (titulo, _v, largura) in enumerate(COLUNAS_INVENTARIO, start=1):
+        cel = ws.cell(row=1, column=col, value=titulo)
+        cel.fill, cel.font = fundo, fonte
+        ws.column_dimensions[cel.column_letter].width = largura
+    for e in equipamentos:
+        ws.append([valor(e) or "" for _t, valor, _l in COLUNAS_INVENTARIO])
+    ws.freeze_panes = "B2"
+    ws.auto_filter.ref = ws.dimensions
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf

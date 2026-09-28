@@ -22,6 +22,17 @@ SETORES = [
     "Faturamento", "Financeiro", "Fiscal", "Inspeção", "Manutenção", "Portaria",
     "Qualidade", "Recebimento", "RH", "T.I", "Vendas",
 ]
+SETOR_TI = "T.I"  # quem atende este setor também cuida do inventário
+
+# Inventário
+TIPOS_EQUIPAMENTO = [
+    "Desktop", "Notebook", "Monitor", "Impressora", "Celular", "Tablet", "Telefone IP",
+    "Nobreak", "Switch/Roteador", "Servidor", "Periférico", "Outro",
+]
+TIPOS_COMPUTADOR = {"Desktop", "Notebook", "Servidor"}  # mostram os campos de configuração
+SITUACAO_USO, SITUACAO_ESTOQUE, SITUACAO_MANUTENCAO, SITUACAO_DESCARTADO = (
+    "Em uso", "Em estoque", "Em manutenção", "Descartado")
+SITUACOES = [SITUACAO_USO, SITUACAO_ESTOQUE, SITUACAO_MANUTENCAO, SITUACAO_DESCARTADO]
 
 
 def agora() -> datetime:
@@ -68,6 +79,11 @@ class Usuario(Base):
 
     def pode_ver(self, chamado: "Chamado") -> bool:
         return chamado.solicitante_id == self.id or self.trabalha_em(chamado)
+
+    @property
+    def cuida_inventario(self) -> bool:
+        """Administradores e quem atende chamados da T.I."""
+        return self.is_admin or (self.atende and self.ativo and self.setor == SETOR_TI)
 
 
 class Chamado(Base):
@@ -153,3 +169,63 @@ class TentativaLogin(Base):
     chave: Mapped[str] = mapped_column(String(120))
     momento: Mapped[datetime] = mapped_column(DateTime, default=agora)
 
+
+
+class Equipamento(Base):
+    """Ativo de TI. O patrimônio é o número que já vem colado no equipamento."""
+    __tablename__ = "equipamentos"
+    __table_args__ = (
+        Index("ix_equipamentos_setor", "setor"),
+        Index("ix_equipamentos_usuario", "usuario_id"),
+        Index("ix_equipamentos_situacao", "situacao"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    patrimonio: Mapped[str] = mapped_column(String(50), unique=True)
+    tipo: Mapped[str] = mapped_column(String(30))
+    marca: Mapped[str | None] = mapped_column(String(60))
+    modelo: Mapped[str | None] = mapped_column(String(100))
+    numero_serie: Mapped[str | None] = mapped_column(String(100))
+    situacao: Mapped[str] = mapped_column(String(20), default=SITUACAO_ESTOQUE)
+    setor: Mapped[str | None] = mapped_column(String(50))
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    # computador
+    processador: Mapped[str | None] = mapped_column(String(100))
+    memoria: Mapped[str | None] = mapped_column(String(50))
+    armazenamento: Mapped[str | None] = mapped_column(String(100))
+    sistema_operacional: Mapped[str | None] = mapped_column(String(100))
+    # rede
+    hostname: Mapped[str | None] = mapped_column(String(100))
+    ip: Mapped[str | None] = mapped_column(String(45))
+    mac: Mapped[str | None] = mapped_column(String(17))
+    observacoes: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, onupdate=agora)
+
+    usuario: Mapped[Usuario | None] = relationship(lazy="joined")
+    historico: Mapped[list["MovimentoEquipamento"]] = relationship(
+        back_populates="equipamento", cascade="all, delete-orphan", passive_deletes=True,
+        order_by="MovimentoEquipamento.momento.desc(), MovimentoEquipamento.id.desc()")
+
+    @property
+    def descricao(self) -> str:
+        return " ".join(p for p in (self.marca, self.modelo) if p) or self.tipo
+
+    @property
+    def e_computador(self) -> bool:
+        return self.tipo in TIPOS_COMPUTADOR
+
+
+class MovimentoEquipamento(Base):
+    """Histórico: cadastro, trocas de setor/usuário/situação e edições."""
+    __tablename__ = "movimentos_equipamento"
+    __table_args__ = (Index("ix_movimentos_equipamento", "equipamento_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    equipamento_id: Mapped[int] = mapped_column(ForeignKey("equipamentos.id", ondelete="CASCADE"))
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    momento: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    descricao: Mapped[str] = mapped_column(Text)
+
+    equipamento: Mapped[Equipamento] = relationship(back_populates="historico")
+    autor: Mapped[Usuario | None] = relationship(lazy="joined")

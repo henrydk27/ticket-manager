@@ -91,6 +91,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Inventário: campos de configuração só para computadores; usuário preenche o setor
+  document.querySelectorAll("select[data-tipo-equipamento]").forEach((tipo) => {
+    const computadores = (tipo.dataset.computador || "").split("|");
+    const bloco = tipo.form.querySelector("[data-campos-computador]");
+    const atualizar = () => {
+      // Sem tipo escolhido ou com dados já preenchidos, mostra (não esconde informação existente)
+      const preenchido = bloco && Array.from(bloco.querySelectorAll("input")).some((i) => i.value);
+      if (bloco) bloco.hidden = !(computadores.includes(tipo.value) || !tipo.value || preenchido);
+    };
+    tipo.addEventListener("change", atualizar);
+    atualizar();
+  });
+  document.querySelectorAll("select[data-usuario-equipamento]").forEach((sel) => {
+    const setor = sel.form.querySelector("select[data-setor-equipamento]");
+    sel.addEventListener("change", () => {
+      const escolhido = sel.selectedOptions[0];
+      if (setor && escolhido && escolhido.dataset.setor) setor.value = escolhido.dataset.setor;
+    });
+  });
+
   // Envia o formulário ao mudar o select (ex.: período do painel)
   document.querySelectorAll("select[data-enviar-ao-mudar]").forEach((sel) => {
     sel.addEventListener("change", () => sel.form.submit());
