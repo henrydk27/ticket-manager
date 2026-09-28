@@ -5,7 +5,7 @@ import math
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
 
 from .. import anexos as arquivos_disco
-from .. import servicos
+from .. import notificacoes, servicos
 from ..anexos import TIPOS_EXIBIVEIS, AnexoInvalido, ler_anexos
 from ..banco import db
 from ..modelos import SETORES
@@ -86,6 +86,7 @@ def novo():
         except (servicos.ErroValidacao, AnexoInvalido) as e:
             flash(str(e), "erro")
         else:
+            notificacoes.chamado_aberto(c)
             flash(f"Chamado #{c.id} enviado para {c.responsavel.nome} ({c.setor_destino}).", "ok")
             return _voltar(c)
     return render_template("chamados/novo.html", form=form,
@@ -109,10 +110,12 @@ def detalhe(chamado_id: int):
 def comentar(chamado_id: int):
     c = _chamado_visivel(chamado_id)
     try:
-        servicos.comentar(db(), c, g.usuario, request.form.get("texto", ""),
-                          ler_anexos(request.files.getlist("anexos")))
+        m = servicos.comentar(db(), c, g.usuario, request.form.get("texto", ""),
+                              ler_anexos(request.files.getlist("anexos")))
     except (servicos.ErroValidacao, AnexoInvalido) as e:
         flash(str(e), "erro")
+    else:
+        notificacoes.comentario_novo(c, g.usuario, m)
     return _voltar(c, "#comentarios")
 
 
@@ -120,8 +123,10 @@ def comentar(chamado_id: int):
 @login_obrigatorio
 def alterar_status(chamado_id: int):
     c = _chamado_atendido(chamado_id)
+    anterior = c.status
     try:
         if servicos.alterar_status(db(), c, request.form.get("status", ""), g.usuario):
+            notificacoes.status_alterado(c, g.usuario, anterior)
             flash(f"Status alterado para {c.status}.", "ok")
     except servicos.ErroValidacao as e:
         flash(str(e), "erro")
@@ -132,8 +137,11 @@ def alterar_status(chamado_id: int):
 @login_obrigatorio
 def assumir(chamado_id: int):
     c = _chamado_atendido(chamado_id)
+    anterior = c.status
     try:
         servicos.assumir(db(), c, g.usuario)
+        if c.status != anterior:
+            notificacoes.status_alterado(c, g.usuario, anterior)
         flash("Você assumiu este chamado.", "ok")
     except servicos.ErroValidacao as e:
         flash(str(e), "erro")
@@ -151,6 +159,7 @@ def encaminhar(chamado_id: int):
         flash(str(e), "erro")
         return _voltar(c)
     if mudou:
+        notificacoes.chamado_encaminhado(c, g.usuario)
         flash(f"Chamado #{c.id} agora está com {c.responsavel.nome} ({c.setor_destino}).", "ok")
     # Quem encaminhou para outro setor pode deixar de ver o chamado: aí volta para a lista
     return _voltar(c) if g.usuario.pode_ver(c) else redirect(url_for("chamados.lista"))

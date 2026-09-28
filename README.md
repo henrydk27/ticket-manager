@@ -26,8 +26,10 @@ servidor **Ubuntu**. Refeito do zero a partir das funções da versão Lazarus.
 - A **primeira conta criada** no sistema vira administrador.
 - O setor de cada pessoa só é alterado pelo administrador (é ele que define o que ela vê).
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
-- Não há envio de e-mail: quem esquece a senha pede ao administrador para redefini-la.
-  A pessoa entra com a senha temporária e é obrigada a criar uma nova.
+- **Avisos por e-mail** (chamado novo, encaminhado, respostas, status e encerramento), pelo
+  e-mail da empresa via SMTP. Configuração em [deploy/OPERACAO.md](deploy/OPERACAO.md#avisos-por-e-mail).
+- Quem esquece a senha pede ao administrador para redefini-la; a pessoa entra com a senha
+  temporária e é obrigada a criar uma nova.
 
 ## Servidor
 
@@ -62,10 +64,11 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/servicos.py` | regras do sistema: contas, quem atende, chamados, visibilidade, painel, relatório |
 | `app/seguranca.py` | sessão, permissões e proteção CSRF |
 | `app/anexos.py` | validação e gravação dos anexos em disco |
+| `app/notificacoes.py`, `app/correio.py` | quem recebe cada aviso e o envio por SMTP em segundo plano |
 | `app/rotas/` | páginas: `auth` (login/cadastro), `conta`, `chamados`, `admin` |
 | `app/templates/`, `app/static/` | HTML, CSS e JavaScript (sem build, sem CDN) |
 | `migracoes/` | versões da estrutura do banco (Alembic) |
-| `manage.py` | `migrar`, `criar-admin`, `tornar-admin` |
+| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email` |
 | `wsgi.py` | ponto de entrada do Gunicorn |
 | `deploy/` | serviço systemd, Nginx, backup e guia de instalação |
 | `tests/` | testes, dados de exemplo e modo demonstração |

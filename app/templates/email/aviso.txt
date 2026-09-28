@@ -1,0 +1,18 @@
+Olá, {{ destino.nome.split()[0] }}.
+
+{{ frase }}
+
+Chamado #{{ c.id }} · para {{ c.setor_destino }}
+{{ c.titulo }}
+{% if citacao %}
+{{ citacao }}
+{% endif %}
+Status: {{ c.status }}
+Prioridade: {{ c.prioridade }}
+Pedido por: {{ c.solicitante.nome }} ({{ c.setor }})
+Responsável: {{ c.responsavel.nome if c.responsavel else '—' }}
+
+{{ botao }}: {{ link }}
+
+--
+Aviso automático do Ticket Manager. Para responder, use o próprio chamado no sistema.

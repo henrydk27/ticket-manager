@@ -37,6 +37,17 @@ def exigir_troca_de_senha():
     return None
 
 
+_LIBERADAS_SEM_EMAIL = {"conta.perfil", "conta.senha", "auth.logout", "static"}
+
+
+def exigir_email():
+    """Contas antigas sem e-mail precisam cadastrar um (os avisos chegam por e-mail)."""
+    if g.usuario is not None and not g.usuario.email and request.endpoint not in _LIBERADAS_SEM_EMAIL:
+        flash("Informe seu e-mail para continuar: é por ele que chegam os avisos dos chamados.", "info")
+        return redirect(url_for("conta.perfil"))
+    return None
+
+
 def login_obrigatorio(view):
     @wraps(view)
     def wrapper(*args, **kwargs):

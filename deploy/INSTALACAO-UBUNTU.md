@@ -74,6 +74,7 @@ secret_key = TEXTO_GERADO_ACIMA
 ```
 
 Se a senha do banco tiver `@`, `:` ou `/`, escreva `%40`, `%3A` ou `%2F` no lugar.
+Para os avisos por e-mail, preencha também a seção `[email]` (veja [OPERACAO.md](OPERACAO.md#avisos-por-e-mail)); dá para fazer depois.
 No nano: **Ctrl+O**, **Enter** para salvar, **Ctrl+X** para sair.
 
 Proteja o arquivo:

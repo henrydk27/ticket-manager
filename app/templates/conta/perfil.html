@@ -18,8 +18,10 @@
   <label for="nome">Nome completo</label>
   <input id="nome" name="nome" value="{{ usuario.nome }}" maxlength="100" required>
 
-  <label for="email">E-mail <span class="suave">(opcional)</span></label>
-  <input id="email" name="email" type="email" value="{{ usuario.email or '' }}" maxlength="150">
+  <label for="email">E-mail</label>
+  <input id="email" name="email" type="email" value="{{ usuario.email or '' }}" maxlength="150" required
+         {{ 'autofocus' if not usuario.email }}>
+  <p class="dica">Os avisos dos chamados (novo, respostas, encerramento) chegam neste e-mail.</p>
 
 
   <p class="dica">Para mudar de setor, fale com o administrador.</p>

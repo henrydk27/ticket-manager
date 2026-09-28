@@ -78,6 +78,71 @@ sudo nano /etc/ticket-manager/config.ini
 sudo systemctl restart ticket-manager
 ```
 
+## Avisos por e-mail
+
+O sistema manda e-mail quando:
+
+| Acontece | Quem recebe |
+|---|---|
+| Chamado aberto | o funcionário escolhido |
+| Chamado encaminhado | o novo responsável |
+| Comentário | quem abriu e o responsável |
+| Mudança de status | quem abriu |
+| Chamado encerrado | quem abriu (com link para avaliar) |
+
+Ninguém recebe aviso da própria ação, e contas desativadas não recebem nada.
+O e-mail é obrigatório no cadastro; quem tinha conta sem e-mail é levado a preencher no próximo acesso.
+
+### Configurar
+
+1. Crie (ou peça ao responsável pelo e-mail da empresa) uma conta só para o sistema,
+   por exemplo `chamados@suaempresa.com.br`, e anote a senha.
+2. Copie a seção `[email]` do `config.example.ini` para o `config.ini` do servidor, se ainda não
+   estiver lá, e preencha:
+
+   ```bash
+   sudo nano /etc/ticket-manager/config.ini
+   ```
+
+   ```ini
+   [email]
+   host = smtp.office365.com          ; servidor SMTP do seu provedor (veja a tabela abaixo)
+   porta = 587
+   seguranca = starttls               ; starttls, ssl ou nenhuma
+   usuario = chamados@suaempresa.com.br
+   senha = SENHA_DA_CONTA
+   remetente = chamados@suaempresa.com.br
+   nome = Ticket Manager
+   url_site = http://IP-OU-NOME-DO-SERVIDOR
+   ```
+
+3. Teste e reinicie:
+
+   ```bash
+   cd /opt/ticket-manager
+   sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py testar-email seu@email.com.br
+   sudo systemctl restart ticket-manager
+   ```
+
+| Provedor | host | porta | seguranca |
+|---|---|---|---|
+| Microsoft 365 / Outlook | `smtp.office365.com` | 587 | `starttls` |
+| Google Workspace / Gmail | `smtp.gmail.com` | 587 | `starttls` (senha de app) |
+| Locaweb | `email-ssl.com.br` | 465 | `ssl` |
+| HostGator / cPanel | `mail.seudominio.com.br` | 465 | `ssl` |
+
+Se o `testar-email` falhar:
+
+| Mensagem | O que fazer |
+|---|---|
+| `SMTPAuthenticationError` | Usuário ou senha errados. No Microsoft 365, o administrador precisa liberar "SMTP autenticado" para a conta; no Google, use uma "senha de app". |
+| `ConnectionRefusedError` / `timed out` | `host` ou `porta` errados, ou o provedor/firewall bloqueia a saída nessa porta. |
+| `SSL` / `WRONG_VERSION_NUMBER` | Troque `seguranca`: porta 465 usa `ssl`, porta 587 usa `starttls`. |
+| `SMTPSenderRefused` | O `remetente` precisa ser a mesma conta do `usuario` (ou uma que ela possa usar). |
+
+Se um aviso não chegar depois de configurado, o motivo aparece no log:
+`sudo journalctl -u ticket-manager -n 50 --no-pager | grep -i e-mail`.
+
 ## Backup
 
 - **Onde:** `/var/backups/ticket-manager` (só o root lê).

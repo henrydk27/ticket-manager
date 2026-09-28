@@ -5,7 +5,7 @@ from datetime import timedelta
 from flask import Flask, g, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import banco, formatos, seguranca
+from . import banco, correio, formatos, seguranca
 from .config import Config, carregar_config
 from .modelos import AVALIACOES, PAPEIS, PRIORIDADES, SETORES, STATUS
 
@@ -31,6 +31,7 @@ def create_app(cfg: Config | None = None) -> Flask:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     banco.iniciar(app, cfg.banco_url)
+    correio.iniciar(app, cfg.email)
     formatos.registrar(app)
     app.jinja_env.globals.update(csrf_token=seguranca.csrf_token, STATUS=STATUS, SETORES=SETORES,
                                  PRIORIDADES=PRIORIDADES, AVALIACOES=AVALIACOES, PAPEIS=PAPEIS)
@@ -39,7 +40,7 @@ def create_app(cfg: Config | None = None) -> Flask:
     def _antes():
         seguranca.verificar_csrf()
         seguranca.carregar_usuario()
-        return seguranca.exigir_troca_de_senha()
+        return seguranca.exigir_troca_de_senha() or seguranca.exigir_email()
 
     @app.after_request
     def _cabecalhos(resp):

@@ -49,7 +49,7 @@ def salvar_usuario(client, s, login, setor, atende, papel="usuario"):
 # ─── cadastro e login ───────────────────────────────────────────────────────
 
 def cadastrar(client, **campos):
-    dados = {"nome": "Maria Teste", "login": "maria", "email": "", "setor": "RH",
+    dados = {"nome": "Maria Teste", "login": "maria", "email": "maria@empresa.com.br", "setor": "RH",
              "senha": "senha123", "confirmar": "senha123"}
     dados.update(campos)
     return client.post("/cadastro", data=dict(dados, csrf=csrf(client, "/cadastro")))
@@ -112,8 +112,8 @@ def test_conta_desativada_perde_acesso_na_hora(client, s, contas):
 
 def test_usuario_nao_muda_o_proprio_setor(client, s, contas):
     entrar(client, "ana", "ana12345")
-    client.post("/conta/", data={"csrf": csrf(client, "/conta/"), "nome": "Ana S.", "email": "",
-                                 "setor": "RH"})
+    client.post("/conta/", data={"csrf": csrf(client, "/conta/"), "nome": "Ana S.",
+                                 "email": "ana@empresa.com.br", "setor": "RH"})
     ana = usuario(s, "ana")
     assert ana.nome == "Ana S." and ana.setor == "Fiscal"
 
@@ -412,3 +412,138 @@ def test_cabecalhos_seguranca(client):
     r = client.get("/login")
     assert "default-src 'self'" in r.headers["Content-Security-Policy"]
     assert r.headers["X-Frame-Options"] == "DENY"
+
+
+# ─── avisos por e-mail ──────────────────────────────────────────────────────
+
+def para_quem(emails):
+    return [m.para for m in emails]
+
+
+def test_email_obrigatorio_no_cadastro(client, contas):
+    assert "Informe seu e-mail" in cadastrar(client, email="").get_data(as_text=True)
+    assert "E-mail inválido" in cadastrar(client, email="nao-e-email").get_data(as_text=True)
+
+
+def test_conta_sem_email_precisa_cadastrar(client, s, contas):
+    ana = usuario(s, "ana")
+    ana.email = None
+    s.commit()
+    entrar(client, "ana", "ana12345")
+    r = client.get("/chamados")
+    assert r.status_code == 302 and r.location.endswith("/conta/")
+    client.post("/conta/", data={"csrf": csrf(client, "/conta/"), "nome": "Ana Souza",
+                                 "email": "Ana.Nova@Empresa.com.br"})
+    assert usuario(s, "ana").email == "ana.nova@empresa.com.br"
+    assert client.get("/chamados").status_code == 200
+
+
+def test_email_ao_abrir_chamado(client, s, contas, emails):
+    entrar(client, "ana", "ana12345")
+    abrir(client, s, "Mouse <b>quebrado</b>", setor="T.I", para="carlos", descricao="Não clica\nnada")
+    c = chamado(s, "Mouse <b>quebrado</b>")
+    assert para_quem(emails) == ["carlos@empresa.com.br"]
+    m = emails[0]
+    assert m.assunto == f"[Chamado #{c.id}] Novo chamado: Mouse <b>quebrado</b>"
+    assert "Ana Souza (Fiscal) abriu um chamado para você." in m.texto
+    assert f"/chamados/{c.id}" in m.texto and "Não clica\nnada" in m.texto
+    assert "Mouse &lt;b&gt;quebrado&lt;/b&gt;" in m.html and "<b>quebrado</b>" not in m.html
+
+
+def test_ninguem_recebe_aviso_da_propria_acao(client, s, contas, emails):
+    entrar(client, "carlos", "carlos123")          # carlos abre para ele mesmo
+    abrir(client, s, "Lembrete meu", setor="T.I", para="carlos")
+    assert emails == []
+
+
+def test_email_de_comentario_vai_para_o_outro_lado(client, s, contas, emails):
+    c = chamado(s, "Impressora do fiscal não imprime")   # ana pediu, carlos responsável
+    entrar(client, "ana", "ana12345")
+    client.post(f"/chamados/{c.id}/comentar", data={"csrf": csrf(client, "/chamados"), "texto": "Alguma novidade?"})
+    assert para_quem(emails) == ["carlos@empresa.com.br"]
+    assert "Alguma novidade?" in emails[0].texto and "Nova resposta" in emails[0].assunto
+    emails.clear()
+    sair(client)
+    entrar(client, "carlos", "carlos123")
+    client.post(f"/chamados/{c.id}/comentar", data={"csrf": csrf(client, "/chamados"), "texto": "Troquei o toner."})
+    assert para_quem(emails) == ["ana@empresa.com.br"]
+
+
+def test_colega_que_comenta_avisa_solicitante_e_responsavel(client, s, contas, emails):
+    c = chamado(s, "Erro ao emitir nota fiscal")          # ana pediu, admin responsável
+    entrar(client, "carlos", "carlos123")
+    client.post(f"/chamados/{c.id}/comentar", data={"csrf": csrf(client, "/chamados"), "texto": "Vou olhar."})
+    assert sorted(para_quem(emails)) == ["admin@empresa.com.br", "ana@empresa.com.br"]
+
+
+def test_email_de_status_e_de_encerramento(client, s, contas, emails):
+    c = chamado(s, "Impressora do fiscal não imprime")
+    entrar(client, "carlos", "carlos123")
+    token = csrf(client, "/chamados")
+    client.post(f"/chamados/{c.id}/status", data={"csrf": token, "status": "Aguardando usuário"})
+    assert para_quem(emails) == ["ana@empresa.com.br"]
+    assert emails[0].assunto.startswith(f"[Chamado #{c.id}] Status: Aguardando usuário")
+    emails.clear()
+    client.post(f"/chamados/{c.id}/status", data={"csrf": token, "status": "Fechado"})
+    assert para_quem(emails) == ["ana@empresa.com.br"]
+    assert "Chamado encerrado" in emails[0].assunto
+    assert "Avaliar atendimento: " in emails[0].texto and "/avaliacoes" in emails[0].texto
+
+
+def test_assumir_avisa_solicitante_da_mudanca_de_status(client, s, contas, emails):
+    c = chamado(s, "Dúvida sobre saldo de férias")        # bruno pediu, rita responsável, Aberto
+    entrar(client, "rita", "rita1234")
+    client.post(f"/chamados/{c.id}/assumir", data={"csrf": csrf(client, "/chamados")})
+    assert para_quem(emails) == ["bruno@empresa.com.br"]
+    assert "Em andamento" in emails[0].assunto
+
+
+def test_email_ao_encaminhar(client, s, contas, emails):
+    c = chamado(s, "Sem acesso à pasta da rede")
+    entrar(client, "carlos", "carlos123")
+    client.post(f"/chamados/{c.id}/encaminhar", data={"csrf": csrf(client, "/chamados"),
+                                                      "setor_destino": "Manutenção",
+                                                      "responsavel": usuario(s, "marta").id})
+    assert para_quem(emails) == ["marta@empresa.com.br"]
+    assert "Carlos Técnico encaminhou este chamado para você (Manutenção)." in emails[0].texto
+
+
+def test_conta_desativada_nao_recebe_aviso(client, s, contas, emails):
+    c = chamado(s, "Impressora do fiscal não imprime")
+    ana = usuario(s, "ana")
+    ana.ativo = False
+    s.commit()
+    entrar(client, "carlos", "carlos123")
+    client.post(f"/chamados/{c.id}/comentar", data={"csrf": csrf(client, "/chamados"), "texto": "Oi"})
+    assert emails == []
+
+
+def test_link_usa_url_site_configurada(client, s, app, contas, emails):
+    app.extensions["email"].url_site = "http://chamados.empresa.local"
+    entrar(client, "ana", "ana12345")
+    abrir(client, s, "Com link fixo")
+    c = chamado(s, "Com link fixo")
+    assert f"http://chamados.empresa.local/chamados/{c.id}" in emails[0].texto
+
+
+def test_config_email_do_ini(tmp_path, monkeypatch):
+    from app.config import carregar_config
+    ini = tmp_path / "config.ini"
+    ini.write_text("[banco]\nurl = sqlite://\n[servidor]\nsecret_key = " + "x" * 40 + "\n"
+                   "[email]\nhost = smtp.office365.com\nporta = 587\nseguranca = STARTTLS\n"
+                   "usuario = chamados@empresa.com.br\nsenha = a%b\nremetente = chamados@empresa.com.br\n"
+                   "url_site = http://chamados.local/\n", encoding="utf-8")
+    monkeypatch.setenv("TICKET_MANAGER_CONFIG", str(ini))
+    e = carregar_config().email
+    assert e.ativo and e.seguranca == "starttls" and e.senha == "a%b" and e.url_site == "http://chamados.local"
+
+
+def test_mensagem_montada_para_smtp():
+    from app.config import ConfigEmail
+    from app.correio import Mensagem, _montar
+    cfg = ConfigEmail(host="smtp", remetente="chamados@empresa.com.br")
+    m = _montar(cfg, Mensagem(para="ana@empresa.com.br", assunto="Título com\nquebra",
+                              texto="oi", html="<p>oi</p>"))
+    assert m["Subject"] == "Título com quebra"
+    assert m["From"] == "Ticket Manager <chamados@empresa.com.br>"
+    assert m.get_body(("html",)).get_content().strip() == "<p>oi</p>"

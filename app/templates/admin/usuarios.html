@@ -29,7 +29,7 @@
     {% set f = 'f' ~ u.id %}
     <tr id="u{{ u.id }}" class="{{ 'linha-inativa' if not u.ativo }}">
       <td><strong>{{ u.nome }}</strong>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}
-        <div class="subtitulo">{{ u.login }} · {{ total }} pedido{{ "s" if total != 1 }}</div></td>
+        <div class="subtitulo">{{ u.login }} · {{ u.email or "sem e-mail" }} · {{ total }} pedido{{ "s" if total != 1 }}</div></td>
       <td>
         <select name="setor" form="{{ f }}" aria-label="Setor de {{ u.nome }}">
           {% for s in SETORES %}<option {{ 'selected' if u.setor == s }}>{{ s }}</option>{% endfor %}

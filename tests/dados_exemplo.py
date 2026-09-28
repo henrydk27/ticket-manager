@@ -22,7 +22,7 @@ CONTAS = {
 def popular(s: Session, chamados: bool = True) -> dict:
     u = {}
     for login, (nome, setor, senha, atende) in CONTAS.items():
-        conta = servicos.criar_conta(s, nome, login, "", setor, senha)
+        conta = servicos.criar_conta(s, nome, login, f"{login}@empresa.com.br", setor, senha)
         servicos.atualizar_usuario(s, conta, setor, atende,
                                    PAPEL_ADMIN if login == "admin" else PAPEL_USUARIO)
         u[login] = conta

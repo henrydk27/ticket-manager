@@ -14,6 +14,7 @@ def app(tmp_path):
                  anexos_pasta=str(tmp_path / "anexos"), anexo_max_mb=1)
     a = create_app(cfg)
     a.config["TESTING"] = True
+    a.config["EMAIL_CAPTURA"] = []   # e-mails ficam numa lista em vez de serem enviados
     Base.metadata.create_all(a.extensions["engine"])
     yield a
     a.extensions["engine"].dispose()
@@ -33,6 +34,12 @@ def s(app):
 @pytest.fixture
 def contas(s):
     return popular(s)
+
+
+@pytest.fixture
+def emails(app):
+    """Lista dos e-mails que o sistema tentou enviar."""
+    return app.config["EMAIL_CAPTURA"]
 
 
 @pytest.fixture

@@ -18,8 +18,9 @@
              autocapitalize="none" pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]{2,49}" required>
       <p class="dica">Usado para entrar. Ex.: joao.silva (letras, números, ponto, hífen).</p>
 
-      <label for="email">E-mail <span class="suave">(opcional)</span></label>
-      <input id="email" name="email" type="email" value="{{ form.email or '' }}" maxlength="150" autocomplete="email">
+      <label for="email">E-mail</label>
+      <input id="email" name="email" type="email" value="{{ form.email or '' }}" maxlength="150" autocomplete="email" required>
+      <p class="dica">Os avisos dos seus chamados chegam por aqui.</p>
 
       <label for="setor">Setor</label>
       <select id="setor" name="setor" required>

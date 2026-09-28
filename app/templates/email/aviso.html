@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:'Segoe UI',Arial,sans-serif;color:#1b1f24;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:24px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="max-width:560px;background:#ffffff;border:1px solid #dfe3e8;border-radius:8px;">
+      <tr><td style="padding:18px 24px;border-bottom:1px solid #dfe3e8;">
+        <span style="display:inline-block;background:#c8262c;color:#ffffff;font-weight:700;font-size:12px;
+                     border-radius:6px;padding:4px 7px;">TM</span>
+        <span style="font-weight:700;font-size:15px;margin-left:6px;">Ticket Manager</span>
+      </td></tr>
+      <tr><td style="padding:24px;">
+        <p style="margin:0 0 12px;font-size:15px;">Olá, {{ destino.nome.split()[0] }}.</p>
+        <p style="margin:0 0 16px;font-size:15px;">{{ frase }}</p>
+
+        <p style="margin:0 0 4px;font-size:13px;color:#5b636e;">Chamado #{{ c.id }} · para {{ c.setor_destino }}</p>
+        <p style="margin:0 0 12px;font-size:18px;font-weight:700;">{{ c.titulo }}</p>
+
+        {% if citacao %}
+        <div style="margin:0 0 16px;padding:10px 14px;background:#f8f9fb;border-left:3px solid #2a78d6;
+                    font-size:14px;white-space:pre-wrap;">{{ citacao }}</div>
+        {% endif %}
+
+        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:13px;color:#5b636e;margin:0 0 20px;">
+          <tr><td style="padding:2px 12px 2px 0;">Status</td><td style="color:#1b1f24;">{{ c.status }}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;">Prioridade</td><td style="color:#1b1f24;">{{ c.prioridade }}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;">Pedido por</td><td style="color:#1b1f24;">{{ c.solicitante.nome }} ({{ c.setor }})</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;">Responsável</td><td style="color:#1b1f24;">{{ c.responsavel.nome if c.responsavel else '—' }}</td></tr>
+        </table>
+
+        <a href="{{ link }}" style="display:inline-block;background:#1f3a5f;color:#ffffff;text-decoration:none;
+                                   font-weight:600;font-size:14px;padding:10px 18px;border-radius:6px;">{{ botao }}</a>
+      </td></tr>
+      <tr><td style="padding:14px 24px;border-top:1px solid #dfe3e8;font-size:12px;color:#5b636e;">
+        Aviso automático do Ticket Manager. Para responder, use o próprio chamado no sistema.
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

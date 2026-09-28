@@ -42,13 +42,15 @@ def validar_senha(senha: str) -> None:
         raise ErroValidacao("Use letras e números na senha.")
 
 
-def _validar_nome_email(nome: str, email: str) -> tuple[str, str | None]:
+def _validar_nome_email(nome: str, email: str) -> tuple[str, str]:
     nome, email = (nome or "").strip(), (email or "").strip().lower()
     if not nome or len(nome) > 100:
         raise ErroValidacao("Informe seu nome.")
-    if email and not EMAIL_VALIDO.match(email):
+    if not email:
+        raise ErroValidacao("Informe seu e-mail: é por ele que chegam os avisos dos chamados.")
+    if len(email) > 150 or not EMAIL_VALIDO.match(email):
         raise ErroValidacao("E-mail inválido.")
-    return nome, email or None
+    return nome, email
 
 
 def criar_conta(s: Session, nome: str, login: str, email: str, setor: str, senha: str) -> Usuario:
@@ -349,7 +351,7 @@ def _evento(s: Session, c: Chamado, autor: Usuario, texto: str) -> None:
     s.add(Comentario(chamado=c, autor_id=autor.id, texto=texto, evento=True))
 
 
-def comentar(s: Session, c: Chamado, autor: Usuario, texto: str, arquivos: list[Arquivo]) -> None:
+def comentar(s: Session, c: Chamado, autor: Usuario, texto: str, arquivos: list[Arquivo]) -> Comentario:
     texto = texto.strip()
     if not texto and not arquivos:
         raise ErroValidacao("Digite um comentário ou anexe um arquivo.")
@@ -360,6 +362,7 @@ def comentar(s: Session, c: Chamado, autor: Usuario, texto: str, arquivos: list[
     gravados = _gravar_anexos(s, c, autor, arquivos, m)
     c.atualizado_em = agora()
     _commit_com_arquivos(s, gravados)
+    return m
 
 
 def alterar_status(s: Session, c: Chamado, novo: str, autor: Usuario) -> bool:
@@ -389,7 +392,7 @@ def encaminhar(s: Session, c: Chamado, setor: str, responsavel_id, autor: Usuari
         c.setor_destino = setor
     else:
         _evento(s, c, autor, f"Chamado atribuído a {responsavel.nome}.")
-    c.responsavel_id = responsavel.id
+    c.responsavel = responsavel  # objeto, não só o id: quem usa c.responsavel já vê o novo
     s.commit()
     return True
 
