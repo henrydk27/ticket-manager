@@ -639,3 +639,13 @@ def test_botao_de_tema_e_script_no_cabecalho(client, contas):
     html = client.get("/login").get_data(as_text=True)
     assert "data-alternar-tema" in html and "tema.js" in html
     assert html.index("tema.js") < html.index("style.css")   # aplica o tema antes de desenhar
+
+
+
+def test_estaticos_com_versao_para_nao_usar_cache_antigo(client, app):
+    import os
+    html = client.get("/login").get_data(as_text=True)
+    for arquivo in ("style.css", "app.js", "tema.js", "logo.png"):
+        mtime = int(os.stat(os.path.join(app.static_folder, arquivo)).st_mtime)
+        assert f"/static/{arquivo}?v={mtime}" in html, arquivo
+    assert client.get(f"/static/style.css?v=123").status_code == 200   # a versão não atrapalha o arquivo

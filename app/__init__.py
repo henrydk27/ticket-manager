@@ -1,5 +1,6 @@
 """Ticket Manager Web — criação da aplicação Flask."""
 
+import os
 from datetime import timedelta
 
 from flask import Flask, g, render_template
@@ -35,6 +36,16 @@ def create_app(cfg: Config | None = None) -> Flask:
     formatos.registrar(app)
     app.jinja_env.globals.update(csrf_token=seguranca.csrf_token, STATUS=STATUS, SETORES=SETORES,
                                  PRIORIDADES=PRIORIDADES, AVALIACOES=AVALIACOES, PAPEIS=PAPEIS)
+
+    @app.url_defaults
+    def _versao_dos_estaticos(endpoint, valores):
+        # Acrescenta ?v=<data do arquivo> aos CSS/JS/imagens: quando o arquivo muda numa
+        # atualização, o endereço muda e o navegador baixa o novo em vez de usar o do cache.
+        if endpoint == "static" and "filename" in valores and "v" not in valores:
+            try:
+                valores["v"] = int(os.stat(os.path.join(app.static_folder, valores["filename"])).st_mtime)
+            except OSError:
+                pass
 
     @app.before_request
     def _antes():
