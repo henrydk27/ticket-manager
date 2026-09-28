@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titulo %}Criar conta{% endblock %}
+{% block classe_body %}pagina-login{% endblock %}
+{% block classe_main %}login-conteudo{% endblock %}
+{% block conteudo %}
+<div class="login-cartao login-cartao-simples">
+  <div class="login-form">
+    <h1>Criar conta</h1>
+    <p class="suave">Preencha seus dados para abrir e acompanhar chamados.</p>
+    <form method="post" action="{{ url_for('auth.cadastro') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+      <label for="nome">Nome completo</label>
+      <input id="nome" name="nome" value="{{ form.nome or '' }}" maxlength="100" autocomplete="name" required autofocus>
+
+      <label for="login">Usuário</label>
+      <input id="login" name="login" value="{{ form.login or '' }}" maxlength="50" autocomplete="username"
+             autocapitalize="none" pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]{2,49}" required>
+      <p class="dica">Usado para entrar. Ex.: joao.silva (letras, números, ponto, hífen).</p>
+
+      <label for="email">E-mail <span class="suave">(opcional)</span></label>
+      <input id="email" name="email" type="email" value="{{ form.email or '' }}" maxlength="150" autocomplete="email">
+
+      <label for="setor">Setor</label>
+      <select id="setor" name="setor" required>
+        <option value="">Selecione</option>
+        {% for s in SETORES %}<option {{ 'selected' if form.setor == s }}>{{ s }}</option>{% endfor %}
+      </select>
+
+      <label for="senha">Senha</label>
+      <input id="senha" name="senha" type="password" minlength="8" autocomplete="new-password" required>
+      <p class="dica">Pelo menos 8 caracteres, com letras e números.</p>
+
+      <label for="confirmar">Confirme a senha</label>
+      <input id="confirmar" name="confirmar" type="password" minlength="8" autocomplete="new-password" required>
+
+      <button class="botao botao-primario botao-largo" type="submit">Criar conta</button>
+    </form>
+    <p class="login-rodape">Já tem conta? <a href="{{ url_for('auth.login') }}">Entrar</a></p>
+  </div>
+</div>
+{% endblock %}

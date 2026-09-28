@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Trocar senha{% endblock %}
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>Trocar senha</h1>
+</div>
+
+{% if obrigatoria %}
+<div class="aviso aviso-info">Sua senha foi redefinida pelo administrador. Crie uma senha nova para continuar.</div>
+{% endif %}
+
+<form class="cartao formulario formulario-estreito" method="post" action="{{ url_for('conta.senha') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <input type="text" name="usuario" value="{{ usuario.login }}" autocomplete="username" hidden>
+
+  {% if not obrigatoria %}
+  <label for="atual">Senha atual</label>
+  <input id="atual" name="atual" type="password" autocomplete="current-password" required autofocus>
+  {% endif %}
+
+  <label for="nova">Nova senha</label>
+  <input id="nova" name="nova" type="password" minlength="8" autocomplete="new-password" required
+         {{ 'autofocus' if obrigatoria }}>
+  <p class="dica">Pelo menos 8 caracteres, com letras e números.</p>
+
+  <label for="confirmar">Confirme a nova senha</label>
+  <input id="confirmar" name="confirmar" type="password" minlength="8" autocomplete="new-password" required>
+
+  <div class="acoes">
+    {% if not obrigatoria %}<a class="botao" href="{{ url_for('conta.perfil') }}">Cancelar</a>{% endif %}
+    <button class="botao botao-primario" type="submit">Salvar senha</button>
+  </div>
+</form>
+{% endblock %}

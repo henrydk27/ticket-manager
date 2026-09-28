@@ -1,0 +1,27 @@
+# /etc/systemd/system/ticket-manager.service
+[Unit]
+Description=Ticket Manager (Gunicorn)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=ticket
+Group=ticket
+WorkingDirectory=/opt/ticket-manager
+Environment=TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini
+Environment=TZ=America/Sao_Paulo
+ExecStart=/opt/ticket-manager/.venv/bin/gunicorn wsgi:app \
+    --bind 127.0.0.1:8000 --workers 3 --timeout 60 \
+    --access-logfile - --error-logfile -
+Restart=on-failure
+RestartSec=5
+
+# Endurecimento: o serviço só escreve na pasta de anexos
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ticket-manager
+
+[Install]
+WantedBy=multi-user.target

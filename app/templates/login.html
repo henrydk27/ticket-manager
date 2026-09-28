@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block titulo %}Entrar{% endblock %}
+{% block classe_body %}pagina-login{% endblock %}
+{% block classe_main %}login-conteudo{% endblock %}
+{% block conteudo %}
+<div class="login-cartao">
+  <div class="login-form">
+    <h1>Ticket Manager</h1>
+    <p class="suave">Entre com seu usuário e senha.</p>
+    <form method="post" action="{{ url_for('auth.login') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="proximo" value="{{ proximo }}">
+      <label for="login">Usuário</label>
+      <input id="login" name="login" value="{{ login }}" autocomplete="username"
+             autocapitalize="none" required autofocus>
+      <label for="senha">Senha</label>
+      <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+      <button class="botao botao-primario botao-largo" type="submit">Entrar</button>
+    </form>
+    {% if cadastro_aberto %}
+    <p class="login-rodape">Primeiro acesso? <a href="{{ url_for('auth.cadastro') }}">Crie sua conta</a></p>
+    {% endif %}
+    <p class="login-rodape suave">Esqueceu a senha? Peça ao administrador para redefinir.</p>
+  </div>
+  <div class="login-logo">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Suprens 60 anos">
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+<div class="vazio">
+  <p class="vazio-codigo">{{ codigo }}</p>
+  <h1>{{ titulo }}</h1>
+  <p class="suave">{{ mensagem }}</p>
+  <p><a class="botao" href="{{ url_for('chamados.lista') }}">Voltar para os chamados</a></p>
+</div>
+{% endblock %}

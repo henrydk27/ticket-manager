@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titulo %}Usuários{% endblock %}
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>Usuários</h1>
+  <span class="suave">{{ usuarios|length }} conta{{ 's' if usuarios|length != 1 }}</span>
+</div>
+
+{% if senha_temporaria %}
+{% set alvo, senha = senha_temporaria %}
+<div class="aviso aviso-info">
+  Senha temporária de <strong>{{ alvo.nome }}</strong> ({{ alvo.login }}):<br>
+  <span class="senha-temporaria">{{ senha }}</span><br>
+  Passe para a pessoa agora: ela não aparece de novo. No próximo acesso ela vai precisar criar uma senha nova.
+</div>
+{% endif %}
+
+<p class="suave">Qualquer pessoa pode criar a própria conta. <strong>Técnicos</strong> atendem chamados e veem painel e relatório;
+  <strong>administradores</strong> também gerenciam as contas.</p>
+
+<div class="tabela-rolagem">
+<table class="tabela">
+  <thead>
+    <tr><th>Nome</th><th>Usuário</th><th>Setor</th><th>Perfil</th><th class="num">Chamados</th><th>Último acesso</th><th>Ações</th></tr>
+  </thead>
+  <tbody>
+    {% for u, total in usuarios %}
+    <tr class="{{ 'linha-inativa' if not u.ativo }}">
+      <td><strong>{{ u.nome }}</strong>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}</td>
+      <td>{{ u.login }}</td>
+      <td>{{ u.setor }}</td>
+      <td>
+        {% if u.id == usuario.id %}
+        {{ u.papel_nome }} <span class="suave">(você)</span>
+        {% else %}
+        <form method="post" action="{{ url_for('admin.usuario_papel', usuario_id=u.id) }}" class="acoes-linha">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <select name="papel" aria-label="Perfil de {{ u.nome }}" data-enviar-ao-mudar>
+            {% for chave, nome in PAPEIS.items() %}<option value="{{ chave }}" {{ 'selected' if u.papel == chave }}>{{ nome }}</option>{% endfor %}
+          </select>
+          <noscript><button class="botao botao-pequeno">Salvar</button></noscript>
+        </form>
+        {% endif %}
+      </td>
+      <td class="num">{{ total }}</td>
+      <td class="col-data">{{ u.ultimo_acesso|data_hora or '—' }}</td>
+      <td>
+        {% if u.id != usuario.id %}
+        <div class="acoes-linha">
+          <form method="post" action="{{ url_for('admin.usuario_senha', usuario_id=u.id) }}"
+                data-confirmar="Gerar uma senha temporária para {{ u.nome }}? A senha atual deixa de funcionar.">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button class="botao botao-pequeno" type="submit">Redefinir senha</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.usuario_ativo', usuario_id=u.id) }}"
+                {% if u.ativo %}data-confirmar="Desativar a conta de {{ u.nome }}? A pessoa não consegue mais entrar."{% endif %}>
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <input type="hidden" name="ativo" value="{{ '0' if u.ativo else '1' }}">
+            <button class="botao botao-pequeno {{ 'botao-perigo' if u.ativo }}" type="submit">{{ 'Desativar' if u.ativo else 'Reativar' }}</button>
+          </form>
+        </div>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

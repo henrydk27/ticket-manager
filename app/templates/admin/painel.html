@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block titulo %}Painel{% endblock %}
+
+{# Barras horizontais: uma série, rótulo e valor sempre visíveis em texto #}
+{% macro barras(titulo, itens, vazio='Nada no momento.', filtro=None) %}
+<div class="cartao grafico">
+  <h2 class="cartao-titulo">{{ titulo }}</h2>
+  {% if itens %}
+  {% set maximo = itens|map(attribute=1)|max %}
+  {% set soma = itens|map(attribute=1)|sum %}
+  <ul class="barras">
+    {% for rotulo, total in itens %}
+    <li title="{{ rotulo }}: {{ total }} ({{ (100 * total / soma)|round|int }}%)">
+      {% if filtro == 'status' %}{% set href = url_for('chamados.lista', status=rotulo) %}
+      {% elif filtro == 'setor' %}{% set href = url_for('chamados.lista', status='abertos', setor=rotulo) %}
+      {% elif filtro == 'prioridade' %}{% set href = url_for('chamados.lista', status='abertos', prioridade=rotulo) %}
+      {% else %}{% set href = None %}{% endif %}
+      {% if href %}<a class="barra-rotulo" href="{{ href }}">{{ rotulo }}</a>
+      {% else %}<span class="barra-rotulo">{{ rotulo }}</span>{% endif %}
+      <span class="barra-trilho"><span class="barra" style="width: {{ (100 * total / maximo)|round(1) }}%"></span></span>
+      <span class="barra-valor">{{ total }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="suave">{{ vazio }}</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>Painel</h1>
+  <form method="get" class="seletor-periodo">
+    <label for="dias" class="suave">Período</label>
+    <select id="dias" name="dias" data-enviar-ao-mudar>
+      {% for n, rotulo in PERIODOS.items() %}<option value="{{ n }}" {{ 'selected' if n == dias }}>{{ rotulo }}</option>{% endfor %}
+    </select>
+    <noscript><button class="botao" type="submit">Aplicar</button></noscript>
+  </form>
+</div>
+
+{% set r = d.resumo %}
+<div class="indicadores">
+  <a class="indicador" href="{{ url_for('chamados.lista', status='abertos') }}">
+    <span class="indicador-rotulo">Em aberto agora</span>
+    <span class="indicador-valor">{{ r.abertos }}</span>
+  </a>
+  <a class="indicador {{ 'indicador-alerta' if r.sem_responsavel }}" href="{{ url_for('chamados.lista', status='abertos', responsavel='nenhum') }}">
+    <span class="indicador-rotulo">Sem responsável</span>
+    <span class="indicador-valor">{{ r.sem_responsavel }}</span>
+  </a>
+  <div class="indicador">
+    <span class="indicador-rotulo">Abertos no período</span>
+    <span class="indicador-valor">{{ r.novos }}</span>
+  </div>
+  <div class="indicador">
+    <span class="indicador-rotulo">Encerrados no período</span>
+    <span class="indicador-valor">{{ r.fechados }}</span>
+  </div>
+  <div class="indicador">
+    <span class="indicador-rotulo">Tempo médio até encerrar</span>
+    <span class="indicador-valor">{{ r.tempo_medio|dias }}</span>
+  </div>
+</div>
+
+<div class="graficos">
+  {{ barras('Em aberto por status', d.por_status, filtro='status') }}
+  {{ barras('Em aberto por responsável', d.por_responsavel) }}
+  {{ barras('Em aberto por setor', d.por_setor, filtro='setor') }}
+  {{ barras('Em aberto por prioridade', d.por_prioridade, filtro='prioridade') }}
+  {{ barras('Avaliações dos encerrados no período', d.avaliacoes, 'Nenhum chamado encerrado no período.') }}
+
+  <div class="cartao grafico">
+    <h2 class="cartao-titulo">Chamados abertos por mês</h2>
+    {% set maximo = d.por_mes|map(attribute=1)|max %}
+    {% if maximo %}
+    <div class="colunas" role="img" aria-label="Chamados abertos por mês">
+      {% for mes, total in d.por_mes %}
+      <div class="coluna" title="{{ mes }}: {{ total }} chamado(s)">
+        <span class="coluna-valor">{{ total }}</span>
+        <span class="coluna-trilho">{% if total %}<span class="coluna-barra" style="height: {{ (100 * total / maximo)|round(1) }}%"></span>{% endif %}</span>
+        <span class="coluna-rotulo">{{ mes }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <table class="oculto">
+      <caption>Chamados abertos por mês</caption>
+      {% for mes, total in d.por_mes %}<tr><th>{{ mes }}</th><td>{{ total }}</td></tr>{% endfor %}
+    </table>
+    {% else %}
+    <p class="suave">Nenhum chamado nos últimos 6 meses.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

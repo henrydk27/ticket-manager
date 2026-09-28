@@ -1,0 +1,14 @@
+# Configuração local (tem senhas) e dados
+config.ini
+anexos/
+demo/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+*.spec

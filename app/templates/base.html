@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Ticket Manager{% endblock %} · Ticket Manager</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body class="{% block classe_body %}{% endblock %}">
+{% if usuario %}
+<header class="topo">
+  <div class="topo-interno">
+    <a class="marca" href="{{ url_for('chamados.lista') }}">
+      <span class="marca-icone" aria-hidden="true">TM</span> Ticket Manager
+    </a>
+    <nav class="menu" aria-label="Principal">
+      {% set ep = request.endpoint or '' %}
+      <a href="{{ url_for('chamados.lista') }}" class="{{ 'ativo' if ep in ('chamados.lista', 'chamados.detalhe') }}">Chamados</a>
+      {% if usuario.is_tecnico %}
+      <a href="{{ url_for('admin.painel') }}" class="{{ 'ativo' if ep == 'admin.painel' }}">Painel</a>
+      <a href="{{ url_for('admin.relatorio') }}" class="{{ 'ativo' if ep == 'admin.relatorio' }}">Relatório</a>
+      {% endif %}
+      {% if usuario.is_admin %}
+      <a href="{{ url_for('admin.usuarios') }}" class="{{ 'ativo' if ep == 'admin.usuarios' }}">Usuários</a>
+      {% endif %}
+    </nav>
+    <div class="topo-direita">
+      <a class="botao botao-primario botao-novo" href="{{ url_for('chamados.novo') }}">+ Novo chamado</a>
+      <a class="usuario-nome" href="{{ url_for('conta.perfil') }}" title="Minha conta · {{ usuario.papel_nome }}">
+        {{ usuario.nome.split()[0] }}{% if usuario.is_tecnico %} <small>{{ 'admin' if usuario.is_admin else 'técnico' }}</small>{% endif %}
+      </a>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="botao-link" type="submit">Sair</button>
+      </form>
+    </div>
+  </div>
+</header>
+{% endif %}
+
+<main class="{% block classe_main %}conteudo{% endblock %}">
+  {% with mensagens = get_flashed_messages(with_categories=true) %}
+    {% if mensagens %}
+    <div class="avisos">
+      {% for categoria, msg in mensagens %}
+      <div class="aviso aviso-{{ categoria }}" role="status">{{ msg }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+  {% block conteudo %}{% endblock %}
+</main>
+</body>
+</html>

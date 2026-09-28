@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block titulo %}#{{ c.id }} {{ c.titulo }}{% endblock %}
+
+{% macro lista_anexos(anexos) %}
+<ul class="anexos">
+  {% for a in anexos %}
+  <li>
+    <a href="{{ url_for('chamados.baixar_anexo', anexo_id=a.id) }}" target="_blank" rel="noopener">📎 {{ a.nome }}</a>
+    <span class="suave">{{ a.tamanho|tamanho }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('chamados.lista') }}">‹ Chamados</a></p>
+
+<div class="cabecalho cabecalho-chamado">
+  <div>
+    <p class="suave numero">Chamado #{{ c.id }}</p>
+    <h1>{{ c.titulo }}</h1>
+    <div class="etiquetas">{{ c.status|status }} {{ c.prioridade|prioridade }}</div>
+  </div>
+</div>
+
+<div class="detalhe-grade">
+  <section class="detalhe-principal">
+    <div class="cartao">
+      <h2 class="cartao-titulo">Descrição</h2>
+      <div class="texto-livre">{{ c.descricao }}</div>
+      {% if anexos_chamado %}{{ lista_anexos(anexos_chamado) }}{% endif %}
+    </div>
+
+    {% if c.fechado and not c.avaliacao and c.solicitante_id == usuario.id %}
+    <div class="cartao cartao-destaque">
+      <h2 class="cartao-titulo">Como foi o atendimento?</h2>
+      <form method="post" action="{{ url_for('chamados.avaliar', chamado_id=c.id) }}" class="botoes-avaliacao">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="voltar" value="detalhe">
+        {% for av in AVALIACOES %}
+        <button class="botao botao-av-{{ av|lower }}" name="avaliacao" value="{{ av }}">{{ av }}</button>
+        {% endfor %}
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="cartao" id="comentarios">
+      <h2 class="cartao-titulo">Histórico <span class="suave">({{ c.comentarios|length }})</span></h2>
+      {% if c.comentarios %}
+      <ol class="linha-tempo">
+        {% for m in c.comentarios %}
+        <li class="{{ 'evento' if m.evento else ('meu' if m.autor_id == usuario.id) }}">
+          <div class="comentario-cabecalho">
+            <strong>{{ m.autor.nome }}</strong>
+            <span class="suave">{{ m.criado_em|data_hora }}</span>
+          </div>
+          <div class="texto-livre">{{ m.texto }}</div>
+          {% if m.anexos %}{{ lista_anexos(m.anexos) }}{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="suave">Nenhum comentário ainda.</p>
+      {% endif %}
+
+      <form method="post" enctype="multipart/form-data" class="form-comentario"
+            action="{{ url_for('chamados.comentar', chamado_id=c.id) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <label for="texto" class="oculto">Novo comentário</label>
+        <textarea id="texto" name="texto" rows="3" placeholder="Escreva um comentário"></textarea>
+        <div class="form-comentario-rodape">
+          <input name="anexos" type="file" multiple aria-label="Anexar arquivos" data-lista-arquivos>
+          <button class="botao botao-primario" type="submit">Enviar</button>
+        </div>
+        <ul class="lista-arquivos" aria-live="polite"></ul>
+      </form>
+    </div>
+  </section>
+
+  <aside class="detalhe-lateral">
+    <div class="cartao">
+      <dl class="dados">
+        <dt>Solicitante</dt><dd>{{ c.solicitante.nome }}</dd>
+        <dt>Setor</dt><dd>{{ c.setor }}</dd>
+        <dt>Aberto em</dt><dd>{{ c.aberto_em|data_hora }}</dd>
+        <dt>Encerrado em</dt><dd>{{ c.fechado_em|data_hora or '—' }}</dd>
+        <dt>Responsável</dt><dd>{{ c.responsavel.nome if c.responsavel else 'Ninguém ainda' }}</dd>
+        <dt>Avaliação</dt><dd>{{ c.avaliacao or ('Pendente' if c.fechado else '—') }}</dd>
+      </dl>
+    </div>
+
+    {% if usuario.is_tecnico %}
+    <div class="cartao">
+      <h2 class="cartao-titulo">Atendimento</h2>
+
+      {% if c.responsavel_id != usuario.id or c.status == 'Aberto' %}
+      <form method="post" action="{{ url_for('chamados.assumir', chamado_id=c.id) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="botao botao-primario botao-largo" type="submit">Assumir chamado</button>
+      </form>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('chamados.alterar_status', chamado_id=c.id) }}" class="form-lateral">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <label for="status">Status</label>
+        <div class="campo-com-botao">
+          <select id="status" name="status">
+            {% for s in STATUS %}<option {{ 'selected' if c.status == s }}>{{ s }}</option>{% endfor %}
+          </select>
+          <button class="botao" type="submit">Salvar</button>
+        </div>
+      </form>
+
+      <form method="post" action="{{ url_for('chamados.atribuir', chamado_id=c.id) }}" class="form-lateral">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <label for="responsavel">Responsável</label>
+        <div class="campo-com-botao">
+          <select id="responsavel" name="responsavel">
+            <option value="">Ninguém</option>
+            {% for t in tecnicos %}<option value="{{ t.id }}" {{ 'selected' if c.responsavel_id == t.id }}>{{ t.nome }}</option>{% endfor %}
+          </select>
+          <button class="botao" type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+
+    <form method="post" action="{{ url_for('chamados.apagar', chamado_id=c.id) }}"
+          data-confirmar="Apagar permanentemente o chamado #{{ c.id }}? Comentários e anexos também serão apagados. Esta ação não pode ser desfeita.">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="botao botao-perigo botao-largo" type="submit">Apagar chamado</button>
+    </form>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block titulo %}Relatório{% endblock %}
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>Relatório de chamados</h1>
+</div>
+
+<form class="cartao formulario formulario-estreito" method="get">
+  <p class="suave">Chamados abertos no período, com status, responsável e avaliação.</p>
+  <div class="linha-campos">
+    <div>
+      <label for="de">Início</label>
+      <input id="de" type="date" name="de" value="{{ request.args.de or de }}" required>
+    </div>
+    <div>
+      <label for="ate">Fim</label>
+      <input id="ate" type="date" name="ate" value="{{ request.args.ate or ate }}" required>
+    </div>
+  </div>
+  <div class="acoes">
+    <button class="botao" type="submit" formaction="{{ url_for('admin.relatorio_arquivo', formato='pdf') }}">Baixar PDF</button>
+    <button class="botao botao-primario" type="submit" formaction="{{ url_for('admin.relatorio_arquivo', formato='excel') }}">Baixar Excel</button>
+  </div>
+</form>
+{% endblock %}

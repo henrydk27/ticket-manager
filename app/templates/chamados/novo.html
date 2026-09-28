@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titulo %}Novo chamado{% endblock %}
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>Novo chamado</h1>
+</div>
+
+<form class="cartao formulario" method="post" enctype="multipart/form-data"
+      action="{{ url_for('chamados.novo') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+  <label for="titulo">Título</label>
+  <input id="titulo" name="titulo" maxlength="150" required value="{{ form.titulo or '' }}"
+         placeholder="Resuma o problema em uma frase" autofocus>
+
+  <div class="linha-campos">
+    <div>
+      <label for="prioridade">Prioridade</label>
+      <select id="prioridade" name="prioridade" required>
+        <option value="">Selecione</option>
+        {% for p in PRIORIDADES %}<option {{ 'selected' if form.prioridade == p }}>{{ p }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="setor">Setor</label>
+      <select id="setor" name="setor" required>
+        <option value="">Selecione</option>
+        {% for s in SETORES %}<option {{ 'selected' if form.setor == s }}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <label for="descricao">Descrição</label>
+  <textarea id="descricao" name="descricao" rows="8" required
+            placeholder="O que aconteceu? Desde quando? Que mensagem de erro aparece?">{{ form.descricao or '' }}</textarea>
+
+  <label for="anexos">Anexos <span class="suave">(opcional, até 5 arquivos)</span></label>
+  <input id="anexos" name="anexos" type="file" multiple data-lista-arquivos>
+  <ul class="lista-arquivos" aria-live="polite"></ul>
+
+  <div class="acoes">
+    <a class="botao" href="{{ url_for('chamados.lista') }}">Cancelar</a>
+    <button class="botao botao-primario" type="submit">Abrir chamado</button>
+  </div>
+</form>
+{% endblock %}

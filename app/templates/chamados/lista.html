@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block titulo %}Chamados{% endblock %}
+
+{% macro ordenar(coluna, rotulo) -%}
+  {%- set ativa = f.ordenar == coluna -%}
+  {%- set nova = 'asc' if (ativa and f.direcao == 'desc') else 'desc' -%}
+  <a class="ordenar{{ ' ativa' if ativa }}"
+     href="{{ url_for('chamados.lista', ordenar=coluna, direcao=nova, **base) }}"
+     aria-sort="{{ ('ascending' if f.direcao == 'asc' else 'descending') if ativa else 'none' }}">
+    {{ rotulo }}<span class="seta" aria-hidden="true">{{ ('▲' if f.direcao == 'asc' else '▼') if ativa }}</span>
+  </a>
+{%- endmacro %}
+
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>{{ 'Chamados' if usuario.is_tecnico else 'Meus chamados' }}</h1>
+  <span class="suave">{{ total }} encontrado{{ 's' if total != 1 }}</span>
+</div>
+
+{% if pendentes %}
+<div class="aviso aviso-info">
+  Você tem {{ pendentes }} chamado{{ 's' if pendentes > 1 }} encerrado{{ 's' if pendentes > 1 }} esperando avaliação.
+  <a href="{{ url_for('chamados.avaliacoes') }}">Avaliar agora</a>
+</div>
+{% endif %}
+
+<form class="filtros" method="get" action="{{ url_for('chamados.lista') }}">
+  <input type="search" name="q" value="{{ f.texto }}" placeholder="Buscar por nº, título ou descrição"
+         aria-label="Buscar" class="filtro-busca">
+  <select name="status" aria-label="Status">
+    <option value="">Todos os status</option>
+    <option value="abertos" {{ 'selected' if f.status == 'abertos' }}>Em aberto (não fechados)</option>
+    {% for s in STATUS %}<option {{ 'selected' if f.status == s }}>{{ s }}</option>{% endfor %}
+  </select>
+  <select name="setor" aria-label="Setor">
+    <option value="">Todos os setores</option>
+    {% for s in SETORES %}<option {{ 'selected' if f.setor == s }}>{{ s }}</option>{% endfor %}
+  </select>
+  <select name="prioridade" aria-label="Prioridade">
+    <option value="">Todas as prioridades</option>
+    {% for p in PRIORIDADES %}<option {{ 'selected' if f.prioridade == p }}>{{ p }}</option>{% endfor %}
+  </select>
+  {% if usuario.is_tecnico %}
+  <select name="responsavel" aria-label="Responsável">
+    <option value="">Todos os responsáveis</option>
+    <option value="eu" {{ 'selected' if f.responsavel == 'eu' }}>Atribuídos a mim</option>
+    <option value="nenhum" {{ 'selected' if f.responsavel == 'nenhum' }}>Sem responsável</option>
+    {% for t in tecnicos %}<option value="{{ t.id }}" {{ 'selected' if f.responsavel == t.id|string }}>{{ t.nome }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <label class="filtro-data">De <input type="date" name="de" value="{{ f.de.isoformat() if f.de }}"></label>
+  <label class="filtro-data">Até <input type="date" name="ate" value="{{ f.ate.isoformat() if f.ate }}"></label>
+  <input type="hidden" name="ordenar" value="{{ f.ordenar }}">
+  <input type="hidden" name="direcao" value="{{ f.direcao }}">
+  <button class="botao botao-primario" type="submit">Filtrar</button>
+  {% if base %}<a class="botao" href="{{ url_for('chamados.lista') }}">Limpar</a>{% endif %}
+</form>
+
+{% if chamados %}
+<div class="tabela-rolagem">
+<table class="tabela">
+  <thead>
+    <tr>
+      <th class="col-id">{{ ordenar('id', 'Nº') }}</th>
+      <th>{{ ordenar('titulo', 'Título') }}</th>
+      <th>{{ ordenar('status', 'Status') }}</th>
+      <th>{{ ordenar('prioridade', 'Prioridade') }}</th>
+      <th>{{ ordenar('setor', 'Setor') }}</th>
+      {% if usuario.is_tecnico %}<th>{{ ordenar('solicitante', 'Solicitante') }}</th>{% endif %}
+      <th>{{ ordenar('responsavel', 'Responsável') }}</th>
+      <th>{{ ordenar('abertura', 'Abertura') }}</th>
+      <th>{{ ordenar('fechamento', 'Encerrado') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in chamados %}
+    {% set link = url_for('chamados.detalhe', chamado_id=c.id) %}
+    <tr data-href="{{ link }}">
+      <td class="col-id"><a href="{{ link }}">#{{ c.id }}</a></td>
+      <td class="col-titulo">
+        <a href="{{ link }}">{{ c.titulo }}</a>
+        {% if anexos.get(c.id) %}<span class="clipe" title="{{ anexos[c.id] }} anexo(s)">📎 {{ anexos[c.id] }}</span>{% endif %}
+      </td>
+      <td>{{ c.status|status }}</td>
+      <td>{{ c.prioridade|prioridade }}</td>
+      <td>{{ c.setor }}</td>
+      {% if usuario.is_tecnico %}<td>{{ c.solicitante.nome }}</td>{% endif %}
+      <td>{% if c.responsavel %}{{ c.responsavel.nome }}{% else %}<span class="suave">—</span>{% endif %}</td>
+      <td class="col-data">{{ c.aberto_em|data }}</td>
+      <td class="col-data">{{ c.fechado_em|data }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if paginas > 1 %}
+<nav class="paginacao" aria-label="Páginas">
+  {% if f.pagina > 1 %}
+  <a class="botao" href="{{ url_for('chamados.lista', pagina=f.pagina - 1, ordenar=f.ordenar, direcao=f.direcao, **base) }}">‹ Anterior</a>
+  {% endif %}
+  <span>Página {{ f.pagina }} de {{ paginas }}</span>
+  {% if f.pagina < paginas %}
+  <a class="botao" href="{{ url_for('chamados.lista', pagina=f.pagina + 1, ordenar=f.ordenar, direcao=f.direcao, **base) }}">Próxima ›</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="vazio">
+  {% if base %}
+  <h2>Nenhum chamado com esses filtros</h2>
+  <p><a class="botao" href="{{ url_for('chamados.lista') }}">Limpar filtros</a></p>
+  {% else %}
+  <h2>Nenhum chamado ainda</h2>
+  <p class="suave">Quando você abrir um chamado, ele aparece aqui.</p>
+  <p><a class="botao botao-primario" href="{{ url_for('chamados.novo') }}">Abrir chamado</a></p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
