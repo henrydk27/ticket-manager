@@ -79,8 +79,7 @@ Os backups ficam no mesmo disco do servidor; copie-os regularmente para outro lu
 Para levar o mais recente para o seu computador (ex.: com WinSCP ou `scp`):
 
 ```bash
-sudo cp $(sudo ls -t /var/backups/ticket-manager/banco_* | head -1) \
-        $(sudo ls -t /var/backups/ticket-manager/anexos_* | head -1) ~/
+sudo bash -c 'cd /var/backups/ticket-manager && cp "$(ls -t banco_* | head -1)" "$(ls -t anexos_* | head -1)" "$1"' _ "$HOME"
 sudo chown $USER ~/banco_* ~/anexos_*
 ```
 

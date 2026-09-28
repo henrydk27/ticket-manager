@@ -20,10 +20,12 @@ versão Lazarus, sem depender do Oracle do ERP.
 - Não há envio de e-mail: quem esquece a senha pede ao administrador para redefini-la.
   A pessoa entra com a senha temporária e é obrigada a criar uma nova.
 
-## Instalação no servidor
+## Servidor
 
-Passo a passo completo em **[deploy/INSTALACAO-UBUNTU.md](deploy/INSTALACAO-UBUNTU.md)**:
-PostgreSQL, serviço `systemd` com Gunicorn, Nginx, backup diário e HTTPS.
+- **[deploy/INSTALACAO-UBUNTU.md](deploy/INSTALACAO-UBUNTU.md)**: passo a passo da instalação
+  (PostgreSQL, serviço `systemd` com Gunicorn, Nginx, backup diário e HTTPS).
+- **[deploy/OPERACAO.md](deploy/OPERACAO.md)**: dia a dia depois de instalado — como funciona,
+  tarefas do administrador, atualizar o sistema, backup e restauração, problemas comuns.
 
 ## Desenvolvimento local
 
