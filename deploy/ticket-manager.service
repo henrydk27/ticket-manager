@@ -5,8 +5,8 @@ After=network.target postgresql.service
 Requires=postgresql.service
 
 [Service]
-User=ticket
-Group=ticket
+User=ticketapp
+Group=ticketapp
 WorkingDirectory=/opt/ticket-manager
 Environment=TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini
 Environment=TZ=America/Sao_Paulo

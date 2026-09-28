@@ -28,13 +28,15 @@ sudo -u postgres createdb --owner=ticket ticket_manager
 
 ## 3. Usuário do sistema e código
 
+O serviço roda com um usuário próprio, `ticketapp`, sem senha e sem login (não use o seu usuário do servidor).
+
 ```bash
-sudo useradd --system --home /opt/ticket-manager --shell /usr/sbin/nologin ticket
+sudo useradd --system --home /opt/ticket-manager --shell /usr/sbin/nologin ticketapp
 sudo git clone https://github.com/henrydk27/ticket-manager.git /opt/ticket-manager
 sudo python3 -m venv /opt/ticket-manager/.venv
 sudo /opt/ticket-manager/.venv/bin/pip install -r /opt/ticket-manager/requirements.txt
 sudo mkdir -p /var/lib/ticket-manager/anexos
-sudo chown -R ticket:ticket /var/lib/ticket-manager
+sudo chown -R ticketapp:ticketapp /var/lib/ticket-manager
 ```
 
 ## 4. Configuração
@@ -53,7 +55,7 @@ Preencha:
 Depois, proteja o arquivo:
 
 ```bash
-sudo chown root:ticket /etc/ticket-manager/config.ini
+sudo chown root:ticketapp /etc/ticket-manager/config.ini
 sudo chmod 640 /etc/ticket-manager/config.ini
 ```
 
@@ -61,7 +63,7 @@ sudo chmod 640 /etc/ticket-manager/config.ini
 
 ```bash
 cd /opt/ticket-manager
-sudo -u ticket TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py migrar
+sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py migrar
 ```
 
 ## 6. Serviço e Nginx
@@ -109,7 +111,7 @@ Guarde cópias dos backups **fora** do servidor.
 ```bash
 cd /opt/ticket-manager && sudo git pull
 sudo /opt/ticket-manager/.venv/bin/pip install -r requirements.txt
-sudo -u ticket TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py migrar
+sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py migrar
 sudo systemctl restart ticket-manager
 ```
 
@@ -130,5 +132,5 @@ Depois, em `config.ini`, defina `cookie_seguro = true` e reinicie o serviço.
 |---|---|
 | Página "502 Bad Gateway" | `sudo journalctl -u ticket-manager -n 50` (serviço parado ou erro no config.ini) |
 | Erro de senha do banco | `url` em `[banco]`; caracteres especiais na senha precisam de codificação (`@` → `%40`) |
-| Anexo não salva | permissão de `/var/lib/ticket-manager/anexos` (dono deve ser `ticket`) |
+| Anexo não salva | permissão de `/var/lib/ticket-manager/anexos` (dono deve ser `ticketapp`) |
 | Upload "arquivo grande demais" | `client_max_body_size` no Nginx e `anexo_max_mb` no config.ini |
