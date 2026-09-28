@@ -11,9 +11,16 @@
   </a>
 {%- endmacro %}
 
+{# Aba de atalho: ativa quando os filtros atuais são exatamente os dela #}
+{% macro aba(rotulo, params, contagem=None) -%}
+  {%- set ativa = base == params -%}
+  <a class="aba{{ ' ativa' if ativa }}" href="{{ url_for('chamados.lista', **params) }}"
+     {{ 'aria-current=page' if ativa }}>{{ rotulo }}{% if contagem %} <span class="aba-contagem">{{ contagem }}</span>{% endif %}</a>
+{%- endmacro %}
+
 {% block conteudo %}
 <div class="cabecalho">
-  <h1>{{ 'Chamados' if usuario.is_tecnico else 'Meus chamados' }}</h1>
+  <h1>{{ 'Chamados' if usuario.is_atendente else 'Meus chamados' }}</h1>
   <span class="suave">{{ total }} encontrado{{ 's' if total != 1 }}</span>
 </div>
 
@@ -24,28 +31,45 @@
 </div>
 {% endif %}
 
+{% if usuario.is_atendente %}
+<nav class="abas" aria-label="Atalhos">
+  {{ aba('Tudo', {}) }}
+  {{ aba('Minhas filas', {'visao': 'filas', 'status': 'abertos'}) }}
+  {{ aba('Sem responsável', {'visao': 'filas', 'status': 'abertos', 'responsavel': 'nenhum'}, contagens.sem_responsavel) }}
+  {{ aba('Atribuídos a mim', {'status': 'abertos', 'responsavel': 'eu'}, contagens.atribuidos) }}
+  {{ aba('Meus pedidos', {'visao': 'meus'}) }}
+</nav>
+{% endif %}
+
 <form class="filtros" method="get" action="{{ url_for('chamados.lista') }}">
+  {% if f.visao %}<input type="hidden" name="visao" value="{{ f.visao }}">{% endif %}
   <input type="search" name="q" value="{{ f.texto }}" placeholder="Buscar por nº, título ou descrição"
          aria-label="Buscar" class="filtro-busca">
+  {% if usuario.is_atendente and minhas_filas|length > 1 %}
+  <select name="fila" aria-label="Fila">
+    <option value="">Todas as filas</option>
+    {% for fl in minhas_filas %}<option value="{{ fl.id }}" {{ 'selected' if f.fila == fl.id|string }}>{{ fl.nome }}</option>{% endfor %}
+  </select>
+  {% endif %}
   <select name="status" aria-label="Status">
     <option value="">Todos os status</option>
     <option value="abertos" {{ 'selected' if f.status == 'abertos' }}>Em aberto (não fechados)</option>
     {% for s in STATUS %}<option {{ 'selected' if f.status == s }}>{{ s }}</option>{% endfor %}
   </select>
-  <select name="setor" aria-label="Setor">
-    <option value="">Todos os setores</option>
+  <select name="setor" aria-label="Setor de origem">
+    <option value="">Todos os setores de origem</option>
     {% for s in SETORES %}<option {{ 'selected' if f.setor == s }}>{{ s }}</option>{% endfor %}
   </select>
   <select name="prioridade" aria-label="Prioridade">
     <option value="">Todas as prioridades</option>
     {% for p in PRIORIDADES %}<option {{ 'selected' if f.prioridade == p }}>{{ p }}</option>{% endfor %}
   </select>
-  {% if usuario.is_tecnico %}
+  {% if usuario.is_atendente %}
   <select name="responsavel" aria-label="Responsável">
     <option value="">Todos os responsáveis</option>
     <option value="eu" {{ 'selected' if f.responsavel == 'eu' }}>Atribuídos a mim</option>
     <option value="nenhum" {{ 'selected' if f.responsavel == 'nenhum' }}>Sem responsável</option>
-    {% for t in tecnicos %}<option value="{{ t.id }}" {{ 'selected' if f.responsavel == t.id|string }}>{{ t.nome }}</option>{% endfor %}
+    {% for t in atendentes %}<option value="{{ t.id }}" {{ 'selected' if f.responsavel == t.id|string }}>{{ t.nome }}</option>{% endfor %}
   </select>
   {% endif %}
   <label class="filtro-data">De <input type="date" name="de" value="{{ f.de.isoformat() if f.de }}"></label>
@@ -63,10 +87,10 @@
     <tr>
       <th class="col-id">{{ ordenar('id', 'Nº') }}</th>
       <th>{{ ordenar('titulo', 'Título') }}</th>
+      <th>{{ ordenar('fila', 'Fila') }}</th>
       <th>{{ ordenar('status', 'Status') }}</th>
       <th>{{ ordenar('prioridade', 'Prioridade') }}</th>
-      <th>{{ ordenar('setor', 'Setor') }}</th>
-      {% if usuario.is_tecnico %}<th>{{ ordenar('solicitante', 'Solicitante') }}</th>{% endif %}
+      {% if usuario.is_atendente %}<th>{{ ordenar('solicitante', 'Solicitante') }}</th>{% endif %}
       <th>{{ ordenar('responsavel', 'Responsável') }}</th>
       <th>{{ ordenar('abertura', 'Abertura') }}</th>
       <th>{{ ordenar('fechamento', 'Encerrado') }}</th>
@@ -80,11 +104,12 @@
       <td class="col-titulo">
         <a href="{{ link }}">{{ c.titulo }}</a>
         {% if anexos.get(c.id) %}<span class="clipe" title="{{ anexos[c.id] }} anexo(s)">📎 {{ anexos[c.id] }}</span>{% endif %}
+        {% if c.categoria %}<div class="subtitulo">{{ c.categoria.nome }}</div>{% endif %}
       </td>
+      <td>{{ c.fila.nome }}</td>
       <td>{{ c.status|status }}</td>
       <td>{{ c.prioridade|prioridade }}</td>
-      <td>{{ c.setor }}</td>
-      {% if usuario.is_tecnico %}<td>{{ c.solicitante.nome }}</td>{% endif %}
+      {% if usuario.is_atendente %}<td>{{ c.solicitante.nome }}<div class="subtitulo">{{ c.setor }}</div></td>{% endif %}
       <td>{% if c.responsavel %}{{ c.responsavel.nome }}{% else %}<span class="suave">—</span>{% endif %}</td>
       <td class="col-data">{{ c.aberto_em|data }}</td>
       <td class="col-data">{{ c.fechado_em|data }}</td>

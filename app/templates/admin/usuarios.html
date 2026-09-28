@@ -15,13 +15,14 @@
 </div>
 {% endif %}
 
-<p class="suave">Qualquer pessoa pode criar a própria conta. <strong>Técnicos</strong> atendem chamados e veem painel e relatório;
-  <strong>administradores</strong> também gerenciam as contas.</p>
+<p class="suave">Qualquer pessoa pode criar a própria conta. Quem atende chamados é definido em
+  <a href="{{ url_for('admin.filas') }}">Filas</a> (atendentes de cada fila). <strong>Administradores</strong>
+  veem todas as filas e gerenciam filas e contas.</p>
 
 <div class="tabela-rolagem">
 <table class="tabela">
   <thead>
-    <tr><th>Nome</th><th>Usuário</th><th>Setor</th><th>Perfil</th><th class="num">Chamados</th><th>Último acesso</th><th>Ações</th></tr>
+    <tr><th>Nome</th><th>Usuário</th><th>Setor</th><th>Perfil</th><th>Atende</th><th class="num">Chamados</th><th>Último acesso</th><th>Ações</th></tr>
   </thead>
   <tbody>
     {% for u, total in usuarios %}
@@ -42,6 +43,7 @@
         </form>
         {% endif %}
       </td>
+      <td>{% if u.filas %}{{ u.filas|map(attribute='nome')|join(', ') }}{% else %}<span class="suave">—</span>{% endif %}</td>
       <td class="num">{{ total }}</td>
       <td class="col-data">{{ u.ultimo_acesso|data_hora or '—' }}</td>
       <td>

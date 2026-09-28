@@ -2,7 +2,7 @@
 {% block titulo %}Painel{% endblock %}
 
 {# Barras horizontais: uma série, rótulo e valor sempre visíveis em texto #}
-{% macro barras(titulo, itens, vazio='Nada no momento.', filtro=None) %}
+{% macro barras(titulo, itens, vazio='Nada no momento.', filtro=None, escopo={}) %}
 <div class="cartao grafico">
   <h2 class="cartao-titulo">{{ titulo }}</h2>
   {% if itens %}
@@ -11,9 +11,9 @@
   <ul class="barras">
     {% for rotulo, total in itens %}
     <li title="{{ rotulo }}: {{ total }} ({{ (100 * total / soma)|round|int }}%)">
-      {% if filtro == 'status' %}{% set href = url_for('chamados.lista', status=rotulo) %}
-      {% elif filtro == 'setor' %}{% set href = url_for('chamados.lista', status='abertos', setor=rotulo) %}
-      {% elif filtro == 'prioridade' %}{% set href = url_for('chamados.lista', status='abertos', prioridade=rotulo) %}
+      {% if filtro == 'status' %}{% set href = url_for('chamados.lista', status=rotulo, **escopo) %}
+      {% elif filtro == 'setor' %}{% set href = url_for('chamados.lista', status='abertos', setor=rotulo, **escopo) %}
+      {% elif filtro == 'prioridade' %}{% set href = url_for('chamados.lista', status='abertos', prioridade=rotulo, **escopo) %}
       {% else %}{% set href = None %}{% endif %}
       {% if href %}<a class="barra-rotulo" href="{{ href }}">{{ rotulo }}</a>
       {% else %}<span class="barra-rotulo">{{ rotulo }}</span>{% endif %}
@@ -29,9 +29,18 @@
 {% endmacro %}
 
 {% block conteudo %}
+{# Filtro de fila repassado aos links para a lista #}
+{% set escopo = {'fila': fila_id} if fila_id else {'visao': 'filas'} %}
 <div class="cabecalho">
   <h1>Painel</h1>
   <form method="get" class="seletor-periodo">
+    {% if filas|length > 1 %}
+    <label for="fila" class="suave">Fila</label>
+    <select id="fila" name="fila" data-enviar-ao-mudar>
+      <option value="">{{ 'Todas' if usuario.is_admin else 'Todas as minhas' }}</option>
+      {% for fl in filas %}<option value="{{ fl.id }}" {{ 'selected' if fl.id == fila_id }}>{{ fl.nome }}</option>{% endfor %}
+    </select>
+    {% endif %}
     <label for="dias" class="suave">Período</label>
     <select id="dias" name="dias" data-enviar-ao-mudar>
       {% for n, rotulo in PERIODOS.items() %}<option value="{{ n }}" {{ 'selected' if n == dias }}>{{ rotulo }}</option>{% endfor %}
@@ -42,11 +51,11 @@
 
 {% set r = d.resumo %}
 <div class="indicadores">
-  <a class="indicador" href="{{ url_for('chamados.lista', status='abertos') }}">
+  <a class="indicador" href="{{ url_for('chamados.lista', status='abertos', **escopo) }}">
     <span class="indicador-rotulo">Em aberto agora</span>
     <span class="indicador-valor">{{ r.abertos }}</span>
   </a>
-  <a class="indicador {{ 'indicador-alerta' if r.sem_responsavel }}" href="{{ url_for('chamados.lista', status='abertos', responsavel='nenhum') }}">
+  <a class="indicador {{ 'indicador-alerta' if r.sem_responsavel }}" href="{{ url_for('chamados.lista', status='abertos', responsavel='nenhum', **escopo) }}">
     <span class="indicador-rotulo">Sem responsável</span>
     <span class="indicador-valor">{{ r.sem_responsavel }}</span>
   </a>
@@ -65,10 +74,12 @@
 </div>
 
 <div class="graficos">
-  {{ barras('Em aberto por status', d.por_status, filtro='status') }}
+  {% if not fila_id and filas|length > 1 %}{{ barras('Em aberto por fila', d.por_fila) }}{% endif %}
+  {{ barras('Em aberto por tipo de pedido', d.por_categoria) }}
+  {{ barras('Em aberto por status', d.por_status, filtro='status', escopo=escopo) }}
   {{ barras('Em aberto por responsável', d.por_responsavel) }}
-  {{ barras('Em aberto por setor', d.por_setor, filtro='setor') }}
-  {{ barras('Em aberto por prioridade', d.por_prioridade, filtro='prioridade') }}
+  {{ barras('Em aberto por setor de origem', d.por_setor, filtro='setor', escopo=escopo) }}
+  {{ barras('Em aberto por prioridade', d.por_prioridade, filtro='prioridade', escopo=escopo) }}
   {{ barras('Avaliações dos encerrados no período', d.avaliacoes, 'Nenhum chamado encerrado no período.') }}
 
   <div class="cartao grafico">

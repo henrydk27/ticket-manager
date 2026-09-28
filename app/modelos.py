@@ -2,13 +2,15 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Table, Text,
+                        UniqueConstraint)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 # ─── valores fixos ──────────────────────────────────────────────────────────
 
-PAPEL_USUARIO, PAPEL_TECNICO, PAPEL_ADMIN = "usuario", "tecnico", "admin"
-PAPEIS = {PAPEL_USUARIO: "Usuário", PAPEL_TECNICO: "Técnico", PAPEL_ADMIN: "Administrador"}
+# Quem atende chamados é definido pelas filas (atendentes de cada fila), não pelo papel
+PAPEL_USUARIO, PAPEL_ADMIN = "usuario", "admin"
+PAPEIS = {PAPEL_USUARIO: "Usuário", PAPEL_ADMIN: "Administrador"}
 
 STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO = (
     "Aberto", "Em andamento", "Aguardando usuário", "Fechado")
@@ -32,6 +34,46 @@ class Base(DeclarativeBase):
     pass
 
 
+fila_atendentes = Table(
+    "fila_atendentes", Base.metadata,
+    Column("fila_id", ForeignKey("filas.id", ondelete="CASCADE"), primary_key=True),
+    Column("usuario_id", ForeignKey("usuarios.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class Fila(Base):
+    """Setor que atende pedidos (T.I, Manutenção, RH...). Cadastrada pelo administrador."""
+    __tablename__ = "filas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nome: Mapped[str] = mapped_column(String(60), unique=True)
+    descricao: Mapped[str | None] = mapped_column(String(255))
+    ativa: Mapped[bool] = mapped_column(Boolean, default=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+    atendentes: Mapped[list["Usuario"]] = relationship(
+        secondary=fila_atendentes, back_populates="filas", order_by="Usuario.nome")
+    categorias: Mapped[list["Categoria"]] = relationship(
+        back_populates="fila", cascade="all, delete-orphan", order_by="Categoria.nome")
+
+    @property
+    def categorias_ativas(self) -> list["Categoria"]:
+        return [c for c in self.categorias if c.ativa]
+
+
+class Categoria(Base):
+    """Tipo de pedido dentro de uma fila (ex.: T.I → Impressora)."""
+    __tablename__ = "categorias"
+    __table_args__ = (UniqueConstraint("fila_id", "nome", name="uq_categorias_fila_nome"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fila_id: Mapped[int] = mapped_column(ForeignKey("filas.id", ondelete="CASCADE"))
+    nome: Mapped[str] = mapped_column(String(60))
+    ativa: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    fila: Mapped[Fila] = relationship(back_populates="categorias")
+
+
 class Usuario(Base):
     __tablename__ = "usuarios"
 
@@ -47,21 +89,32 @@ class Usuario(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
     ultimo_acesso: Mapped[datetime | None] = mapped_column(DateTime)
 
+    filas: Mapped[list[Fila]] = relationship(
+        secondary=fila_atendentes, back_populates="atendentes", order_by="Fila.nome", lazy="selectin")
+
     @property
     def is_admin(self) -> bool:
         return self.papel == PAPEL_ADMIN
 
     @property
-    def is_tecnico(self) -> bool:
-        """Técnicos e administradores atendem chamados."""
-        return self.papel in (PAPEL_TECNICO, PAPEL_ADMIN)
+    def filas_ids(self) -> set[int]:
+        return {f.id for f in self.filas}
+
+    @property
+    def is_atendente(self) -> bool:
+        """Atende alguma fila (ou é administrador, que vê todas)."""
+        return self.is_admin or bool(self.filas)
 
     @property
     def papel_nome(self) -> str:
         return PAPEIS.get(self.papel, self.papel)
 
+    def atende(self, chamado: "Chamado") -> bool:
+        """Pode trabalhar no chamado: mudar status, atribuir, transferir."""
+        return self.is_admin or chamado.fila_id in self.filas_ids
+
     def pode_ver(self, chamado: "Chamado") -> bool:
-        return self.is_tecnico or chamado.solicitante_id == self.id
+        return chamado.solicitante_id == self.id or self.atende(chamado)
 
 
 class Chamado(Base):
@@ -71,6 +124,7 @@ class Chamado(Base):
         Index("ix_chamados_solicitante", "solicitante_id"),
         Index("ix_chamados_responsavel", "responsavel_id"),
         Index("ix_chamados_aberto_em", "aberto_em"),
+        Index("ix_chamados_fila", "fila_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -78,7 +132,9 @@ class Chamado(Base):
     descricao: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(30), default=STATUS_ABERTO)
     prioridade: Mapped[str] = mapped_column(String(10))
-    setor: Mapped[str] = mapped_column(String(50))
+    setor: Mapped[str] = mapped_column(String(50))  # setor de quem pediu (origem)
+    fila_id: Mapped[int] = mapped_column(ForeignKey("filas.id"))  # setor que atende
+    categoria_id: Mapped[int | None] = mapped_column(ForeignKey("categorias.id", ondelete="SET NULL"))
     solicitante_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))
     responsavel_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
     aberto_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
@@ -87,6 +143,8 @@ class Chamado(Base):
     avaliacao: Mapped[str | None] = mapped_column(String(10))
     avaliado_em: Mapped[datetime | None] = mapped_column(DateTime)
 
+    fila: Mapped[Fila] = relationship(lazy="joined")
+    categoria: Mapped[Categoria | None] = relationship(lazy="joined")
     solicitante: Mapped[Usuario] = relationship(foreign_keys=[solicitante_id], lazy="joined")
     responsavel: Mapped[Usuario | None] = relationship(foreign_keys=[responsavel_id], lazy="joined")
     comentarios: Mapped[list["Comentario"]] = relationship(

@@ -1,4 +1,4 @@
-"""Painel e relatório (técnicos) e gestão de usuários (administrador)."""
+"""Painel e relatório (atendentes) e gestão de filas e usuários (administrador)."""
 
 from datetime import date, datetime, timedelta
 
@@ -7,16 +7,25 @@ from flask import (Blueprint, abort, flash, g, make_response, redirect, render_t
 
 from .. import exportacao, servicos
 from ..banco import db
-from ..modelos import Usuario
-from ..seguranca import admin_obrigatorio, tecnico_obrigatorio
+from ..modelos import Categoria, Usuario
+from ..seguranca import admin_obrigatorio, atendente_obrigatorio
 
 bp = Blueprint("admin", __name__)
 
 PERIODOS = {30: "Últimos 30 dias", 90: "Últimos 90 dias", 365: "Últimos 12 meses"}
 
 
+def _fila_do_filtro() -> tuple[list, int | None]:
+    """Filas que o usuário pode consultar e a escolhida no filtro (?fila=ID), se permitida."""
+    filas = servicos.filas_do_atendente(db(), g.usuario)
+    escolhida = request.args.get("fila", "")
+    if escolhida.isdigit() and int(escolhida) in {f.id for f in filas}:
+        return filas, int(escolhida)
+    return filas, None
+
+
 @bp.route("/painel")
-@tecnico_obrigatorio
+@atendente_obrigatorio
 def painel():
     try:
         dias = int(request.args.get("dias", 30))
@@ -24,8 +33,81 @@ def painel():
         dias = 30
     if dias not in PERIODOS:
         dias = 30
-    return render_template("admin/painel.html", d=servicos.painel(db(), dias), dias=dias,
-                           PERIODOS=PERIODOS)
+    filas, fila_id = _fila_do_filtro()
+    return render_template("admin/painel.html", d=servicos.painel(db(), dias, g.usuario, fila_id),
+                           dias=dias, PERIODOS=PERIODOS, filas=filas, fila_id=fila_id)
+
+
+# ─── FILAS ──────────────────────────────────────────────────────────────────
+
+@bp.route("/filas", methods=["GET", "POST"])
+@admin_obrigatorio
+def filas():
+    if request.method == "POST":
+        try:
+            f = servicos.criar_fila(db(), request.form.get("nome", ""), request.form.get("descricao", ""))
+        except servicos.ErroValidacao as e:
+            flash(str(e), "erro")
+        else:
+            flash(f"Fila {f.nome} criada. Agora escolha os atendentes e os tipos de pedido.", "ok")
+            return redirect(url_for("admin.fila", fila_id=f.id))
+    return render_template("admin/filas.html", filas=servicos.listar_filas(db()),
+                           abertos=servicos.contar_abertos_por_fila(db()))
+
+
+def _fila(fila_id: int):
+    f = servicos.obter_fila(db(), fila_id)
+    if f is None:
+        abort(404)
+    return f
+
+
+@bp.route("/filas/<int:fila_id>", methods=["GET", "POST"])
+@admin_obrigatorio
+def fila(fila_id: int):
+    f = _fila(fila_id)
+    if request.method == "POST":
+        try:
+            servicos.atualizar_fila(db(), f, request.form.get("nome", ""), request.form.get("descricao", ""),
+                                    request.form.get("ativa") == "1")
+        except servicos.ErroValidacao as e:
+            flash(str(e), "erro")
+        else:
+            flash("Fila atualizada.", "ok")
+        return redirect(url_for("admin.fila", fila_id=f.id))
+    return render_template("admin/fila.html", f=f, usuarios=servicos.listar_usuarios_ativos(db()))
+
+
+@bp.route("/filas/<int:fila_id>/atendentes", methods=["POST"])
+@admin_obrigatorio
+def fila_atendentes(fila_id: int):
+    f = _fila(fila_id)
+    ids = [int(i) for i in request.form.getlist("atendentes") if i.isdigit()]
+    servicos.definir_atendentes(db(), f, ids)
+    flash(f"Atendentes da fila {f.nome} atualizados.", "ok")
+    return redirect(url_for("admin.fila", fila_id=f.id))
+
+
+@bp.route("/filas/<int:fila_id>/categorias", methods=["POST"])
+@admin_obrigatorio
+def fila_categoria_nova(fila_id: int):
+    f = _fila(fila_id)
+    try:
+        c = servicos.adicionar_categoria(db(), f, request.form.get("nome", ""))
+        flash(f"Tipo de pedido {c.nome} adicionado.", "ok")
+    except servicos.ErroValidacao as e:
+        flash(str(e), "erro")
+    return redirect(url_for("admin.fila", fila_id=f.id) + "#categorias")
+
+
+@bp.route("/categorias/<int:categoria_id>/ativa", methods=["POST"])
+@admin_obrigatorio
+def categoria_ativa(categoria_id: int):
+    c = db().get(Categoria, categoria_id)
+    if c is None:
+        abort(404)
+    servicos.definir_categoria_ativa(db(), c, request.form.get("ativa") == "1")
+    return redirect(url_for("admin.fila", fila_id=c.fila_id) + "#categorias")
 
 
 # ─── USUÁRIOS ───────────────────────────────────────────────────────────────
@@ -100,27 +182,30 @@ def _periodo() -> tuple[date, date] | None:
 
 
 @bp.route("/relatorio")
-@tecnico_obrigatorio
+@atendente_obrigatorio
 def relatorio():
     hoje = date.today()
-    return render_template("admin/relatorio.html",
+    filas, fila_id = _fila_do_filtro()
+    return render_template("admin/relatorio.html", filas=filas, fila_id=fila_id,
                            de=(hoje - timedelta(days=30)).isoformat(), ate=hoje.isoformat())
 
 
 @bp.route("/relatorio/<formato>")
-@tecnico_obrigatorio
+@atendente_obrigatorio
 def relatorio_arquivo(formato: str):
     if formato not in ("excel", "pdf"):
         abort(404)
     periodo = _periodo()
+    _filas, fila_id = _fila_do_filtro()
     if periodo is None:
-        return redirect(url_for("admin.relatorio"))
+        return redirect(url_for("admin.relatorio", fila=fila_id or ""))
 
     ini, fim = periodo
-    chamados = servicos.chamados_por_periodo(db(), ini, fim)
+    chamados = servicos.chamados_por_periodo(db(), ini, fim, g.usuario, fila_id)
     if not chamados:
         flash("Nenhum chamado encontrado para o período informado.", "erro")
-        return redirect(url_for("admin.relatorio", de=ini.isoformat(), ate=fim.isoformat()))
+        return redirect(url_for("admin.relatorio", de=ini.isoformat(), ate=fim.isoformat(),
+                                fila=fila_id or ""))
 
     nome = f"Chamados_{ini:%Y%m%d}_{fim:%Y%m%d}"
     if formato == "excel":

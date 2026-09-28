@@ -1,22 +1,29 @@
 # Ticket Manager Web
 
-Sistema de chamados de suporte, acessado pelo navegador. Feito em Python (Flask) com banco
-**PostgreSQL**, para rodar num servidor **Ubuntu**. Refeito do zero a partir das funções da
-versão Lazarus, sem depender do Oracle do ERP.
+Sistema de chamados acessado pelo navegador, para **qualquer setor** da empresa: T.I,
+Manutenção, RH, Compras... Feito em Python (Flask) com banco **PostgreSQL**, para rodar num
+servidor **Ubuntu**. Refeito do zero a partir das funções da versão Lazarus.
 
-## Funções
+## Como funciona
 
-| Todos | Técnicos | Administradores |
+- Cada setor que atende pedidos é uma **fila**, cadastrada pelo administrador, com seus
+  **atendentes** e **tipos de pedido** (ex.: T.I → Impressora, Acesso e senha).
+- Quem abre o chamado escolhe **para qual setor** é o pedido e o tipo.
+- **Cada atendente vê só as filas dele.** Pode assumir, atribuir a um colega da fila, mudar o
+  status e **transferir** o chamado para outra fila.
+
+| Todos | Atendentes (das suas filas) | Administradores |
 |---|---|---|
-| Criar a própria conta | Ver e atender todos os chamados | Tudo dos técnicos |
-| Abrir chamado com anexos | Assumir / atribuir a outro técnico | Promover técnicos e administradores |
-| Comentar e anexar arquivos | Mudar status (Aberto, Em andamento, Aguardando usuário, Fechado) | Desativar e reativar contas |
-| Buscar e filtrar os próprios chamados | Reabrir e apagar chamados | Redefinir senha (gera senha temporária) |
-| Avaliar chamados encerrados | Painel de indicadores e relatório Excel/PDF | |
+| Criar a própria conta | Ver e atender os chamados da fila | Ver e atender **todas** as filas |
+| Abrir chamado para qualquer setor, com anexos | Assumir / atribuir a outro atendente da fila | Criar filas, escolher atendentes e tipos de pedido |
+| Comentar e anexar arquivos | Mudar status (Aberto, Em andamento, Aguardando usuário, Fechado) e reabrir | **Apagar** chamados |
+| Buscar e filtrar os próprios chamados | Transferir para outra fila / mudar o tipo | Promover administradores, desativar contas |
+| Avaliar chamados encerrados | Painel e relatório Excel/PDF das suas filas | Redefinir senha (gera senha temporária) |
 | Alterar dados e senha em Minha conta | | |
 
+- Um atendente que abre um pedido para **outra** fila acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
-- Mudanças de status e de responsável ficam registradas no histórico do chamado.
+- Mudanças de status, responsável e fila ficam registradas no histórico do chamado.
 - Não há envio de e-mail: quem esquece a senha pede ao administrador para redefini-la.
   A pessoa entra com a senha temporária e é obrigada a criar uma nova.
 
@@ -37,8 +44,9 @@ python -m pytest tests          # testes (usam SQLite em memória, não precisam
 python -m tests.demo            # demonstração com dados de exemplo em http://127.0.0.1:5057
 ```
 
-Contas da demonstração: `admin/admin123` (administrador), `carlos/carlos123` (técnico),
-`ana/ana12345` e `bruno/bruno123` (usuários). `python -m tests.demo --limpo` começa sem contas.
+Contas da demonstração: `admin/admin123` (administrador), `carlos/carlos123` (atendente da T.I),
+`marta/marta123` (atendente da Manutenção), `ana/ana12345` e `bruno/bruno123` (usuários).
+`python -m tests.demo --limpo` começa sem contas.
 
 Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.ini`, ajuste
 `url`, `secret_key` e `anexos_pasta`, depois `python manage.py migrar` e `python run.py`.
@@ -47,8 +55,8 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 
 | Caminho | Conteúdo |
 |---|---|
-| `app/modelos.py` | tabelas (usuários, chamados, comentários, anexos) e valores fixos (status, setores) |
-| `app/servicos.py` | regras do sistema: contas, chamados, painel, relatório |
+| `app/modelos.py` | tabelas (usuários, filas, tipos de pedido, chamados, comentários, anexos) e valores fixos |
+| `app/servicos.py` | regras do sistema: contas, filas, chamados, visibilidade, painel, relatório |
 | `app/seguranca.py` | sessão, permissões e proteção CSRF |
 | `app/anexos.py` | validação e gravação dos anexos em disco |
 | `app/rotas/` | páginas: `auth` (login/cadastro), `conta`, `chamados`, `admin` |
@@ -68,7 +76,8 @@ python -m alembic revision --autogenerate -m "descrição da mudança"
 python manage.py migrar
 ```
 
-Setores, prioridades e status ficam em listas no início de `app/modelos.py`.
+Filas e tipos de pedido são cadastrados pela tela **Filas**. Setores de origem (o setor de quem
+pede), prioridades e status ficam em listas no início de `app/modelos.py`.
 
 ## Segurança
 

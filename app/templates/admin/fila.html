@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block titulo %}Fila {{ f.nome }}{% endblock %}
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('admin.filas') }}">‹ Filas</a></p>
+<div class="cabecalho">
+  <h1>{{ f.nome }}</h1>
+  {% if not f.ativa %}<span class="badge badge-fechado">desativada</span>{% endif %}
+</div>
+
+<div class="detalhe-grade">
+  <section class="detalhe-principal">
+    <form class="cartao" method="post" action="{{ url_for('admin.fila_atendentes', fila_id=f.id) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <h2 class="cartao-titulo">Atendentes</h2>
+      <p class="dica">Marque quem trabalha nesta fila. Eles veem os chamados dela, assumem e transferem.
+        Quem for desmarcado deixa de ser responsável pelos chamados em aberto da fila.</p>
+      <div class="lista-marcar">
+        {% for u in usuarios %}
+        <label class="marcar">
+          <input type="checkbox" name="atendentes" value="{{ u.id }}" {{ 'checked' if u in f.atendentes }}>
+          <span>{{ u.nome }} <span class="suave">· {{ u.setor }}</span></span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="acoes">
+        <button class="botao botao-primario" type="submit">Salvar atendentes</button>
+      </div>
+    </form>
+
+    <div class="cartao" id="categorias">
+      <h2 class="cartao-titulo">Tipos de pedido</h2>
+      <p class="dica">Ajudam a organizar a fila e aparecem no painel e no relatório. Se a fila tiver
+        tipos ativos, quem abre o chamado precisa escolher um.</p>
+      {% if f.categorias %}
+      <ul class="lista-categorias">
+        {% for cat in f.categorias %}
+        <li class="{{ 'inativa' if not cat.ativa }}">
+          <span>{{ cat.nome }}{% if not cat.ativa %} <span class="suave">(desativado)</span>{% endif %}</span>
+          <form method="post" action="{{ url_for('admin.categoria_ativa', categoria_id=cat.id) }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <input type="hidden" name="ativa" value="{{ '0' if cat.ativa else '1' }}">
+            <button class="botao botao-pequeno" type="submit">{{ 'Desativar' if cat.ativa else 'Reativar' }}</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="suave">Nenhum tipo cadastrado.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('admin.fila_categoria_nova', fila_id=f.id) }}" class="campo-com-botao">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input name="nome" maxlength="60" required placeholder="Novo tipo, ex.: Impressora" aria-label="Novo tipo de pedido">
+        <button class="botao" type="submit">Adicionar</button>
+      </form>
+    </div>
+  </section>
+
+  <aside class="detalhe-lateral">
+    <form class="cartao" method="post" action="{{ url_for('admin.fila', fila_id=f.id) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <h2 class="cartao-titulo">Dados da fila</h2>
+      <label for="nome">Nome</label>
+      <input id="nome" name="nome" value="{{ f.nome }}" maxlength="60" required class="largo">
+      <label for="descricao">Descrição</label>
+      <input id="descricao" name="descricao" value="{{ f.descricao or '' }}" maxlength="255" class="largo">
+      <label class="marcar">
+        <input type="checkbox" name="ativa" value="1" {{ 'checked' if f.ativa }}>
+        <span>Recebendo pedidos</span>
+      </label>
+      <p class="dica">Desativada, a fila some da tela de novo chamado; os chamados que já estão nela continuam.</p>
+      <button class="botao botao-largo" type="submit">Salvar</button>
+    </form>
+    <p><a href="{{ url_for('chamados.lista', fila=f.id, status='abertos') }}">Ver chamados em aberto desta fila ›</a></p>
+  </aside>
+</div>
+{% endblock %}

@@ -5,13 +5,53 @@
   <h1>Novo chamado</h1>
 </div>
 
+{% if not filas %}
+<div class="vazio">
+  <h2>Nenhum setor recebendo pedidos</h2>
+  <p class="suave">
+    {% if usuario.is_admin %}Cadastre as filas de atendimento (T.I, Manutenção, RH...) antes de abrir chamados.
+    {% else %}O administrador ainda não cadastrou os setores que atendem pedidos.{% endif %}
+  </p>
+  {% if usuario.is_admin %}<p><a class="botao botao-primario" href="{{ url_for('admin.filas') }}">Cadastrar filas</a></p>{% endif %}
+</div>
+{% else %}
 <form class="cartao formulario" method="post" enctype="multipart/form-data"
       action="{{ url_for('chamados.novo') }}">
   <input type="hidden" name="csrf" value="{{ csrf_token() }}">
 
+  <fieldset class="escolha-fila">
+    <legend>Para qual setor é o pedido?</legend>
+    <div class="opcoes-fila">
+      {% for fl in filas %}
+      <label class="opcao-fila">
+        <input type="radio" name="fila" value="{{ fl.id }}" required data-fila
+               {{ 'checked' if fila_escolhida == fl.id|string or filas|length == 1 }}>
+        <span class="opcao-fila-nome">{{ fl.nome }}</span>
+        {% if fl.descricao %}<span class="opcao-fila-desc">{{ fl.descricao }}</span>{% endif %}
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  {% if filas|selectattr('categorias_ativas')|list %}
+  <div data-campo-categoria>
+    <label for="categoria">Tipo de pedido</label>
+    <select id="categoria" name="categoria" data-categorias>
+      <option value="">Selecione</option>
+      {% for fl in filas if fl.categorias_ativas %}
+      <optgroup label="{{ fl.nome }}" data-fila-id="{{ fl.id }}">
+        {% for cat in fl.categorias_ativas %}
+        <option value="{{ cat.id }}" {{ 'selected' if form.categoria == cat.id|string }}>{{ cat.nome }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+
   <label for="titulo">Título</label>
   <input id="titulo" name="titulo" maxlength="150" required value="{{ form.titulo or '' }}"
-         placeholder="Resuma o problema em uma frase" autofocus>
+         placeholder="Resuma o pedido em uma frase">
 
   <div class="linha-campos">
     <div>
@@ -22,17 +62,17 @@
       </select>
     </div>
     <div>
-      <label for="setor">Setor</label>
+      <label for="setor">Seu setor</label>
       <select id="setor" name="setor" required>
-        <option value="">Selecione</option>
-        {% for s in SETORES %}<option {{ 'selected' if form.setor == s }}>{{ s }}</option>{% endfor %}
+        {% set meu_setor = form.setor or usuario.setor %}
+        {% for s in SETORES %}<option {{ 'selected' if meu_setor == s }}>{{ s }}</option>{% endfor %}
       </select>
     </div>
   </div>
 
   <label for="descricao">Descrição</label>
   <textarea id="descricao" name="descricao" rows="8" required
-            placeholder="O que aconteceu? Desde quando? Que mensagem de erro aparece?">{{ form.descricao or '' }}</textarea>
+            placeholder="Descreva o que você precisa, com o máximo de detalhes.">{{ form.descricao or '' }}</textarea>
 
   <label for="anexos">Anexos <span class="suave">(opcional, até 5 arquivos)</span></label>
   <input id="anexos" name="anexos" type="file" multiple data-lista-arquivos>
@@ -43,4 +83,5 @@
     <button class="botao botao-primario" type="submit">Abrir chamado</button>
   </div>
 </form>
+{% endif %}
 {% endblock %}

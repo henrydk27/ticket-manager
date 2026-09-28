@@ -18,18 +18,19 @@
     <nav class="menu" aria-label="Principal">
       {% set ep = request.endpoint or '' %}
       <a href="{{ url_for('chamados.lista') }}" class="{{ 'ativo' if ep in ('chamados.lista', 'chamados.detalhe') }}">Chamados</a>
-      {% if usuario.is_tecnico %}
+      {% if usuario.is_atendente %}
       <a href="{{ url_for('admin.painel') }}" class="{{ 'ativo' if ep == 'admin.painel' }}">Painel</a>
       <a href="{{ url_for('admin.relatorio') }}" class="{{ 'ativo' if ep == 'admin.relatorio' }}">Relatório</a>
       {% endif %}
       {% if usuario.is_admin %}
+      <a href="{{ url_for('admin.filas') }}" class="{{ 'ativo' if ep in ('admin.filas', 'admin.fila') }}">Filas</a>
       <a href="{{ url_for('admin.usuarios') }}" class="{{ 'ativo' if ep == 'admin.usuarios' }}">Usuários</a>
       {% endif %}
     </nav>
     <div class="topo-direita">
       <a class="botao botao-primario botao-novo" href="{{ url_for('chamados.novo') }}">+ Novo chamado</a>
       <a class="usuario-nome" href="{{ url_for('conta.perfil') }}" title="Minha conta · {{ usuario.papel_nome }}">
-        {{ usuario.nome.split()[0] }}{% if usuario.is_tecnico %} <small>{{ 'admin' if usuario.is_admin else 'técnico' }}</small>{% endif %}
+        {{ usuario.nome.split()[0] }}{% if usuario.is_atendente %} <small>{{ 'admin' if usuario.is_admin else 'atendente' }}</small>{% endif %}
       </a>
       <form method="post" action="{{ url_for('auth.logout') }}">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">

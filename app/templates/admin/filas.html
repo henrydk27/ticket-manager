@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block titulo %}Filas{% endblock %}
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>Filas de atendimento</h1>
+  <span class="suave">{{ filas|length }} fila{{ 's' if filas|length != 1 }}</span>
+</div>
+
+<p class="suave">Cada fila é um setor que recebe pedidos (T.I, Manutenção, RH, Compras...).
+  Quem abre um chamado escolhe a fila; só os atendentes dela (e os administradores) veem e atendem.</p>
+
+{% if filas %}
+<div class="tabela-rolagem">
+<table class="tabela">
+  <thead>
+    <tr><th>Fila</th><th>Atendentes</th><th>Tipos de pedido</th><th class="num">Em aberto</th><th>Situação</th></tr>
+  </thead>
+  <tbody>
+    {% for fl in filas %}
+    {% set link = url_for('admin.fila', fila_id=fl.id) %}
+    <tr data-href="{{ link }}" class="{{ 'linha-inativa' if not fl.ativa }}">
+      <td class="col-titulo"><a href="{{ link }}">{{ fl.nome }}</a>
+        {% if fl.descricao %}<div class="subtitulo">{{ fl.descricao }}</div>{% endif %}</td>
+      <td class="col-titulo">
+        {% if fl.atendentes %}{{ fl.atendentes|map(attribute='nome')|join(', ') }}
+        {% else %}<span class="badge badge-andamento">nenhum atendente</span>{% endif %}
+      </td>
+      <td class="num">{{ fl.categorias_ativas|length }}</td>
+      <td class="num"><a href="{{ url_for('chamados.lista', fila=fl.id, status='abertos') }}">{{ abertos.get(fl.id, 0) }}</a></td>
+      <td>{% if fl.ativa %}<span class="badge badge-aberto">ativa</span>{% else %}<span class="badge badge-fechado">desativada</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+<form class="cartao formulario formulario-estreito formulario-nova-fila" method="post" action="{{ url_for('admin.filas') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <h2 class="cartao-titulo">Nova fila</h2>
+  <label for="nome">Nome</label>
+  <input id="nome" name="nome" maxlength="60" required placeholder="Ex.: Manutenção">
+  <label for="descricao">Descrição <span class="suave">(aparece para quem abre o chamado)</span></label>
+  <input id="descricao" name="descricao" maxlength="255" placeholder="Ex.: Elétrica, hidráulica, ar-condicionado, predial">
+  <div class="acoes">
+    <button class="botao botao-primario" type="submit">Criar fila</button>
+  </div>
+</form>
+{% endblock %}

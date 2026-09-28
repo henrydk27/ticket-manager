@@ -24,10 +24,23 @@ Os usuários não instalam nada: acessam pelo navegador (computador ou celular).
 | Situação | O que fazer |
 |---|---|
 | Pessoa nova | Ela mesma cria a conta em **Crie sua conta** na tela de login |
-| Alguém entrou no suporte | **Usuários** → mude o perfil para **Técnico** |
+| Um setor vai começar a receber pedidos | **Filas** → **Nova fila** (ex.: Manutenção) → marque os **atendentes** e cadastre os **tipos de pedido** |
+| Alguém passou a atender um setor | **Filas** → abra a fila → marque a pessoa em **Atendentes** → **Salvar atendentes** |
+| Alguém deixou de atender | Desmarque em **Atendentes**; os chamados em aberto dela nessa fila ficam sem responsável |
+| Um setor parou de receber pedidos | Abra a fila → desmarque **Recebendo pedidos** (os chamados que já estão nela continuam) |
 | Esqueceu a senha | **Usuários** → **Redefinir senha** → passe a senha temporária à pessoa; no próximo acesso ela cria uma nova |
 | Saiu da empresa | **Usuários** → **Desativar** (o acesso é cortado na hora; os chamados dela continuam no histórico) |
-| Outro administrador | **Usuários** → perfil **Administrador** (o sistema sempre mantém pelo menos um) |
+| Outro administrador | **Usuários** → perfil **Administrador** (vê e atende todas as filas; o sistema sempre mantém pelo menos um) |
+| Apagar um chamado | Só o administrador: abra o chamado → **Apagar chamado** (permanente) |
+
+### Quem vê o quê
+
+- **Usuário:** só os chamados que ele mesmo abriu.
+- **Atendente:** os chamados das filas que atende, mais os que ele abriu para outros setores.
+- **Administrador:** todos.
+
+Na atualização que criou as filas, os chamados que já existiam foram para a fila **T.I**, e
+quem era técnico ou administrador virou atendente dela.
 
 Para impedir que qualquer pessoa crie conta, defina `cadastro_aberto = false` no
 `config.ini` (veja [Mudar a configuração](#mudar-a-configuração)).

@@ -17,15 +17,17 @@ from . import formatos
 # (cabeçalho, valor, largura Excel em caracteres, largura PDF em mm)
 COLUNAS = [
     ("Nº", lambda c: c.id, 8, 13),
-    ("Título", lambda c: c.titulo, 40, 62),
-    ("Status", lambda c: c.status, 18, 26),
-    ("Prioridade", lambda c: c.prioridade, 12, 19),
-    ("Setor", lambda c: c.setor, 16, 25),
-    ("Solicitante", lambda c: c.solicitante.nome, 22, 29),
-    ("Responsável", lambda c: c.responsavel.nome if c.responsavel else "", 22, 29),
-    ("Abertura", lambda c: formatos.data(c.aberto_em), 12, 20),
-    ("Fechamento", lambda c: formatos.data(c.fechado_em), 12, 21),
-    ("Avaliação", lambda c: c.avaliacao or "", 11, 17),
+    ("Título", lambda c: c.titulo, 40, 50),
+    ("Fila", lambda c: c.fila.nome, 16, 24),
+    ("Tipo", lambda c: c.categoria.nome if c.categoria else "", 18, 24),
+    ("Status", lambda c: c.status, 18, 24),
+    ("Prioridade", lambda c: c.prioridade, 11, 17),
+    ("Setor de origem", lambda c: c.setor, 16, 22),
+    ("Solicitante", lambda c: c.solicitante.nome, 22, 25),
+    ("Responsável", lambda c: c.responsavel.nome if c.responsavel else "", 22, 25),
+    ("Abertura", lambda c: formatos.data(c.aberto_em), 12, 19),
+    ("Fechamento", lambda c: formatos.data(c.fechado_em), 12, 19),
+    ("Avaliação", lambda c: c.avaliacao or "", 11, 15),
 ]
 AZUL = "1F3A5F"
 

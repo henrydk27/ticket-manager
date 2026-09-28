@@ -46,11 +46,12 @@ def login_obrigatorio(view):
     return wrapper
 
 
-def tecnico_obrigatorio(view):
+def atendente_obrigatorio(view):
+    """Atendentes de alguma fila e administradores."""
     @wraps(view)
     @login_obrigatorio
     def wrapper(*args, **kwargs):
-        if not g.usuario.is_tecnico:
+        if not g.usuario.is_atendente:
             abort(403)
         return view(*args, **kwargs)
     return wrapper

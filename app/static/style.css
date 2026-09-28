@@ -138,7 +138,7 @@ input[type="file"] { border: 0; padding: 4px 0; background: transparent; }
 label { display: block; font-weight: 600; font-size: .9rem; margin: 14px 0 5px; }
 
 .formulario { max-width: 760px; }
-.formulario input:not([type="file"]):not([type="hidden"]), .formulario select { width: 100%; }
+.formulario input:not([type="file"]):not([type="hidden"]):not([type="radio"]):not([type="checkbox"]), .formulario select { width: 100%; }
 .formulario-estreito { max-width: 520px; }
 .linha-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .acoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
@@ -216,7 +216,7 @@ label { display: block; font-weight: 600; font-size: .9rem; margin: 14px 0 5px; 
 .dados dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
 .form-lateral label { margin-top: 14px; }
 .campo-com-botao { display: flex; gap: 6px; }
-.campo-com-botao select { flex: 1; min-width: 0; }
+.campo-com-botao select, .campo-com-botao input { flex: 1; min-width: 0; }
 .botoes-avaliacao { display: flex; gap: 8px; flex-wrap: wrap; margin: 0; }
 .botao-av-bom { border-color: var(--ok-texto); color: var(--ok-texto); }
 .botao-av-regular { border-color: var(--st-andamento-t); color: var(--st-andamento-t); }
@@ -311,3 +311,46 @@ a.usuario-nome { color: var(--texto); }
 .login-cartao-simples { grid-template-columns: 1fr; max-width: 440px; }
 .linha-tempo li.evento { border-left-style: dotted; }
 .linha-tempo li.evento .texto-livre { color: var(--texto-2); font-style: italic; font-size: .92rem; }
+
+/* ─── Filas ────────────────────────────────────────────────────────────── */
+.abas { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 1px solid var(--borda); }
+.aba {
+  padding: 8px 14px; color: var(--texto-2); font-weight: 500; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; display: inline-flex; align-items: center; gap: 6px;
+}
+.aba:hover { color: var(--texto); text-decoration: none; }
+.aba.ativa { color: var(--primaria); border-bottom-color: var(--primaria); }
+.aba-contagem {
+  background: var(--primaria-suave); color: var(--primaria); border-radius: 999px;
+  padding: 0 7px; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.subtitulo { font-size: .8rem; color: var(--texto-2); font-weight: normal; margin-top: 1px; }
+
+.escolha-fila { border: 0; padding: 0; margin: 0; }
+.escolha-fila legend { font-weight: 600; font-size: .9rem; margin: 0 0 8px; padding: 0; }
+.opcoes-fila { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.opcao-fila {
+  display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px 12px 10px 36px; position: relative;
+  border: 1px solid var(--borda); border-radius: var(--raio); cursor: pointer; font-weight: normal;
+}
+.opcao-fila:hover { border-color: var(--serie); }
+.opcao-fila:has(input:checked) { border-color: var(--primaria); background: var(--primaria-suave); }
+.opcao-fila input { position: absolute; left: 12px; top: 12px; margin: 0; width: auto; }
+.opcao-fila-nome { font-weight: 600; }
+.opcao-fila-desc { font-size: .82rem; color: var(--texto-2); }
+
+.lista-marcar { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; margin: 8px 0; }
+label.marcar { display: flex; gap: 8px; align-items: center; font-weight: normal; margin: 4px 0; cursor: pointer; }
+label.marcar input { width: auto; margin: 0; }
+.lista-categorias { list-style: none; padding: 0; margin: 0 0 12px; }
+.lista-categorias li {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 6px 0; border-bottom: 1px solid var(--borda);
+}
+.lista-categorias li.inativa > span { color: var(--texto-2); }
+.lista-categorias form { margin: 0; }
+input.largo, .detalhe-lateral select { width: 100%; }
+details.transferir summary { cursor: pointer; margin: 0; list-style: revert; }
+details.transferir[open] summary { margin-bottom: 4px; }
+details.transferir .botao { margin-top: 12px; }
+.formulario-nova-fila { margin-top: 16px; }

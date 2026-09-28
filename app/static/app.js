@@ -28,6 +28,35 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Tipo de pedido: mostra só os tipos da fila escolhida
+  document.querySelectorAll("select[data-categorias]").forEach((sel) => {
+    const form = sel.form;
+    const campo = sel.closest("[data-campo-categoria]");
+    const filaAtual = () => {
+      const radio = form.querySelector("input[data-fila]:checked");
+      if (radio) return radio.value;
+      const select = form.querySelector("select[data-fila-select]");
+      return select ? select.value : "";
+    };
+    const atualizar = () => {
+      const fila = filaAtual();
+      let temTipos = false;
+      sel.querySelectorAll("optgroup").forEach((grupo) => {
+        const visivel = grupo.dataset.filaId === fila;
+        grupo.hidden = !visivel;
+        grupo.disabled = !visivel;
+        temTipos = temTipos || visivel;
+      });
+      const escolhida = sel.selectedOptions[0];
+      if (escolhida && escolhida.parentElement.disabled) sel.value = "";
+      sel.required = temTipos && !!campo;  // no novo chamado, obrigatório se a fila tem tipos
+      if (campo) campo.hidden = !temTipos;
+    };
+    form.querySelectorAll("input[data-fila], select[data-fila-select]")
+      .forEach((el) => el.addEventListener("change", atualizar));
+    atualizar();
+  });
+
   // Envia o formulário ao mudar o select (ex.: período do painel)
   document.querySelectorAll("select[data-enviar-ao-mudar]").forEach((sel) => {
     sel.addEventListener("change", () => sel.form.submit());
