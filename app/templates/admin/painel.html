@@ -12,8 +12,6 @@
     {% for rotulo, total in itens %}
     <li title="{{ rotulo }}: {{ total }} ({{ (100 * total / soma)|round|int }}%)">
       {% if filtro == 'status' %}{% set href = url_for('chamados.lista', status=rotulo, **escopo) %}
-      {% elif filtro == 'setor' %}{% set href = url_for('chamados.lista', status='abertos', setor=rotulo, **escopo) %}
-      {% elif filtro == 'prioridade' %}{% set href = url_for('chamados.lista', status='abertos', prioridade=rotulo, **escopo) %}
       {% else %}{% set href = None %}{% endif %}
       {% if href %}<a class="barra-rotulo" href="{{ href }}">{{ rotulo }}</a>
       {% else %}<span class="barra-rotulo">{{ rotulo }}</span>{% endif %}
@@ -29,17 +27,19 @@
 {% endmacro %}
 
 {% block conteudo %}
-{# Filtro de fila repassado aos links para a lista #}
-{% set escopo = {'fila': fila_id} if fila_id else {'visao': 'filas'} %}
+{# Filtro de setor repassado aos links para a lista #}
+{% set escopo = {'setor': setor} if setor else ({} if usuario.is_admin else {'visao': 'setor'}) %}
 <div class="cabecalho">
   <h1>Painel</h1>
   <form method="get" class="seletor-periodo">
-    {% if filas|length > 1 %}
-    <label for="fila" class="suave">Fila</label>
-    <select id="fila" name="fila" data-enviar-ao-mudar>
-      <option value="">{{ 'Todas' if usuario.is_admin else 'Todas as minhas' }}</option>
-      {% for fl in filas %}<option value="{{ fl.id }}" {{ 'selected' if fl.id == fila_id }}>{{ fl.nome }}</option>{% endfor %}
+    {% if usuario.is_admin %}
+    <label for="setor" class="suave">Setor</label>
+    <select id="setor" name="setor" data-enviar-ao-mudar>
+      <option value="">Todos</option>
+      {% for s in setores %}<option {{ 'selected' if s == setor }}>{{ s }}</option>{% endfor %}
     </select>
+    {% else %}
+    <span class="suave">Setor {{ usuario.setor }}</span>
     {% endif %}
     <label for="dias" class="suave">Período</label>
     <select id="dias" name="dias" data-enviar-ao-mudar>
@@ -74,12 +74,11 @@
 </div>
 
 <div class="graficos">
-  {% if not fila_id and filas|length > 1 %}{{ barras('Em aberto por fila', d.por_fila) }}{% endif %}
-  {{ barras('Em aberto por tipo de pedido', d.por_categoria) }}
+  {% if usuario.is_admin and not setor %}{{ barras('Em aberto por setor', d.por_setor_destino) }}{% endif %}
   {{ barras('Em aberto por status', d.por_status, filtro='status', escopo=escopo) }}
   {{ barras('Em aberto por responsável', d.por_responsavel) }}
-  {{ barras('Em aberto por setor de origem', d.por_setor, filtro='setor', escopo=escopo) }}
-  {{ barras('Em aberto por prioridade', d.por_prioridade, filtro='prioridade', escopo=escopo) }}
+  {{ barras('Em aberto por setor de quem pediu', d.por_setor) }}
+  {{ barras('Em aberto por prioridade', d.por_prioridade) }}
   {{ barras('Avaliações dos encerrados no período', d.avaliacoes, 'Nenhum chamado encerrado no período.') }}
 
   <div class="cartao grafico">

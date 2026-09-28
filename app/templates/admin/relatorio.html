@@ -6,12 +6,13 @@
 </div>
 
 <form class="cartao formulario formulario-estreito" method="get">
-  <p class="suave">Chamados abertos no período, com fila, status, responsável e avaliação.</p>
-  {% if filas|length > 1 %}
-  <label for="fila">Fila</label>
-  <select id="fila" name="fila">
-    <option value="">{{ 'Todas' if usuario.is_admin else 'Todas as minhas filas' }}</option>
-    {% for fl in filas %}<option value="{{ fl.id }}" {{ 'selected' if fl.id == fila_id }}>{{ fl.nome }}</option>{% endfor %}
+  <p class="suave">Chamados abertos no período, com setor, status, responsável e avaliação.
+    {% if not usuario.is_admin %}Somente do setor {{ usuario.setor }}.{% endif %}</p>
+  {% if usuario.is_admin %}
+  <label for="setor">Setor</label>
+  <select id="setor" name="setor">
+    <option value="">Todos</option>
+    {% for s in setores %}<option {{ 'selected' if s == setor }}>{{ s }}</option>{% endfor %}
   </select>
   {% endif %}
   <div class="linha-campos">

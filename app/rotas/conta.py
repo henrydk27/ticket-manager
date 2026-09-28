@@ -15,8 +15,7 @@ def perfil():
     if request.method == "POST":
         f = request.form
         try:
-            servicos.atualizar_perfil(db(), g.usuario, f.get("nome", ""), f.get("email", ""),
-                                      f.get("setor", ""))
+            servicos.atualizar_perfil(db(), g.usuario, f.get("nome", ""), f.get("email", ""))
         except servicos.ErroValidacao as e:
             flash(str(e), "erro")
         else:

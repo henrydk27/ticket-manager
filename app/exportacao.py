@@ -17,9 +17,8 @@ from . import formatos
 # (cabeçalho, valor, largura Excel em caracteres, largura PDF em mm)
 COLUNAS = [
     ("Nº", lambda c: c.id, 8, 13),
-    ("Título", lambda c: c.titulo, 40, 50),
-    ("Fila", lambda c: c.fila.nome, 16, 24),
-    ("Tipo", lambda c: c.categoria.nome if c.categoria else "", 18, 24),
+    ("Título", lambda c: c.titulo, 40, 74),
+    ("Para o setor", lambda c: c.setor_destino, 16, 24),
     ("Status", lambda c: c.status, 18, 24),
     ("Prioridade", lambda c: c.prioridade, 11, 17),
     ("Setor de origem", lambda c: c.setor, 16, 22),

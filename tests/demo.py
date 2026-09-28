@@ -2,8 +2,8 @@
 
     python -m tests.demo            (use --limpo para começar sem nenhuma conta)
 
-Contas: admin/admin123 (administrador), carlos/carlos123 (atendente T.I), marta/marta123
-(atendente Manutenção), ana/ana12345 e bruno/bruno123 (usuários).
+Contas: admin/admin123 (administrador, T.I), carlos/carlos123 (T.I), marta/marta123 (Manutenção),
+rita/rita1234 (RH) — estes atendem o próprio setor —, ana/ana12345 e bruno/bruno123 (usuários).
 """
 
 import os

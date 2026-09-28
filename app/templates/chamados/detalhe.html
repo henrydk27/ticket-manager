@@ -17,7 +17,7 @@
 
 <div class="cabecalho cabecalho-chamado">
   <div>
-    <p class="suave numero">Chamado #{{ c.id }} · {{ c.fila.nome }}{% if c.categoria %} / {{ c.categoria.nome }}{% endif %}</p>
+    <p class="suave numero">Chamado #{{ c.id }} · para {{ c.setor_destino }}</p>
     <h1>{{ c.titulo }}</h1>
     <div class="etiquetas">{{ c.status|status }} {{ c.prioridade|prioridade }}</div>
   </div>
@@ -80,22 +80,20 @@
   <aside class="detalhe-lateral">
     <div class="cartao">
       <dl class="dados">
-        <dt>Fila</dt><dd>{{ c.fila.nome }}</dd>
-        <dt>Tipo</dt><dd>{{ c.categoria.nome if c.categoria else '—' }}</dd>
-        <dt>Solicitante</dt><dd>{{ c.solicitante.nome }}</dd>
-        <dt>Setor de origem</dt><dd>{{ c.setor }}</dd>
+        <dt>Para</dt><dd>{{ c.setor_destino }}</dd>
+        <dt>Responsável</dt><dd>{{ c.responsavel.nome if c.responsavel else 'Ninguém' }}</dd>
+        <dt>Pedido por</dt><dd>{{ c.solicitante.nome }} <span class="suave">· {{ c.setor }}</span></dd>
         <dt>Aberto em</dt><dd>{{ c.aberto_em|data_hora }}</dd>
-        <dt>Encerrado em</dt><dd>{{ c.fechado_em|data_hora or '—' }}</dd>
-        <dt>Responsável</dt><dd>{{ c.responsavel.nome if c.responsavel else 'Ninguém ainda' }}</dd>
-        <dt>Avaliação</dt><dd>{{ c.avaliacao or ('Pendente' if c.fechado else '—') }}</dd>
+        {% if c.fechado_em %}<dt>Encerrado em</dt><dd>{{ c.fechado_em|data_hora }}</dd>{% endif %}
+        {% if c.fechado %}<dt>Avaliação</dt><dd>{{ c.avaliacao or 'Pendente' }}</dd>{% endif %}
       </dl>
     </div>
 
-    {% if atende %}
+    {% if trabalha %}
     <div class="cartao">
       <h2 class="cartao-titulo">Atendimento</h2>
 
-      {% if c.fila_id in usuario.filas_ids and (c.responsavel_id != usuario.id or c.status == 'Aberto') %}
+      {% if c.responsavel_id != usuario.id and (usuario.atende and usuario.setor == c.setor_destino) %}
       <form method="post" action="{{ url_for('chamados.assumir', chamado_id=c.id) }}">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <button class="botao botao-primario botao-largo" type="submit">Assumir chamado</button>
@@ -113,41 +111,23 @@
         </div>
       </form>
 
-      <form method="post" action="{{ url_for('chamados.atribuir', chamado_id=c.id) }}" class="form-lateral">
+      <form method="post" action="{{ url_for('chamados.encaminhar', chamado_id=c.id) }}" class="form-lateral">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-        <label for="responsavel">Responsável</label>
-        <div class="campo-com-botao">
-          <select id="responsavel" name="responsavel">
-            <option value="">Ninguém</option>
-            {% for t in atendentes %}<option value="{{ t.id }}" {{ 'selected' if c.responsavel_id == t.id }}>{{ t.nome }}</option>{% endfor %}
-          </select>
-          <button class="botao" type="submit">Salvar</button>
-        </div>
-        {% if not atendentes %}<p class="dica">A fila {{ c.fila.nome }} ainda não tem atendentes.</p>{% endif %}
-      </form>
-    </div>
-
-    <details class="cartao transferir" {{ 'open' if c.categoria is none and c.fila.categorias_ativas }}>
-      <summary class="cartao-titulo">Transferir / mudar tipo</summary>
-      <form method="post" action="{{ url_for('chamados.transferir', chamado_id=c.id) }}">
-        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-        <label for="t-fila">Fila</label>
-        <select id="t-fila" name="fila" data-fila-select>
-          {% for fl in filas %}<option value="{{ fl.id }}" {{ 'selected' if fl.id == c.fila_id }}>{{ fl.nome }}</option>{% endfor %}
+        <label for="e-setor">Encaminhar para</label>
+        <select id="e-setor" name="setor_destino" data-setor>
+          {% for setor in por_setor %}<option {{ 'selected' if setor == c.setor_destino }}>{{ setor }}</option>{% endfor %}
         </select>
-        <label for="t-categoria">Tipo de pedido</label>
-        <select id="t-categoria" name="categoria" data-categorias>
-          <option value="">Nenhum</option>
-          {% for fl in filas if fl.categorias_ativas %}
-          <optgroup label="{{ fl.nome }}" data-fila-id="{{ fl.id }}">
-            {% for cat in fl.categorias_ativas %}<option value="{{ cat.id }}" {{ 'selected' if c.categoria_id == cat.id }}>{{ cat.nome }}</option>{% endfor %}
+        <select name="responsavel" aria-label="Funcionário" data-funcionarios class="espaco-acima" required>
+          <option value="">Escolha o funcionário</option>
+          {% for setor, pessoas in por_setor.items() %}
+          <optgroup label="{{ setor }}" data-setor="{{ setor }}">
+            {% for p in pessoas %}<option value="{{ p.id }}" {{ 'selected' if c.responsavel_id == p.id }}>{{ p.nome }}</option>{% endfor %}
           </optgroup>
           {% endfor %}
         </select>
-        <p class="dica">Ao mudar de fila, o responsável é removido se não atender a fila nova.</p>
-        <button class="botao botao-largo" type="submit">Transferir</button>
+        <button class="botao botao-largo espaco-acima" type="submit">Encaminhar</button>
       </form>
-    </details>
+    </div>
     {% endif %}
 
     {% if usuario.is_admin %}

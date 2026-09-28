@@ -10,6 +10,7 @@
   <input type="hidden" name="csrf" value="{{ csrf_token() }}">
   <dl class="dados">
     <dt>Usuário</dt><dd>{{ usuario.login }}</dd>
+    <dt>Setor</dt><dd>{{ usuario.setor }}{% if usuario.atende %} <span class="suave">· atende chamados</span>{% endif %}</dd>
     <dt>Perfil</dt><dd>{{ usuario.papel_nome }}</dd>
     <dt>Conta criada</dt><dd>{{ usuario.criado_em|data }}</dd>
   </dl>
@@ -20,11 +21,8 @@
   <label for="email">E-mail <span class="suave">(opcional)</span></label>
   <input id="email" name="email" type="email" value="{{ usuario.email or '' }}" maxlength="150">
 
-  <label for="setor">Setor</label>
-  <select id="setor" name="setor" required>
-    {% for s in SETORES %}<option {{ 'selected' if usuario.setor == s }}>{{ s }}</option>{% endfor %}
-  </select>
 
+  <p class="dica">Para mudar de setor, fale com o administrador.</p>
   <div class="acoes">
     <button class="botao botao-primario" type="submit">Salvar</button>
   </div>

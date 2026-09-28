@@ -23,7 +23,6 @@
       <a href="{{ url_for('admin.relatorio') }}" class="{{ 'ativo' if ep == 'admin.relatorio' }}">Relatório</a>
       {% endif %}
       {% if usuario.is_admin %}
-      <a href="{{ url_for('admin.filas') }}" class="{{ 'ativo' if ep in ('admin.filas', 'admin.fila') }}">Filas</a>
       <a href="{{ url_for('admin.usuarios') }}" class="{{ 'ativo' if ep == 'admin.usuarios' }}">Usuários</a>
       {% endif %}
     </nav>

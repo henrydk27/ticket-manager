@@ -1,4 +1,4 @@
-"""Painel e relatório (atendentes) e gestão de filas e usuários (administrador)."""
+"""Painel e relatório (quem atende) e gestão de usuários (administrador)."""
 
 from datetime import date, datetime, timedelta
 
@@ -7,7 +7,7 @@ from flask import (Blueprint, abort, flash, g, make_response, redirect, render_t
 
 from .. import exportacao, servicos
 from ..banco import db
-from ..modelos import Categoria, Usuario
+from ..modelos import SETORES, Usuario
 from ..seguranca import admin_obrigatorio, atendente_obrigatorio
 
 bp = Blueprint("admin", __name__)
@@ -15,13 +15,10 @@ bp = Blueprint("admin", __name__)
 PERIODOS = {30: "Últimos 30 dias", 90: "Últimos 90 dias", 365: "Últimos 12 meses"}
 
 
-def _fila_do_filtro() -> tuple[list, int | None]:
-    """Filas que o usuário pode consultar e a escolhida no filtro (?fila=ID), se permitida."""
-    filas = servicos.filas_do_atendente(db(), g.usuario)
-    escolhida = request.args.get("fila", "")
-    if escolhida.isdigit() and int(escolhida) in {f.id for f in filas}:
-        return filas, int(escolhida)
-    return filas, None
+def _setor_do_filtro() -> str | None:
+    """Só o admin escolhe o setor (?setor=); quem atende vê sempre o próprio setor."""
+    setor = request.args.get("setor", "")
+    return setor if g.usuario.is_admin and setor in SETORES else None
 
 
 @bp.route("/painel")
@@ -33,90 +30,23 @@ def painel():
         dias = 30
     if dias not in PERIODOS:
         dias = 30
-    filas, fila_id = _fila_do_filtro()
-    return render_template("admin/painel.html", d=servicos.painel(db(), dias, g.usuario, fila_id),
-                           dias=dias, PERIODOS=PERIODOS, filas=filas, fila_id=fila_id)
-
-
-# ─── FILAS ──────────────────────────────────────────────────────────────────
-
-@bp.route("/filas", methods=["GET", "POST"])
-@admin_obrigatorio
-def filas():
-    if request.method == "POST":
-        try:
-            f = servicos.criar_fila(db(), request.form.get("nome", ""), request.form.get("descricao", ""))
-        except servicos.ErroValidacao as e:
-            flash(str(e), "erro")
-        else:
-            flash(f"Fila {f.nome} criada. Agora escolha os atendentes e os tipos de pedido.", "ok")
-            return redirect(url_for("admin.fila", fila_id=f.id))
-    return render_template("admin/filas.html", filas=servicos.listar_filas(db()),
-                           abertos=servicos.contar_abertos_por_fila(db()))
-
-
-def _fila(fila_id: int):
-    f = servicos.obter_fila(db(), fila_id)
-    if f is None:
-        abort(404)
-    return f
-
-
-@bp.route("/filas/<int:fila_id>", methods=["GET", "POST"])
-@admin_obrigatorio
-def fila(fila_id: int):
-    f = _fila(fila_id)
-    if request.method == "POST":
-        try:
-            servicos.atualizar_fila(db(), f, request.form.get("nome", ""), request.form.get("descricao", ""),
-                                    request.form.get("ativa") == "1")
-        except servicos.ErroValidacao as e:
-            flash(str(e), "erro")
-        else:
-            flash("Fila atualizada.", "ok")
-        return redirect(url_for("admin.fila", fila_id=f.id))
-    return render_template("admin/fila.html", f=f, usuarios=servicos.listar_usuarios_ativos(db()))
-
-
-@bp.route("/filas/<int:fila_id>/atendentes", methods=["POST"])
-@admin_obrigatorio
-def fila_atendentes(fila_id: int):
-    f = _fila(fila_id)
-    ids = [int(i) for i in request.form.getlist("atendentes") if i.isdigit()]
-    servicos.definir_atendentes(db(), f, ids)
-    flash(f"Atendentes da fila {f.nome} atualizados.", "ok")
-    return redirect(url_for("admin.fila", fila_id=f.id))
-
-
-@bp.route("/filas/<int:fila_id>/categorias", methods=["POST"])
-@admin_obrigatorio
-def fila_categoria_nova(fila_id: int):
-    f = _fila(fila_id)
-    try:
-        c = servicos.adicionar_categoria(db(), f, request.form.get("nome", ""))
-        flash(f"Tipo de pedido {c.nome} adicionado.", "ok")
-    except servicos.ErroValidacao as e:
-        flash(str(e), "erro")
-    return redirect(url_for("admin.fila", fila_id=f.id) + "#categorias")
-
-
-@bp.route("/categorias/<int:categoria_id>/ativa", methods=["POST"])
-@admin_obrigatorio
-def categoria_ativa(categoria_id: int):
-    c = db().get(Categoria, categoria_id)
-    if c is None:
-        abort(404)
-    servicos.definir_categoria_ativa(db(), c, request.form.get("ativa") == "1")
-    return redirect(url_for("admin.fila", fila_id=c.fila_id) + "#categorias")
+    setor = _setor_do_filtro()
+    return render_template("admin/painel.html", d=servicos.painel(db(), dias, g.usuario, setor),
+                           dias=dias, PERIODOS=PERIODOS, setor=setor,
+                           setores=list(servicos.atendentes_por_setor(db())))
 
 
 # ─── USUÁRIOS ───────────────────────────────────────────────────────────────
 
+def _pagina_usuarios(senha_temporaria=None):
+    return render_template("admin/usuarios.html", usuarios=servicos.listar_usuarios(db()),
+                           senha_temporaria=senha_temporaria)
+
+
 @bp.route("/usuarios")
 @admin_obrigatorio
 def usuarios():
-    return render_template("admin/usuarios.html", usuarios=servicos.listar_usuarios(db()),
-                           senha_temporaria=None)
+    return _pagina_usuarios()
 
 
 def _alvo(usuario_id: int) -> Usuario:
@@ -126,16 +56,18 @@ def _alvo(usuario_id: int) -> Usuario:
     return u
 
 
-@bp.route("/usuarios/<int:usuario_id>/papel", methods=["POST"])
+@bp.route("/usuarios/<int:usuario_id>", methods=["POST"])
 @admin_obrigatorio
-def usuario_papel(usuario_id: int):
+def usuario_salvar(usuario_id: int):
     u = _alvo(usuario_id)
+    f = request.form
+    papel = f.get("papel", u.papel) if u.id != g.usuario.id else u.papel  # ninguém rebaixa a si mesmo
     try:
-        servicos.definir_papel(db(), u, request.form.get("papel", ""))
-        flash(f"{u.nome} agora é {u.papel_nome}.", "ok")
+        servicos.atualizar_usuario(db(), u, f.get("setor", ""), f.get("atende") == "1", papel)
+        flash(f"Dados de {u.nome} salvos.", "ok")
     except servicos.ErroValidacao as e:
         flash(str(e), "erro")
-    return redirect(url_for("admin.usuarios"))
+    return redirect(url_for("admin.usuarios") + f"#u{u.id}")
 
 
 @bp.route("/usuarios/<int:usuario_id>/ativo", methods=["POST"])
@@ -160,8 +92,7 @@ def usuario_senha(usuario_id: int):
         return redirect(url_for("admin.usuarios"))
     temporaria = servicos.redefinir_senha(db(), u)
     # A senha temporária é mostrada uma única vez, nesta resposta (não vai para URL nem para log)
-    resp = make_response(render_template("admin/usuarios.html", usuarios=servicos.listar_usuarios(db()),
-                                         senha_temporaria=(u, temporaria)))
+    resp = make_response(_pagina_usuarios((u, temporaria)))
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
@@ -185,8 +116,8 @@ def _periodo() -> tuple[date, date] | None:
 @atendente_obrigatorio
 def relatorio():
     hoje = date.today()
-    filas, fila_id = _fila_do_filtro()
-    return render_template("admin/relatorio.html", filas=filas, fila_id=fila_id,
+    return render_template("admin/relatorio.html", setor=_setor_do_filtro(),
+                           setores=list(servicos.atendentes_por_setor(db())),
                            de=(hoje - timedelta(days=30)).isoformat(), ate=hoje.isoformat())
 
 
@@ -196,16 +127,16 @@ def relatorio_arquivo(formato: str):
     if formato not in ("excel", "pdf"):
         abort(404)
     periodo = _periodo()
-    _filas, fila_id = _fila_do_filtro()
+    setor = _setor_do_filtro()
     if periodo is None:
-        return redirect(url_for("admin.relatorio", fila=fila_id or ""))
+        return redirect(url_for("admin.relatorio", setor=setor or ""))
 
     ini, fim = periodo
-    chamados = servicos.chamados_por_periodo(db(), ini, fim, g.usuario, fila_id)
+    chamados = servicos.chamados_por_periodo(db(), ini, fim, g.usuario, setor)
     if not chamados:
         flash("Nenhum chamado encontrado para o período informado.", "erro")
         return redirect(url_for("admin.relatorio", de=ini.isoformat(), ate=fim.isoformat(),
-                                fila=fila_id or ""))
+                                setor=setor or ""))
 
     nome = f"Chamados_{ini:%Y%m%d}_{fim:%Y%m%d}"
     if formato == "excel":

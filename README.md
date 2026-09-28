@@ -6,24 +6,26 @@ servidor **Ubuntu**. Refeito do zero a partir das funções da versão Lazarus.
 
 ## Como funciona
 
-- Cada setor que atende pedidos é uma **fila**, cadastrada pelo administrador, com seus
-  **atendentes** e **tipos de pedido** (ex.: T.I → Impressora, Acesso e senha).
-- Quem abre o chamado escolhe **para qual setor** é o pedido e o tipo.
-- **Cada atendente vê só as filas dele.** Pode assumir, atribuir a um colega da fila, mudar o
-  status e **transferir** o chamado para outra fila.
+- Ao abrir um chamado, a pessoa escolhe **para qual setor** é o pedido e, em seguida, o
+  **funcionário** desse setor que vai atender.
+- Na tela **Usuários**, o administrador define o setor de cada pessoa e marca quem
+  **atende chamados**. Só essas pessoas aparecem na lista de funcionários.
+- **Todos que atendem o setor veem os chamados dele** e podem assumir (se o colega faltar,
+  por exemplo) ou **encaminhar** para outra pessoa ou outro setor.
 
-| Todos | Atendentes (das suas filas) | Administradores |
+| Todos | Quem atende chamados (do seu setor) | Administradores |
 |---|---|---|
-| Criar a própria conta | Ver e atender os chamados da fila | Ver e atender **todas** as filas |
-| Abrir chamado para qualquer setor, com anexos | Assumir / atribuir a outro atendente da fila | Criar filas, escolher atendentes e tipos de pedido |
+| Criar a própria conta | Ver os chamados do setor | Ver e atender **todos** os chamados |
+| Abrir chamado para um setor e funcionário, com anexos | Assumir um chamado do setor | Definir setor, quem atende e perfil de cada conta |
 | Comentar e anexar arquivos | Mudar status (Aberto, Em andamento, Aguardando usuário, Fechado) e reabrir | **Apagar** chamados |
-| Buscar e filtrar os próprios chamados | Transferir para outra fila / mudar o tipo | Promover administradores, desativar contas |
-| Avaliar chamados encerrados | Painel e relatório Excel/PDF das suas filas | Redefinir senha (gera senha temporária) |
-| Alterar dados e senha em Minha conta | | |
+| Buscar e filtrar os próprios chamados | Encaminhar para outra pessoa ou outro setor | Desativar contas e redefinir senhas |
+| Avaliar chamados encerrados | Painel e relatório Excel/PDF do setor | |
+| Alterar nome, e-mail e senha em Minha conta | | |
 
-- Um atendente que abre um pedido para **outra** fila acompanha esse chamado como solicitante.
+- Quem atende e abre um pedido para **outro** setor acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
-- Mudanças de status, responsável e fila ficam registradas no histórico do chamado.
+- O setor de cada pessoa só é alterado pelo administrador (é ele que define o que ela vê).
+- Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - Não há envio de e-mail: quem esquece a senha pede ao administrador para redefini-la.
   A pessoa entra com a senha temporária e é obrigada a criar uma nova.
 
@@ -44,8 +46,9 @@ python -m pytest tests          # testes (usam SQLite em memória, não precisam
 python -m tests.demo            # demonstração com dados de exemplo em http://127.0.0.1:5057
 ```
 
-Contas da demonstração: `admin/admin123` (administrador), `carlos/carlos123` (atendente da T.I),
-`marta/marta123` (atendente da Manutenção), `ana/ana12345` e `bruno/bruno123` (usuários).
+Contas da demonstração: `admin/admin123` (administrador, T.I), `carlos/carlos123` (T.I),
+`marta/marta123` (Manutenção) e `rita/rita1234` (RH) atendem chamados; `ana/ana12345` e
+`bruno/bruno123` são usuários comuns.
 `python -m tests.demo --limpo` começa sem contas.
 
 Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.ini`, ajuste
@@ -55,8 +58,8 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 
 | Caminho | Conteúdo |
 |---|---|
-| `app/modelos.py` | tabelas (usuários, filas, tipos de pedido, chamados, comentários, anexos) e valores fixos |
-| `app/servicos.py` | regras do sistema: contas, filas, chamados, visibilidade, painel, relatório |
+| `app/modelos.py` | tabelas (usuários, chamados, comentários, anexos) e valores fixos (setores, status) |
+| `app/servicos.py` | regras do sistema: contas, quem atende, chamados, visibilidade, painel, relatório |
 | `app/seguranca.py` | sessão, permissões e proteção CSRF |
 | `app/anexos.py` | validação e gravação dos anexos em disco |
 | `app/rotas/` | páginas: `auth` (login/cadastro), `conta`, `chamados`, `admin` |
@@ -76,8 +79,8 @@ python -m alembic revision --autogenerate -m "descrição da mudança"
 python manage.py migrar
 ```
 
-Filas e tipos de pedido são cadastrados pela tela **Filas**. Setores de origem (o setor de quem
-pede), prioridades e status ficam em listas no início de `app/modelos.py`.
+Setores, prioridades e status ficam em listas no início de `app/modelos.py`. Quem atende cada
+setor é definido na tela **Usuários**.
 
 ## Segurança
 

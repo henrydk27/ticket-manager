@@ -47,7 +47,7 @@ def login_obrigatorio(view):
 
 
 def atendente_obrigatorio(view):
-    """Atendentes de alguma fila e administradores."""
+    """Quem atende chamados do seu setor e administradores."""
     @wraps(view)
     @login_obrigatorio
     def wrapper(*args, **kwargs):

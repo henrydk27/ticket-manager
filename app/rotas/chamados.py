@@ -1,7 +1,6 @@
-"""Chamados: lista com filtros, abertura, detalhes, comentários, anexos, atendimento e avaliação."""
+"""Chamados: lista, abertura, detalhes, comentários, anexos, atendimento e avaliação."""
 
 import math
-from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
 
@@ -9,17 +8,10 @@ from .. import anexos as arquivos_disco
 from .. import servicos
 from ..anexos import TIPOS_EXIBIVEIS, AnexoInvalido, ler_anexos
 from ..banco import db
-from ..modelos import Usuario
+from ..modelos import SETORES
 from ..seguranca import admin_obrigatorio, login_obrigatorio
 
 bp = Blueprint("chamados", __name__)
-
-
-def _data(texto: str | None) -> date | None:
-    try:
-        return datetime.strptime(texto, "%Y-%m-%d").date() if texto else None
-    except ValueError:
-        return None
 
 
 def _filtros_da_url() -> servicos.Filtros:
@@ -28,17 +20,11 @@ def _filtros_da_url() -> servicos.Filtros:
         pagina = max(1, int(a.get("pagina", 1)))
     except ValueError:
         pagina = 1
-    atendente = g.usuario.is_atendente
     return servicos.Filtros(
-        visao=a.get("visao", "") if a.get("visao") in ("meus", "filas") else "",
+        visao=a.get("visao", "") if a.get("visao") in servicos.VISOES else "",
         texto=a.get("q", "").strip()[:100],
-        fila=a.get("fila", "") if atendente else "",
         status=a.get("status", ""),
-        setor=a.get("setor", ""),
-        prioridade=a.get("prioridade", ""),
-        responsavel=a.get("responsavel", "") if atendente else "",
-        de=_data(a.get("de")),
-        ate=_data(a.get("ate")),
+        setor=a.get("setor", "") if a.get("setor") in SETORES else "",
         ordenar=a.get("ordenar", "id"),
         direcao="asc" if a.get("direcao") == "asc" else "desc",
         pagina=pagina,
@@ -55,9 +41,9 @@ def _chamado_visivel(chamado_id: int):
 
 
 def _chamado_atendido(chamado_id: int):
-    """Chamado de uma fila que o usuário atende (ou admin)."""
+    """Chamado do setor que o usuário atende (ou admin)."""
     c = _chamado_visivel(chamado_id)
-    if not g.usuario.atende(c):
+    if not g.usuario.trabalha_em(c):
         abort(403)
     return c
 
@@ -79,16 +65,10 @@ def lista():
     chamados, total = servicos.listar_chamados(db(), f, g.usuario)
     # Parâmetros atuais sem página/ordem, para montar links de ordenação e paginação
     base = {k: v for k, v in request.args.items() if k not in ("pagina", "ordenar", "direcao") and v}
-    atendente = g.usuario.is_atendente
-    minhas_filas = servicos.filas_do_atendente(db(), g.usuario) if atendente else []
-    atendentes = sorted({u for fila in minhas_filas for u in servicos.atendentes_da_fila(fila)},
-                        key=lambda u: u.nome)
     return render_template(
         "chamados/lista.html", chamados=chamados, total=total, f=f, base=base,
-        paginas=max(1, math.ceil(total / f.por_pagina)),
+        paginas=max(1, math.ceil(total / f.por_pagina)), VISOES=servicos.VISOES,
         anexos=servicos.contar_anexos(db(), [c.id for c in chamados]),
-        minhas_filas=minhas_filas, atendentes=atendentes,
-        contagens=servicos.contagens_atendimento(db(), g.usuario) if atendente else {},
         pendentes=len(servicos.avaliacoes_pendentes(db(), g.usuario)),
     )
 
@@ -97,33 +77,30 @@ def lista():
 @login_obrigatorio
 def novo():
     form = request.form
-    filas = servicos.listar_filas(db(), apenas_ativas=True)
     if request.method == "POST":
         try:
             arquivos = ler_anexos(request.files.getlist("anexos"))
-            c = servicos.criar_chamado(db(), g.usuario, form.get("fila", ""), form.get("categoria", ""),
-                                       form.get("titulo", ""), form.get("descricao", ""),
-                                       form.get("prioridade", ""), form.get("setor", ""), arquivos)
+            c = servicos.criar_chamado(db(), g.usuario, form.get("setor_destino", ""),
+                                       form.get("responsavel", ""), form.get("titulo", ""),
+                                       form.get("descricao", ""), form.get("prioridade", ""), arquivos)
         except (servicos.ErroValidacao, AnexoInvalido) as e:
             flash(str(e), "erro")
         else:
-            flash(f"Chamado #{c.id} aberto para {c.fila.nome}.", "ok")
+            flash(f"Chamado #{c.id} enviado para {c.responsavel.nome} ({c.setor_destino}).", "ok")
             return _voltar(c)
-    # A fila pode vir pré-escolhida pelo link (?fila=ID)
-    escolhida = form.get("fila") or request.args.get("fila", "")
-    return render_template("chamados/novo.html", form=form, filas=filas, fila_escolhida=escolhida)
+    return render_template("chamados/novo.html", form=form,
+                           por_setor=servicos.atendentes_por_setor(db()))
 
 
 @bp.route("/chamados/<int:chamado_id>")
 @login_obrigatorio
 def detalhe(chamado_id: int):
     c = _chamado_visivel(chamado_id)
-    atende = g.usuario.atende(c)
+    trabalha = g.usuario.trabalha_em(c)
     return render_template(
-        "chamados/detalhe.html", c=c, atende=atende,
+        "chamados/detalhe.html", c=c, trabalha=trabalha,
         anexos_chamado=[a for a in c.anexos if a.comentario_id is None],
-        atendentes=servicos.atendentes_da_fila(c.fila) if atende else [],
-        filas=servicos.listar_filas(db(), apenas_ativas=True) if atende else [],
+        por_setor=servicos.atendentes_por_setor(db()) if trabalha else {},
     )
 
 
@@ -151,22 +128,6 @@ def alterar_status(chamado_id: int):
     return _voltar(c)
 
 
-@bp.route("/chamados/<int:chamado_id>/responsavel", methods=["POST"])
-@login_obrigatorio
-def atribuir(chamado_id: int):
-    c = _chamado_atendido(chamado_id)
-    escolhido = request.form.get("responsavel", "")
-    responsavel = db().get(Usuario, int(escolhido)) if escolhido.isdigit() else None
-    if escolhido and responsavel is None:
-        abort(400)
-    try:
-        if servicos.atribuir(db(), c, responsavel, g.usuario):
-            flash(f"Chamado atribuído a {responsavel.nome}." if responsavel else "Responsável removido.", "ok")
-    except servicos.ErroValidacao as e:
-        flash(str(e), "erro")
-    return _voltar(c)
-
-
 @bp.route("/chamados/<int:chamado_id>/assumir", methods=["POST"])
 @login_obrigatorio
 def assumir(chamado_id: int):
@@ -179,19 +140,19 @@ def assumir(chamado_id: int):
     return _voltar(c)
 
 
-@bp.route("/chamados/<int:chamado_id>/transferir", methods=["POST"])
+@bp.route("/chamados/<int:chamado_id>/encaminhar", methods=["POST"])
 @login_obrigatorio
-def transferir(chamado_id: int):
+def encaminhar(chamado_id: int):
     c = _chamado_atendido(chamado_id)
     try:
-        mudou = servicos.transferir(db(), c, request.form.get("fila", ""),
-                                    request.form.get("categoria", ""), g.usuario)
+        mudou = servicos.encaminhar(db(), c, request.form.get("setor_destino", ""),
+                                    request.form.get("responsavel", ""), g.usuario)
     except servicos.ErroValidacao as e:
         flash(str(e), "erro")
         return _voltar(c)
     if mudou:
-        flash(f"Chamado #{c.id} agora está na fila {c.fila.nome}.", "ok")
-    # Quem transferiu pode não atender a fila nova: aí volta para a lista
+        flash(f"Chamado #{c.id} agora está com {c.responsavel.nome} ({c.setor_destino}).", "ok")
+    # Quem encaminhou para outro setor pode deixar de ver o chamado: aí volta para a lista
     return _voltar(c) if g.usuario.pode_ver(c) else redirect(url_for("chamados.lista"))
 
 

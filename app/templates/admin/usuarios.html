@@ -15,36 +15,45 @@
 </div>
 {% endif %}
 
-<p class="suave">Qualquer pessoa pode criar a própria conta. Quem atende chamados é definido em
-  <a href="{{ url_for('admin.filas') }}">Filas</a> (atendentes de cada fila). <strong>Administradores</strong>
-  veem todas as filas e gerenciam filas e contas.</p>
+<p class="suave">Marque <strong>Atende chamados</strong> para quem recebe pedidos do seu setor: essa pessoa
+  aparece na lista ao abrir um chamado para o setor e vê os chamados dele.
+  <strong>Administradores</strong> veem todos os chamados e gerenciam as contas.</p>
 
 <div class="tabela-rolagem">
-<table class="tabela">
+<table class="tabela tabela-usuarios">
   <thead>
-    <tr><th>Nome</th><th>Usuário</th><th>Setor</th><th>Perfil</th><th>Atende</th><th class="num">Chamados</th><th>Último acesso</th><th>Ações</th></tr>
+    <tr><th>Nome</th><th>Setor</th><th>Atende chamados</th><th>Perfil</th><th></th><th>Último acesso</th><th>Conta</th></tr>
   </thead>
   <tbody>
     {% for u, total in usuarios %}
-    <tr class="{{ 'linha-inativa' if not u.ativo }}">
-      <td><strong>{{ u.nome }}</strong>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}</td>
-      <td>{{ u.login }}</td>
-      <td>{{ u.setor }}</td>
+    {% set f = 'f' ~ u.id %}
+    <tr id="u{{ u.id }}" class="{{ 'linha-inativa' if not u.ativo }}">
+      <td><strong>{{ u.nome }}</strong>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}
+        <div class="subtitulo">{{ u.login }} · {{ total }} pedido{{ "s" if total != 1 }}</div></td>
+      <td>
+        <select name="setor" form="{{ f }}" aria-label="Setor de {{ u.nome }}">
+          {% for s in SETORES %}<option {{ 'selected' if u.setor == s }}>{{ s }}</option>{% endfor %}
+        </select>
+      </td>
+      <td class="centro">
+        <input type="checkbox" name="atende" value="1" form="{{ f }}" aria-label="{{ u.nome }} atende chamados"
+               {{ 'checked' if u.atende }}>
+      </td>
       <td>
         {% if u.id == usuario.id %}
         {{ u.papel_nome }} <span class="suave">(você)</span>
         {% else %}
-        <form method="post" action="{{ url_for('admin.usuario_papel', usuario_id=u.id) }}" class="acoes-linha">
-          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-          <select name="papel" aria-label="Perfil de {{ u.nome }}" data-enviar-ao-mudar>
-            {% for chave, nome in PAPEIS.items() %}<option value="{{ chave }}" {{ 'selected' if u.papel == chave }}>{{ nome }}</option>{% endfor %}
-          </select>
-          <noscript><button class="botao botao-pequeno">Salvar</button></noscript>
-        </form>
+        <select name="papel" form="{{ f }}" aria-label="Perfil de {{ u.nome }}">
+          {% for chave, nome in PAPEIS.items() %}<option value="{{ chave }}" {{ 'selected' if u.papel == chave }}>{{ nome }}</option>{% endfor %}
+        </select>
         {% endif %}
       </td>
-      <td>{% if u.filas %}{{ u.filas|map(attribute='nome')|join(', ') }}{% else %}<span class="suave">—</span>{% endif %}</td>
-      <td class="num">{{ total }}</td>
+      <td>
+        <form id="{{ f }}" method="post" action="{{ url_for('admin.usuario_salvar', usuario_id=u.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="botao botao-pequeno" type="submit">Salvar</button>
+        </form>
+      </td>
       <td class="col-data">{{ u.ultimo_acesso|data_hora or '—' }}</td>
       <td>
         {% if u.id != usuario.id %}

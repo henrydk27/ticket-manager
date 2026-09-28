@@ -312,45 +312,11 @@ a.usuario-nome { color: var(--texto); }
 .linha-tempo li.evento { border-left-style: dotted; }
 .linha-tempo li.evento .texto-livre { color: var(--texto-2); font-style: italic; font-size: .92rem; }
 
-/* ─── Filas ────────────────────────────────────────────────────────────── */
-.abas { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 1px solid var(--borda); }
-.aba {
-  padding: 8px 14px; color: var(--texto-2); font-weight: 500; border-bottom: 2px solid transparent;
-  margin-bottom: -1px; display: inline-flex; align-items: center; gap: 6px;
-}
-.aba:hover { color: var(--texto); text-decoration: none; }
-.aba.ativa { color: var(--primaria); border-bottom-color: var(--primaria); }
-.aba-contagem {
-  background: var(--primaria-suave); color: var(--primaria); border-radius: 999px;
-  padding: 0 7px; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums;
-}
+/* ─── Detalhes ─────────────────────────────────────────────────────────── */
 .subtitulo { font-size: .8rem; color: var(--texto-2); font-weight: normal; margin-top: 1px; }
-
-.escolha-fila { border: 0; padding: 0; margin: 0; }
-.escolha-fila legend { font-weight: 600; font-size: .9rem; margin: 0 0 8px; padding: 0; }
-.opcoes-fila { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
-.opcao-fila {
-  display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px 12px 10px 36px; position: relative;
-  border: 1px solid var(--borda); border-radius: var(--raio); cursor: pointer; font-weight: normal;
-}
-.opcao-fila:hover { border-color: var(--serie); }
-.opcao-fila:has(input:checked) { border-color: var(--primaria); background: var(--primaria-suave); }
-.opcao-fila input { position: absolute; left: 12px; top: 12px; margin: 0; width: auto; }
-.opcao-fila-nome { font-weight: 600; }
-.opcao-fila-desc { font-size: .82rem; color: var(--texto-2); }
-
-.lista-marcar { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; margin: 8px 0; }
-label.marcar { display: flex; gap: 8px; align-items: center; font-weight: normal; margin: 4px 0; cursor: pointer; }
-label.marcar input { width: auto; margin: 0; }
-.lista-categorias { list-style: none; padding: 0; margin: 0 0 12px; }
-.lista-categorias li {
-  display: flex; justify-content: space-between; align-items: center; gap: 10px;
-  padding: 6px 0; border-bottom: 1px solid var(--borda);
-}
-.lista-categorias li.inativa > span { color: var(--texto-2); }
-.lista-categorias form { margin: 0; }
-input.largo, .detalhe-lateral select { width: 100%; }
-details.transferir summary { cursor: pointer; margin: 0; list-style: revert; }
-details.transferir[open] summary { margin-bottom: 4px; }
-details.transferir .botao { margin-top: 12px; }
-.formulario-nova-fila { margin-top: 16px; }
+.espaco-acima { margin-top: 8px; }
+.detalhe-lateral select { width: 100%; }
+.tabela .centro { text-align: center; }
+.tabela-usuarios td { white-space: nowrap; }
+.tabela-usuarios select { padding: 4px 8px; }
+.tabela-usuarios input[type="checkbox"] { width: 18px; height: 18px; }

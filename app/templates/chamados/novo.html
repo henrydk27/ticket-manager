@@ -5,77 +5,62 @@
   <h1>Novo chamado</h1>
 </div>
 
-{% if not filas %}
+{% if not por_setor %}
 <div class="vazio">
-  <h2>Nenhum setor recebendo pedidos</h2>
+  <h2>Nenhum setor recebendo chamados ainda</h2>
   <p class="suave">
-    {% if usuario.is_admin %}Cadastre as filas de atendimento (T.I, Manutenção, RH...) antes de abrir chamados.
-    {% else %}O administrador ainda não cadastrou os setores que atendem pedidos.{% endif %}
+    {% if usuario.is_admin %}Em <a href="{{ url_for('admin.usuarios') }}">Usuários</a>, marque quem
+      <strong>atende chamados</strong> em cada setor.
+    {% else %}O administrador ainda não definiu quem atende os chamados.{% endif %}
   </p>
-  {% if usuario.is_admin %}<p><a class="botao botao-primario" href="{{ url_for('admin.filas') }}">Cadastrar filas</a></p>{% endif %}
 </div>
 {% else %}
 <form class="cartao formulario" method="post" enctype="multipart/form-data"
       action="{{ url_for('chamados.novo') }}">
   <input type="hidden" name="csrf" value="{{ csrf_token() }}">
 
-  <fieldset class="escolha-fila">
-    <legend>Para qual setor é o pedido?</legend>
-    <div class="opcoes-fila">
-      {% for fl in filas %}
-      <label class="opcao-fila">
-        <input type="radio" name="fila" value="{{ fl.id }}" required data-fila
-               {{ 'checked' if fila_escolhida == fl.id|string or filas|length == 1 }}>
-        <span class="opcao-fila-nome">{{ fl.nome }}</span>
-        {% if fl.descricao %}<span class="opcao-fila-desc">{{ fl.descricao }}</span>{% endif %}
-      </label>
-      {% endfor %}
+  <div class="linha-campos">
+    <div>
+      <label for="setor_destino">Enviar para o setor</label>
+      <select id="setor_destino" name="setor_destino" required data-setor>
+        <option value="">Selecione</option>
+        {% for setor in por_setor %}<option {{ 'selected' if form.setor_destino == setor }}>{{ setor }}</option>{% endfor %}
+      </select>
     </div>
-  </fieldset>
-
-  {% if filas|selectattr('categorias_ativas')|list %}
-  <div data-campo-categoria>
-    <label for="categoria">Tipo de pedido</label>
-    <select id="categoria" name="categoria" data-categorias>
-      <option value="">Selecione</option>
-      {% for fl in filas if fl.categorias_ativas %}
-      <optgroup label="{{ fl.nome }}" data-fila-id="{{ fl.id }}">
-        {% for cat in fl.categorias_ativas %}
-        <option value="{{ cat.id }}" {{ 'selected' if form.categoria == cat.id|string }}>{{ cat.nome }}</option>
+    <div>
+      <label for="responsavel">Funcionário</label>
+      <select id="responsavel" name="responsavel" required data-funcionarios>
+        <option value="">Escolha o setor primeiro</option>
+        {% for setor, pessoas in por_setor.items() %}
+        <optgroup label="{{ setor }}" data-setor="{{ setor }}">
+          {% for p in pessoas %}<option value="{{ p.id }}" {{ 'selected' if form.responsavel == p.id|string }}>{{ p.nome }}</option>{% endfor %}
+        </optgroup>
         {% endfor %}
-      </optgroup>
-      {% endfor %}
-    </select>
+      </select>
+    </div>
   </div>
-  {% endif %}
 
   <label for="titulo">Título</label>
   <input id="titulo" name="titulo" maxlength="150" required value="{{ form.titulo or '' }}"
          placeholder="Resuma o pedido em uma frase">
 
+  <label for="descricao">Descrição</label>
+  <textarea id="descricao" name="descricao" rows="7" required
+            placeholder="Descreva o que você precisa, com o máximo de detalhes.">{{ form.descricao or '' }}</textarea>
+
   <div class="linha-campos">
     <div>
       <label for="prioridade">Prioridade</label>
       <select id="prioridade" name="prioridade" required>
-        <option value="">Selecione</option>
-        {% for p in PRIORIDADES %}<option {{ 'selected' if form.prioridade == p }}>{{ p }}</option>{% endfor %}
+        {% set prio = form.prioridade or 'Média' %}
+        {% for p in PRIORIDADES %}<option {{ 'selected' if prio == p }}>{{ p }}</option>{% endfor %}
       </select>
     </div>
     <div>
-      <label for="setor">Seu setor</label>
-      <select id="setor" name="setor" required>
-        {% set meu_setor = form.setor or usuario.setor %}
-        {% for s in SETORES %}<option {{ 'selected' if meu_setor == s }}>{{ s }}</option>{% endfor %}
-      </select>
+      <label for="anexos">Anexos <span class="suave">(opcional)</span></label>
+      <input id="anexos" name="anexos" type="file" multiple data-lista-arquivos>
     </div>
   </div>
-
-  <label for="descricao">Descrição</label>
-  <textarea id="descricao" name="descricao" rows="8" required
-            placeholder="Descreva o que você precisa, com o máximo de detalhes.">{{ form.descricao or '' }}</textarea>
-
-  <label for="anexos">Anexos <span class="suave">(opcional, até 5 arquivos)</span></label>
-  <input id="anexos" name="anexos" type="file" multiple data-lista-arquivos>
   <ul class="lista-arquivos" aria-live="polite"></ul>
 
   <div class="acoes">

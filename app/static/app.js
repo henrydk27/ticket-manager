@@ -28,32 +28,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Tipo de pedido: mostra só os tipos da fila escolhida
-  document.querySelectorAll("select[data-categorias]").forEach((sel) => {
-    const form = sel.form;
-    const campo = sel.closest("[data-campo-categoria]");
-    const filaAtual = () => {
-      const radio = form.querySelector("input[data-fila]:checked");
-      if (radio) return radio.value;
-      const select = form.querySelector("select[data-fila-select]");
-      return select ? select.value : "";
-    };
+  // Funcionário: mostra só quem atende o setor escolhido
+  document.querySelectorAll("select[data-funcionarios]").forEach((sel) => {
+    const setor = sel.form.querySelector("select[data-setor]");
+    const aviso = sel.options[0];
+    const textoAviso = aviso.textContent;
     const atualizar = () => {
-      const fila = filaAtual();
-      let temTipos = false;
       sel.querySelectorAll("optgroup").forEach((grupo) => {
-        const visivel = grupo.dataset.filaId === fila;
+        const visivel = grupo.dataset.setor === setor.value;
         grupo.hidden = !visivel;
         grupo.disabled = !visivel;
-        temTipos = temTipos || visivel;
       });
       const escolhida = sel.selectedOptions[0];
       if (escolhida && escolhida.parentElement.disabled) sel.value = "";
-      sel.required = temTipos && !!campo;  // no novo chamado, obrigatório se a fila tem tipos
-      if (campo) campo.hidden = !temTipos;
+      aviso.textContent = setor.value ? "Selecione" : textoAviso;
+      // Setor com uma pessoa só: já deixa escolhida
+      const visiveis = sel.querySelectorAll("optgroup:not([disabled]) option");
+      if (!sel.value && visiveis.length === 1) sel.value = visiveis[0].value;
     };
-    form.querySelectorAll("input[data-fila], select[data-fila-select]")
-      .forEach((el) => el.addEventListener("change", atualizar));
+    setor.addEventListener("change", atualizar);
     atualizar();
   });
 

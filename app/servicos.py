@@ -1,11 +1,11 @@
-"""Regras do sistema: contas, filas, chamados, comentários, anexos, avaliações, painel e relatório.
+"""Regras do sistema: contas, atendentes, chamados, comentários, anexos, avaliações, painel e relatório.
 
 As rotas só leem o formulário e chamam estas funções; toda escrita no banco passa por aqui.
 """
 
 import re
 import secrets
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
@@ -16,8 +16,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from . import anexos as arquivos_disco
 from .anexos import Arquivo
 from .modelos import (AVALIACOES, PAPEIS, PAPEL_ADMIN, PAPEL_USUARIO, PRIORIDADES, SETORES, STATUS,
-                      STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_FECHADO, Anexo, Categoria, Chamado,
-                      Comentario, Fila, TentativaLogin, Usuario, agora)
+                      STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_FECHADO, Anexo, Chamado, Comentario,
+                      TentativaLogin, Usuario, agora)
 
 
 class ErroValidacao(ValueError):
@@ -42,20 +42,20 @@ def validar_senha(senha: str) -> None:
         raise ErroValidacao("Use letras e números na senha.")
 
 
-def _validar_dados_pessoais(nome: str, email: str, setor: str) -> tuple[str, str | None]:
+def _validar_nome_email(nome: str, email: str) -> tuple[str, str | None]:
     nome, email = (nome or "").strip(), (email or "").strip().lower()
     if not nome or len(nome) > 100:
         raise ErroValidacao("Informe seu nome.")
     if email and not EMAIL_VALIDO.match(email):
         raise ErroValidacao("E-mail inválido.")
-    if setor not in SETORES:
-        raise ErroValidacao("Escolha seu setor.")
     return nome, email or None
 
 
 def criar_conta(s: Session, nome: str, login: str, email: str, setor: str, senha: str) -> Usuario:
     """Cria a conta. A primeira conta do sistema vira administrador."""
-    nome, email = _validar_dados_pessoais(nome, email, setor)
+    nome, email = _validar_nome_email(nome, email)
+    if setor not in SETORES:
+        raise ErroValidacao("Escolha seu setor.")
     login = normalizar_login(login)
     if not LOGIN_VALIDO.match(login):
         raise ErroValidacao("Usuário: de 3 a 50 caracteres, só letras minúsculas, números, ponto, hífen ou _.")
@@ -94,9 +94,9 @@ def alterar_senha(s: Session, u: Usuario, atual: str | None, nova: str) -> None:
     s.commit()
 
 
-def atualizar_perfil(s: Session, u: Usuario, nome: str, email: str, setor: str) -> None:
-    u.nome, u.email = _validar_dados_pessoais(nome, email, setor)
-    u.setor = setor
+def atualizar_perfil(s: Session, u: Usuario, nome: str, email: str) -> None:
+    """O setor não é alterado aqui: ele define quais chamados a pessoa atende, então só o admin muda."""
+    u.nome, u.email = _validar_nome_email(nome, email)
     s.commit()
 
 
@@ -106,20 +106,28 @@ def listar_usuarios(s: Session) -> list[tuple[Usuario, int]]:
     return list(s.execute(select(Usuario, total).order_by(Usuario.ativo.desc(), Usuario.nome)).all())
 
 
-def listar_usuarios_ativos(s: Session) -> list[Usuario]:
-    return list(s.scalars(select(Usuario).where(Usuario.ativo).order_by(Usuario.nome)))
-
-
 def _admins_ativos(s: Session) -> int:
     return s.scalar(select(func.count(Usuario.id)).where(Usuario.papel == PAPEL_ADMIN, Usuario.ativo))
 
 
-def definir_papel(s: Session, alvo: Usuario, papel: str) -> None:
+def _liberar_chamados(s: Session, u: Usuario) -> None:
+    """Tira a pessoa de responsável pelos chamados em aberto que ela não atende mais."""
+    for c in s.scalars(select(Chamado).where(Chamado.responsavel_id == u.id,
+                                             Chamado.status != STATUS_FECHADO)).unique():
+        if not (u.ativo and u.atende and c.setor_destino == u.setor):
+            c.responsavel_id = None
+
+
+def atualizar_usuario(s: Session, alvo: Usuario, setor: str, atende: bool, papel: str) -> None:
+    """Admin define setor, se a pessoa atende chamados do setor e o perfil."""
+    if setor not in SETORES:
+        raise ErroValidacao("Setor inválido.")
     if papel not in PAPEIS:
-        raise ErroValidacao("Papel inválido.")
+        raise ErroValidacao("Perfil inválido.")
     if alvo.is_admin and papel != PAPEL_ADMIN and _admins_ativos(s) <= 1:
         raise ErroValidacao("O sistema precisa de pelo menos um administrador ativo.")
-    alvo.papel = papel
+    alvo.setor, alvo.atende, alvo.papel = setor, atende, papel
+    _liberar_chamados(s, alvo)
     s.commit()
 
 
@@ -127,11 +135,7 @@ def definir_ativo(s: Session, alvo: Usuario, ativo: bool) -> None:
     if not ativo and alvo.is_admin and alvo.ativo and _admins_ativos(s) <= 1:
         raise ErroValidacao("O sistema precisa de pelo menos um administrador ativo.")
     alvo.ativo = ativo
-    if not ativo:
-        # Conta desativada não fica responsável por chamados em aberto
-        for c in s.scalars(select(Chamado).where(Chamado.responsavel_id == alvo.id,
-                                                 Chamado.status != STATUS_FECHADO)).unique():
-            c.responsavel_id = None
+    _liberar_chamados(s, alvo)
     s.commit()
 
 
@@ -144,102 +148,27 @@ def redefinir_senha(s: Session, alvo: Usuario) -> str:
     return temporaria
 
 
-# ─── FILAS E CATEGORIAS ─────────────────────────────────────────────────────
+# ─── ATENDENTES POR SETOR ───────────────────────────────────────────────────
 
-def listar_filas(s: Session, apenas_ativas: bool = False) -> list[Fila]:
-    q = select(Fila).order_by(Fila.nome)
-    if apenas_ativas:
-        q = q.where(Fila.ativa)
-    return list(s.scalars(q))
-
-
-def filas_do_atendente(s: Session, usuario: Usuario) -> list[Fila]:
-    """Filas em que o usuário trabalha: todas para o admin, as dele para os atendentes."""
-    return listar_filas(s) if usuario.is_admin else list(usuario.filas)
+def atendentes_por_setor(s: Session) -> dict[str, list[Usuario]]:
+    """Setores que recebem chamados e quem atende em cada um (só contas ativas)."""
+    grupos: dict[str, list[Usuario]] = defaultdict(list)
+    for u in s.scalars(select(Usuario).where(Usuario.atende, Usuario.ativo).order_by(Usuario.nome)):
+        grupos[u.setor].append(u)
+    return {setor: grupos[setor] for setor in SETORES if setor in grupos}
 
 
-def obter_fila(s: Session, fila_id: int) -> Fila | None:
-    return s.get(Fila, fila_id)
+def atendentes_do_setor(s: Session, setor: str) -> list[Usuario]:
+    return atendentes_por_setor(s).get(setor, [])
 
 
-def atendentes_da_fila(fila: Fila) -> list[Usuario]:
-    return [u for u in fila.atendentes if u.ativo]
-
-
-def contar_abertos_por_fila(s: Session) -> dict[int, int]:
-    return dict(s.execute(select(Chamado.fila_id, func.count(Chamado.id))
-                          .where(Chamado.status != STATUS_FECHADO).group_by(Chamado.fila_id)).all())
-
-
-def _validar_nome_fila(s: Session, nome: str, ignorar_id: int | None = None) -> str:
-    nome = (nome or "").strip()
-    if not nome or len(nome) > 60:
-        raise ErroValidacao("Informe o nome da fila (até 60 caracteres).")
-    existente = s.scalar(select(Fila.id).where(func.lower(Fila.nome) == nome.lower()))
-    if existente and existente != ignorar_id:
-        raise ErroValidacao("Já existe uma fila com esse nome.")
-    return nome
-
-
-def criar_fila(s: Session, nome: str, descricao: str) -> Fila:
-    f = Fila(nome=_validar_nome_fila(s, nome), descricao=(descricao or "").strip()[:255] or None)
-    s.add(f)
-    s.commit()
-    return f
-
-
-def atualizar_fila(s: Session, f: Fila, nome: str, descricao: str, ativa: bool) -> None:
-    f.nome = _validar_nome_fila(s, nome, f.id)
-    f.descricao = (descricao or "").strip()[:255] or None
-    f.ativa = ativa
-    s.commit()
-
-
-def definir_atendentes(s: Session, f: Fila, usuario_ids: list[int]) -> None:
-    f.atendentes = list(s.scalars(select(Usuario).where(Usuario.id.in_(usuario_ids or [-1]))))
-    # Quem saiu da fila deixa de ser responsável pelos chamados abertos dela
-    ids = {u.id for u in f.atendentes}
-    for c in s.scalars(select(Chamado).where(Chamado.fila_id == f.id, Chamado.status != STATUS_FECHADO,
-                                             Chamado.responsavel_id.is_not(None))).unique():
-        if c.responsavel_id not in ids:
-            c.responsavel_id = None
-    s.commit()
-
-
-def adicionar_categoria(s: Session, f: Fila, nome: str) -> Categoria:
-    nome = (nome or "").strip()
-    if not nome or len(nome) > 60:
-        raise ErroValidacao("Informe o nome da categoria (até 60 caracteres).")
-    if any(c.nome.lower() == nome.lower() for c in f.categorias):
-        raise ErroValidacao("Essa fila já tem uma categoria com esse nome.")
-    c = Categoria(fila=f, nome=nome)
-    s.add(c)
-    s.commit()
-    return c
-
-
-def definir_categoria_ativa(s: Session, c: Categoria, ativa: bool) -> None:
-    c.ativa = ativa
-    s.commit()
-
-
-def _fila_ativa(s: Session, fila_id) -> Fila:
-    fila = s.get(Fila, int(fila_id)) if str(fila_id or "").isdigit() else None
-    if fila is None or not fila.ativa:
+def _responsavel_valido(s: Session, setor: str, responsavel_id) -> Usuario:
+    if setor not in SETORES:
         raise ErroValidacao("Escolha para qual setor é o pedido.")
-    return fila
-
-
-def _categoria_da_fila(s: Session, fila: Fila, categoria_id) -> Categoria | None:
-    """Categoria escolhida no formulário; obrigatória se a fila tiver categorias ativas."""
-    if categoria_id in (None, ""):
-        if fila.categorias_ativas:
-            raise ErroValidacao("Escolha o tipo de pedido.")
-        return None
-    cat = s.get(Categoria, int(categoria_id)) if str(categoria_id).isdigit() else None
-    if cat is None or cat.fila_id != fila.id or not cat.ativa:
-        raise ErroValidacao("Tipo de pedido inválido para esse setor.")
-    return cat
+    u = s.get(Usuario, int(responsavel_id)) if str(responsavel_id or "").isdigit() else None
+    if u is None or not u.ativo or not u.atende or u.setor != setor:
+        raise ErroValidacao(f"Escolha um funcionário do setor {setor}.")
+    return u
 
 
 # ─── LIMITE DE TENTATIVAS DE LOGIN ──────────────────────────────────────────
@@ -275,55 +204,47 @@ def _visiveis(usuario: Usuario):
     """Condição SQL dos chamados que o usuário pode ver (None = todos)."""
     if usuario.is_admin:
         return None
-    if usuario.filas_ids:
-        return or_(Chamado.solicitante_id == usuario.id, Chamado.fila_id.in_(usuario.filas_ids))
+    if usuario.is_atendente:
+        return or_(Chamado.solicitante_id == usuario.id, Chamado.setor_destino == usuario.setor)
     return Chamado.solicitante_id == usuario.id
 
 
-def _das_minhas_filas(usuario: Usuario):
-    """Chamados das filas que o usuário atende (None = todas, para o admin)."""
-    return None if usuario.is_admin else Chamado.fila_id.in_(usuario.filas_ids or {-1})
-
-
-def _escopo_atendimento(usuario: Usuario, fila_id: int | None) -> list:
-    cond = [c for c in [_das_minhas_filas(usuario)] if c is not None]
-    if fila_id:
-        cond.append(Chamado.fila_id == fila_id)
-    return cond
+def _escopo_atendimento(usuario: Usuario, setor: str | None = None) -> list:
+    """Chamados que o usuário atende: do setor dele (admin: todos, ou o setor escolhido)."""
+    if usuario.is_admin:
+        return [Chamado.setor_destino == setor] if setor else []
+    return [Chamado.setor_destino == usuario.setor]
 
 
 # ─── LISTAGEM DE CHAMADOS ───────────────────────────────────────────────────
 
 Solicitante = aliased(Usuario)
 Responsavel = aliased(Usuario)
-FilaOrdem = aliased(Fila)
 
-_ORDEM_PRIORIDADE = case({p: i for i, p in enumerate(PRIORIDADES)}, value=Chamado.prioridade)
 ORDENACAO = {
     "id": Chamado.id,
     "titulo": func.lower(Chamado.titulo),
-    "fila": func.lower(FilaOrdem.nome),
-    "setor": Chamado.setor,
+    "para": Chamado.setor_destino,
     "status": Chamado.status,
-    "prioridade": _ORDEM_PRIORIDADE,
+    "prioridade": case({p: i for i, p in enumerate(PRIORIDADES)}, value=Chamado.prioridade),
     "abertura": Chamado.aberto_em,
-    "fechamento": Chamado.fechado_em,
-    "solicitante": func.lower(Solicitante.nome),
     "responsavel": func.lower(Responsavel.nome),
+}
+
+VISOES = {
+    "": "Tudo",
+    "setor": "Do meu setor",
+    "atribuidos": "Atribuídos a mim",
+    "meus": "Que eu abri",
 }
 
 
 @dataclass
 class Filtros:
-    visao: str = ""           # "" = tudo que posso ver, "meus" = que eu abri, "filas" = das minhas filas
+    visao: str = ""       # ver VISOES
     texto: str = ""
-    fila: str = ""            # id da fila
-    status: str = ""          # "" = todos, "abertos" = todos menos Fechado
-    setor: str = ""
-    prioridade: str = ""
-    responsavel: str = ""     # "" = todos, "nenhum", "eu" ou id
-    de: date | None = None
-    ate: date | None = None
+    status: str = ""      # "" = todos, "abertos" = todos menos Fechado, ou um status
+    setor: str = ""       # setor de destino (só o admin filtra por setor)
     ordenar: str = "id"
     direcao: str = "desc"
     pagina: int = 1
@@ -336,12 +257,14 @@ def _escapar_like(texto: str) -> str:
 
 def listar_chamados(s: Session, f: Filtros, usuario: Usuario) -> tuple[list[Chamado], int]:
     cond = [c for c in [_visiveis(usuario)] if c is not None]
-    if f.visao == "meus":
+    if f.visao == "setor":
+        cond += _escopo_atendimento(usuario)
+    elif f.visao == "atribuidos":
+        cond.append(Chamado.responsavel_id == usuario.id)
+    elif f.visao == "meus":
         cond.append(Chamado.solicitante_id == usuario.id)
-    elif f.visao == "filas" and (restricao := _das_minhas_filas(usuario)) is not None:
-        cond.append(restricao)
-    if f.fila.isdigit():
-        cond.append(Chamado.fila_id == int(f.fila))
+    if f.setor and usuario.is_admin:
+        cond.append(Chamado.setor_destino == f.setor)
     if f.texto:
         termo = f"%{_escapar_like(f.texto.strip())}%"
         busca = [Chamado.titulo.ilike(termo, escape="\\"), Chamado.descricao.ilike(termo, escape="\\")]
@@ -353,24 +276,9 @@ def listar_chamados(s: Session, f: Filtros, usuario: Usuario) -> tuple[list[Cham
         cond.append(Chamado.status != STATUS_FECHADO)
     elif f.status:
         cond.append(Chamado.status == f.status)
-    if f.setor:
-        cond.append(Chamado.setor == f.setor)
-    if f.prioridade:
-        cond.append(Chamado.prioridade == f.prioridade)
-    if f.responsavel == "nenhum":
-        cond.append(Chamado.responsavel_id.is_(None))
-    elif f.responsavel == "eu":
-        cond.append(Chamado.responsavel_id == usuario.id)
-    elif f.responsavel.isdigit():
-        cond.append(Chamado.responsavel_id == int(f.responsavel))
-    if f.de:
-        cond.append(Chamado.aberto_em >= datetime.combine(f.de, datetime.min.time()))
-    if f.ate:
-        cond.append(Chamado.aberto_em < datetime.combine(f.ate + timedelta(days=1), datetime.min.time()))
 
     base = (select(Chamado)
             .join(Solicitante, Solicitante.id == Chamado.solicitante_id)
-            .join(FilaOrdem, FilaOrdem.id == Chamado.fila_id)
             .outerjoin(Responsavel, Responsavel.id == Chamado.responsavel_id)
             .where(*cond))
     total = s.scalar(select(func.count()).select_from(base.subquery()))
@@ -387,14 +295,6 @@ def contar_anexos(s: Session, ids: list[int]) -> dict[int, int]:
         return {}
     return dict(s.execute(select(Anexo.chamado_id, func.count(Anexo.id))
                           .where(Anexo.chamado_id.in_(ids)).group_by(Anexo.chamado_id)).all())
-
-
-def contagens_atendimento(s: Session, usuario: Usuario) -> dict[str, int]:
-    """Números das abas da lista para quem atende: sem responsável e atribuídos a mim (em aberto)."""
-    escopo = _escopo_atendimento(usuario, None) + [Chamado.status != STATUS_FECHADO]
-    sem = s.scalar(select(func.count(Chamado.id)).where(*escopo, Chamado.responsavel_id.is_(None)))
-    meus = s.scalar(select(func.count(Chamado.id)).where(*escopo, Chamado.responsavel_id == usuario.id))
-    return {"sem_responsavel": sem or 0, "atribuidos": meus or 0}
 
 
 # ─── CHAMADO ────────────────────────────────────────────────────────────────
@@ -421,20 +321,20 @@ def _commit_com_arquivos(s: Session, gravados: list[str]) -> None:
         raise
 
 
-def criar_chamado(s: Session, autor: Usuario, fila_id, categoria_id, titulo: str, descricao: str,
-                  prioridade: str, setor: str, arquivos: list[Arquivo]) -> Chamado:
-    fila = _fila_ativa(s, fila_id)
-    categoria = _categoria_da_fila(s, fila, categoria_id)
+def criar_chamado(s: Session, autor: Usuario, setor_destino: str, responsavel_id, titulo: str,
+                  descricao: str, prioridade: str, arquivos: list[Arquivo]) -> Chamado:
+    responsavel = _responsavel_valido(s, setor_destino, responsavel_id)
     titulo, descricao = titulo.strip(), descricao.strip()
     if not titulo or not descricao:
         raise ErroValidacao("Preencha título e descrição.")
     if len(titulo) > 150:
         raise ErroValidacao("O título pode ter no máximo 150 caracteres.")
-    if prioridade not in PRIORIDADES or setor not in SETORES:
-        raise ErroValidacao("Escolha prioridade e setor.")
+    if prioridade not in PRIORIDADES:
+        raise ErroValidacao("Escolha a prioridade.")
 
-    c = Chamado(fila=fila, categoria=categoria, titulo=titulo, descricao=descricao,
-                prioridade=prioridade, setor=setor, solicitante_id=autor.id, status=STATUS_ABERTO)
+    c = Chamado(titulo=titulo, descricao=descricao, prioridade=prioridade, setor=autor.setor,
+                setor_destino=setor_destino, responsavel_id=responsavel.id,
+                solicitante_id=autor.id, status=STATUS_ABERTO)
     s.add(c)
     gravados = _gravar_anexos(s, c, autor, arquivos)
     _commit_com_arquivos(s, gravados)
@@ -479,43 +379,25 @@ def alterar_status(s: Session, c: Chamado, novo: str, autor: Usuario) -> bool:
     return True
 
 
-def atribuir(s: Session, c: Chamado, responsavel: Usuario | None, autor: Usuario) -> bool:
-    if responsavel is not None and (not responsavel.ativo or c.fila_id not in responsavel.filas_ids):
-        raise ErroValidacao(f"Escolha um atendente ativo da fila {c.fila.nome}.")
-    novo_id = responsavel.id if responsavel else None
-    if novo_id == c.responsavel_id:
+def encaminhar(s: Session, c: Chamado, setor: str, responsavel_id, autor: Usuario) -> bool:
+    """Troca o responsável, no mesmo setor ou em outro. Cobre "atribuir" e "transferir"."""
+    responsavel = _responsavel_valido(s, setor, responsavel_id)
+    if setor == c.setor_destino and responsavel.id == c.responsavel_id:
         return False
-    c.responsavel_id = novo_id
-    _evento(s, c, autor, f"Chamado atribuído a {responsavel.nome}." if responsavel
-            else "Responsável removido.")
+    if setor != c.setor_destino:
+        _evento(s, c, autor, f"Encaminhado de {c.setor_destino} para {setor} ({responsavel.nome}).")
+        c.setor_destino = setor
+    else:
+        _evento(s, c, autor, f"Chamado atribuído a {responsavel.nome}.")
+    c.responsavel_id = responsavel.id
     s.commit()
     return True
 
 
 def assumir(s: Session, c: Chamado, atendente: Usuario) -> None:
-    atribuir(s, c, atendente, atendente)
+    encaminhar(s, c, c.setor_destino, atendente.id, atendente)
     if c.status == STATUS_ABERTO:
         alterar_status(s, c, STATUS_ANDAMENTO, atendente)
-
-
-def transferir(s: Session, c: Chamado, fila_id, categoria_id, autor: Usuario) -> bool:
-    """Passa o chamado para outra fila, ou troca a categoria dentro da mesma fila."""
-    fila = _fila_ativa(s, fila_id)
-    categoria = _categoria_da_fila(s, fila, categoria_id)
-    if fila.id == c.fila_id and (categoria.id if categoria else None) == c.categoria_id:
-        return False
-
-    if fila.id != c.fila_id:
-        destino = fila.nome + (f" / {categoria.nome}" if categoria else "")
-        _evento(s, c, autor, f"Transferido de {c.fila.nome} para {destino}.")
-        if c.responsavel_id is not None and c.responsavel_id not in {u.id for u in fila.atendentes}:
-            c.responsavel_id = None
-        c.fila = fila
-    else:
-        _evento(s, c, autor, f"Tipo de pedido alterado para {categoria.nome if categoria else 'nenhum'}.")
-    c.categoria = categoria
-    s.commit()
-    return True
 
 
 def apagar_chamado(s: Session, c: Chamado) -> None:
@@ -550,10 +432,10 @@ def avaliar(s: Session, c: Chamado, usuario: Usuario, avaliacao: str) -> bool:
 
 # ─── PAINEL ─────────────────────────────────────────────────────────────────
 
-def painel(s: Session, dias: int, usuario: Usuario, fila_id: int | None = None) -> dict:
-    """Indicadores das filas que o usuário atende (todas para o admin)."""
+def painel(s: Session, dias: int, usuario: Usuario, setor: str | None = None) -> dict:
+    """Indicadores do setor que o usuário atende (admin: todos, ou o setor escolhido)."""
     limite = agora() - timedelta(days=dias)
-    escopo = _escopo_atendimento(usuario, fila_id)
+    escopo = _escopo_atendimento(usuario, setor)
     abertos = list(s.scalars(select(Chamado).where(*escopo, Chamado.status != STATUS_FECHADO)).unique())
     fechados = list(s.execute(select(Chamado.aberto_em, Chamado.fechado_em, Chamado.avaliacao)
                               .where(*escopo, Chamado.status == STATUS_FECHADO,
@@ -580,8 +462,7 @@ def painel(s: Session, dias: int, usuario: Usuario, fila_id: int | None = None) 
             "fechados": len(fechados),
             "tempo_medio": sum(tempos) / len(tempos) if tempos else None,
         },
-        "por_fila": contar(c.fila.nome for c in abertos),
-        "por_categoria": contar(c.categoria.nome if c.categoria else "(sem tipo)" for c in abertos),
+        "por_setor_destino": contar(c.setor_destino for c in abertos),
         "por_status": contar(c.status for c in abertos),
         "por_responsavel": contar(c.responsavel.nome if c.responsavel else "Sem responsável" for c in abertos),
         "por_setor": contar(c.setor for c in abertos),  # setor de quem pediu
@@ -595,9 +476,9 @@ def painel(s: Session, dias: int, usuario: Usuario, fila_id: int | None = None) 
 # ─── RELATÓRIO ──────────────────────────────────────────────────────────────
 
 def chamados_por_periodo(s: Session, inicio: date, fim: date, usuario: Usuario,
-                         fila_id: int | None = None) -> list[Chamado]:
+                         setor: str | None = None) -> list[Chamado]:
     return list(s.scalars(select(Chamado).where(
-        *_escopo_atendimento(usuario, fila_id),
+        *_escopo_atendimento(usuario, setor),
         Chamado.aberto_em >= datetime.combine(inicio, datetime.min.time()),
         Chamado.aberto_em < datetime.combine(fim + timedelta(days=1), datetime.min.time()),
     ).order_by(Chamado.aberto_em)).unique())
