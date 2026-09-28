@@ -124,6 +124,63 @@ O e-mail é obrigatório no cadastro; quem tinha conta sem e-mail é levado a pr
    sudo systemctl restart ticket-manager
    ```
 
+### Servidor de e-mail interno (da própria empresa)
+
+Pergunte ao responsável pelo servidor de e-mail:
+
+1. **Qual o endereço** do servidor (ex.: `mail.suaempresa.local` ou um IP).
+2. **Se aceita envio sem senha** vindo do servidor do Ticket Manager (*relay* interno) ou se precisa de usuário e senha.
+3. **Se o certificado é próprio** (autoassinado ou de uma autoridade interna da empresa).
+
+Para descobrir sozinho quais portas estão abertas, rode no servidor do Ticket Manager
+(troque `mail.suaempresa.local` pelo endereço do servidor de e-mail):
+
+```bash
+for p in 25 587 465; do nc -zv -w 3 mail.suaempresa.local $p; done
+```
+
+Configurações mais comuns num servidor interno:
+
+```ini
+; Envio sem senha pela rede interna (relay)
+host = mail.suaempresa.local
+porta = 25
+seguranca = nenhuma
+usuario =
+senha =
+
+; Envio com senha
+host = mail.suaempresa.local
+porta = 587
+seguranca = starttls
+usuario = chamados@suaempresa.com.br
+senha = SENHA_DA_CONTA
+```
+
+Se o `testar-email` der **`CERTIFICATE_VERIFY_FAILED`**, o servidor usa certificado próprio.
+O jeito seguro é salvar o certificado dele e informar em `ca_arquivo`:
+
+```bash
+# porta 587 (starttls); para a porta 465 (ssl), tire o "-starttls smtp" e troque a porta
+openssl s_client -starttls smtp -connect mail.suaempresa.local:587 -showcerts </dev/null 2>/dev/null \
+  | sudo sh -c 'sed -n "/BEGIN CERTIFICATE/,/END CERTIFICATE/p" > /etc/ticket-manager/certificado-email.crt'
+sudo chmod 644 /etc/ticket-manager/certificado-email.crt
+```
+
+```ini
+ca_arquivo = /etc/ticket-manager/certificado-email.crt
+```
+
+Se a empresa tiver uma autoridade certificadora própria, prefira o certificado dela (peça ao TI) ao
+salvo pelo comando acima. Em último caso, `verificar_certificado = false` aceita qualquer
+certificado; funciona, mas perde a proteção contra alguém se passar pelo servidor de e-mail.
+
+O `host` precisa ser o **mesmo nome que está no certificado**. Se o certificado é de
+`mail.suaempresa.local`, use esse nome, não o IP. Se o nome não resolve no servidor do Ticket
+Manager, acrescente uma linha em `/etc/hosts`: `192.168.0.10  mail.suaempresa.local`.
+
+### Provedores externos
+
 | Provedor | host | porta | seguranca |
 |---|---|---|---|
 | Microsoft 365 / Outlook | `smtp.office365.com` | 587 | `starttls` |
@@ -137,7 +194,11 @@ Se o `testar-email` falhar:
 |---|---|
 | `SMTPAuthenticationError` | Usuário ou senha errados. No Microsoft 365, o administrador precisa liberar "SMTP autenticado" para a conta; no Google, use uma "senha de app". |
 | `ConnectionRefusedError` / `timed out` | `host` ou `porta` errados, ou o provedor/firewall bloqueia a saída nessa porta. |
-| `SSL` / `WRONG_VERSION_NUMBER` | Troque `seguranca`: porta 465 usa `ssl`, porta 587 usa `starttls`. |
+| `SSL` / `WRONG_VERSION_NUMBER` | Troque `seguranca`: porta 465 usa `ssl`, porta 587 usa `starttls`, porta 25 geralmente `nenhuma`. |
+| `CERTIFICATE_VERIFY_FAILED` | Certificado próprio do servidor: veja "Servidor de e-mail interno" acima (`ca_arquivo`). |
+| `hostname mismatch` / `doesn't match` | O `host` não é o nome que está no certificado: use o nome do certificado (e `/etc/hosts`, se preciso). |
+| `SMTPRecipientsRefused` / `Relay access denied` | O servidor não aceita envio sem senha deste computador: use usuário e senha, ou peça ao TI para liberar o IP do servidor do Ticket Manager. |
+| `STARTTLS extension not supported` | O servidor não oferece criptografia nessa porta: use `seguranca = nenhuma` (só dentro da rede interna). |
 | `SMTPSenderRefused` | O `remetente` precisa ser a mesma conta do `usuario` (ou uma que ela possa usar). |
 
 Se um aviso não chegar depois de configurado, o motivo aparece no log:

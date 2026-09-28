@@ -32,6 +32,8 @@ def iniciar(app: Flask, cfg: ConfigEmail) -> None:
     app.extensions["email"] = cfg
     if cfg.ativo:
         log.info("E-mail ativo: %s:%s (%s)", cfg.host, cfg.porta, cfg.seguranca)
+        if cfg.seguranca != "nenhuma" and not cfg.verificar_certificado:
+            log.warning("E-mail: verificação do certificado do servidor DESLIGADA (verificar_certificado = false)")
 
 
 def ativo() -> bool:
@@ -68,9 +70,18 @@ def _enviar_agora(cfg: ConfigEmail, msg: Mensagem) -> None:
         log.exception("Falha ao enviar e-mail para %s (%s)", msg.para, msg.assunto)
 
 
+def _contexto_ssl(cfg: ConfigEmail) -> ssl.SSLContext:
+    """Confere o certificado do servidor; aceita o certificado da empresa (ca_arquivo)."""
+    contexto = ssl.create_default_context(cafile=cfg.ca_arquivo or None)
+    if not cfg.verificar_certificado:
+        contexto.check_hostname = False
+        contexto.verify_mode = ssl.CERT_NONE
+    return contexto
+
+
 def enviar_sincrono(cfg: ConfigEmail, msg: Mensagem) -> None:
     """Envia na hora e deixa o erro subir (usado pelo comando de teste)."""
-    contexto = ssl.create_default_context()
+    contexto = _contexto_ssl(cfg)
     if cfg.seguranca == "ssl":
         servidor = smtplib.SMTP_SSL(cfg.host, cfg.porta, timeout=20, context=contexto)
     else:

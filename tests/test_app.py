@@ -547,3 +547,29 @@ def test_mensagem_montada_para_smtp():
     assert m["Subject"] == "Título com quebra"
     assert m["From"] == "Ticket Manager <chamados@empresa.com.br>"
     assert m.get_body(("html",)).get_content().strip() == "<p>oi</p>"
+
+
+def test_config_email_servidor_interno(tmp_path, monkeypatch):
+    import ssl
+
+    from app.config import carregar_config
+    from app.correio import _contexto_ssl
+    base = "[banco]\nurl = sqlite://\n[servidor]\nsecret_key = " + "x" * 40 + "\n"
+    ini = tmp_path / "config.ini"
+    monkeypatch.setenv("TICKET_MANAGER_CONFIG", str(ini))
+
+    # relay interno sem senha, porta 25
+    ini.write_text(base + "[email]\nhost = mail.empresa.local\nporta = 25\nseguranca = nenhuma\n"
+                   "remetente = chamados@empresa.com.br\n", encoding="utf-8")
+    e = carregar_config().email
+    assert e.ativo and e.porta == 25 and not e.usuario and e.verificar_certificado
+
+    # certificado próprio: arquivo precisa existir
+    ini.write_text(base + "[email]\nhost = mail\nremetente = a@b.com\nca_arquivo = /nao/existe.crt\n", encoding="utf-8")
+    with pytest.raises(FileNotFoundError):
+        carregar_config()
+
+    # verificação desligada
+    ini.write_text(base + "[email]\nhost = mail\nremetente = a@b.com\nverificar_certificado = false\n", encoding="utf-8")
+    ctx = _contexto_ssl(carregar_config().email)
+    assert ctx.verify_mode == ssl.CERT_NONE and not ctx.check_hostname
