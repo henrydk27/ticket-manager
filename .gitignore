@@ -12,3 +12,7 @@ venv/
 build/
 dist/
 *.spec
+
+# Documentos (apresentações etc.) ficam fora do Git
+*.docx
+*.doc

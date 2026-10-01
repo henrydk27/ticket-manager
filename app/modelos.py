@@ -22,7 +22,6 @@ SETORES = [
     "Faturamento", "Financeiro", "Fiscal", "Inspeção", "Manutenção", "Portaria",
     "Qualidade", "Recebimento", "RH", "T.I", "Vendas",
 ]
-SETOR_TI = "T.I"  # quem atende este setor também cuida do inventário
 
 # Inventário
 TIPOS_EQUIPAMENTO = [
@@ -82,8 +81,8 @@ class Usuario(Base):
 
     @property
     def cuida_inventario(self) -> bool:
-        """Administradores e quem atende chamados da T.I."""
-        return self.is_admin or (self.atende and self.ativo and self.setor == SETOR_TI)
+        """Só administradores acessam o inventário."""
+        return self.is_admin
 
 
 class Chamado(Base):

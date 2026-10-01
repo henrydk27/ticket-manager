@@ -32,7 +32,7 @@ def _equipamentos(s, contas) -> None:
             "patrimonio": pat, "tipo": tipo, "marca": marca, "modelo": modelo, "situacao": sit,
             "usuario_id": contas[dono].id if dono else "", "setor": setor, "processador": cpu,
             "memoria": mem, "armazenamento": disco, "sistema_operacional": so, "hostname": host, "ip": ip,
-        }, contas["carlos"])
+        }, contas["admin"])
 
 
 def main() -> None:

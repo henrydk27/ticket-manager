@@ -1,4 +1,4 @@
-"""Telas do inventário de TI (admin e quem atende a T.I)."""
+"""Telas do inventário de TI (só administradores)."""
 
 import math
 from datetime import date

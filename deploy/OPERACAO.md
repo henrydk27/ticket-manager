@@ -45,7 +45,7 @@ Um setor só aparece na tela de novo chamado quando tem pelo menos uma pessoa ma
 | | Chamados | Painel e relatório | Inventário | Usuários |
 |---|---|---|---|---|
 | **Usuário** | só os que ele abriu | — | — | — |
-| **Quem atende chamados** | os do seu setor + os que ele abriu | do seu setor | só quem atende a **T.I** | — |
+| **Quem atende chamados** | os do seu setor + os que ele abriu | do seu setor | — | — |
 | **Administrador** | todos | todos os setores (com filtro) | sim | sim |
 
 Para impedir que qualquer pessoa crie conta, defina `cadastro_aberto = false` no
@@ -53,7 +53,7 @@ Para impedir que qualquer pessoa crie conta, defina `cadastro_aberto = false` no
 
 ## Inventário de TI
 
-Menu **Inventário**, visível para administradores e para quem atende chamados da **T.I**.
+Menu **Inventário**, visível só para **administradores**.
 
 | Situação | O que fazer |
 |---|---|
@@ -293,7 +293,7 @@ sudo systemctl start ticket-manager
 |---|---|
 | Página não abre | O servidor está ligado? `sudo systemctl status nginx ticket-manager --no-pager` |
 | Visual antigo ou botão que não responde depois de atualizar | Recarregue com **Ctrl+F5** (só pode acontecer com quem abriu o sistema antes da atualização que passou a versionar os arquivos) |
-| Menu **Inventário** não aparece | A pessoa precisa estar no setor **T.I** com **Atende chamados** marcado (ou ser administrador) |
+| Menu **Inventário** não aparece | Só administradores veem o inventário: em **Usuários**, mude o perfil da pessoa para **Administrador** |
 | `502 Bad Gateway` | Serviço parado ou com erro: veja os erros com `journalctl` (tabela acima) |
 | Ninguém consegue entrar como administrador | `sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py tornar-admin LOGIN` (dentro de `/opt/ticket-manager`) |
 | Disco cheio | `df -h /`; anexos antigos e backups ocupam espaço |

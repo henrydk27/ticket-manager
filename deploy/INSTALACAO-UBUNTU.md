@@ -117,8 +117,8 @@ Abra `http://IP-DO-SERVIDOR` num computador da rede e clique em **Crie sua conta
 
 **A primeira conta criada é a de administrador** — crie a sua antes de divulgar o endereço.
 As próximas entram como usuário comum. Depois, em **Usuários**, confira o setor de cada pessoa e
-marque **Atende chamados** em quem recebe pedidos (quem atende a **T.I** também cuida do
-inventário) → **Salvar alterações**.
+marque **Atende chamados** em quem recebe pedidos → **Salvar alterações**. O inventário de TI
+fica visível só para administradores.
 
 (Alternativa pelo terminal: `manage.py criar-admin LOGIN`, com o mesmo `sudo -u ticketapp
 TICKET_MANAGER_CONFIG=...` do passo 5.)

@@ -20,7 +20,7 @@ rodar num servidor **Ubuntu**. Refeito do zero a partir das funções da versão
 | Comentar e anexar arquivos | Mudar status (Aberto, Em andamento, Aguardando usuário, Fechado) e reabrir | **Apagar** chamados e equipamentos |
 | Buscar e filtrar os próprios chamados | Encaminhar para outra pessoa ou outro setor | Desativar contas e redefinir senhas |
 | Avaliar chamados encerrados | Painel e relatório Excel/PDF do setor | Painel e relatório de todos os setores |
-| Alterar nome, e-mail e senha em Minha conta | **Inventário de TI** (quem atende a T.I) | Inventário de TI |
+| Alterar nome, e-mail e senha em Minha conta | | **Inventário de TI** |
 
 - Quem atende e abre um pedido para **outro** setor acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
@@ -32,7 +32,7 @@ rodar num servidor **Ubuntu**. Refeito do zero a partir das funções da versão
 
 ## Inventário de TI
 
-Para administradores e quem atende chamados da T.I: equipamentos cadastrados com o **nº de
+Só para administradores: equipamentos cadastrados com o **nº de
 patrimônio que já têm** (editável e único), tipo, marca/modelo, série, configuração do
 computador e rede (hostname, IP, MAC). Cada equipamento fica com um **usuário** e/ou um
 **setor**, e toda troca de usuário, setor ou situação vai para o **histórico**, com data e quem

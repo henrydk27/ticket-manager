@@ -38,9 +38,10 @@ def editar(client, e, **campos):
     return client.post(f"/inventario/{e.id}", data=dados, follow_redirects=True)
 
 
-def test_acesso_so_admin_e_quem_atende_ti(client, contas):
+def test_acesso_so_admin(client, contas):
+    # carlos atende a T.I, mas não é administrador: também fica sem acesso
     for login, senha, esperado in (("ana", "ana12345", 403), ("marta", "marta123", 403),
-                                   ("carlos", "carlos123", 200), ("admin", "admin123", 200)):
+                                   ("carlos", "carlos123", 403), ("admin", "admin123", 200)):
         entrar(client, login, senha)
         assert client.get("/inventario/").status_code == esperado, login
         tem_menu = "/inventario/" in client.get("/chamados").get_data(as_text=True)
@@ -49,16 +50,16 @@ def test_acesso_so_admin_e_quem_atende_ti(client, contas):
 
 
 def test_cadastrar_com_patrimonio_existente_e_normalizar(client, s, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     html = cadastrar(client).get_data(as_text=True)
     assert "Equipamento 000123 cadastrado." in html
     e = eq(s, "000123")
     assert e.mac == "AA:BB:CC:DD:EE:FF" and e.ip == "192.168.0.25" and e.situacao == "Em estoque"
-    assert e.historico[0].descricao == "Cadastrado: Em estoque." and e.historico[0].autor.login == "carlos"
+    assert e.historico[0].descricao == "Cadastrado: Em estoque." and e.historico[0].autor.login == "admin"
 
 
 def test_patrimonio_unico_e_validacoes(client, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     cadastrar(client)
     assert "Já existe um equipamento com o patrimônio" in cadastrar(client, patrimonio="000123").get_data(as_text=True)
     assert "Informe o nº de patrimônio" in cadastrar(client, patrimonio=" ").get_data(as_text=True)
@@ -68,14 +69,14 @@ def test_patrimonio_unico_e_validacoes(client, contas):
 
 
 def test_atribuir_a_usuario_preenche_setor_e_vira_em_uso(client, s, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     cadastrar(client, usuario_id=uid(s, "ana"))
     e = eq(s, "000123")
     assert e.usuario.login == "ana" and e.setor == "Fiscal" and e.situacao == "Em uso"
 
 
 def test_historico_de_movimentacoes(client, s, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     cadastrar(client, usuario_id=uid(s, "ana"))
     editar(client, eq(s, "000123"), usuario_id=uid(s, "bruno"), setor="Vendas")
     editar(client, eq(s, "000123"), memoria="32 GB")
@@ -90,14 +91,14 @@ def test_historico_de_movimentacoes(client, s, contas):
 
 
 def test_salvar_sem_mudanca_nao_gera_historico(client, s, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     cadastrar(client)
     editar(client, eq(s, "000123"))
     assert len(eq(s, "000123").historico) == 1
 
 
 def test_lista_filtros_e_busca(client, s, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     cadastrar(client, usuario_id=uid(s, "ana"))
     cadastrar(client, patrimonio="000200", tipo="Monitor", marca="LG", modelo="24MK430", numero_serie="",
               hostname="", ip="", mac="", setor="Vendas")
@@ -119,7 +120,7 @@ def test_lista_filtros_e_busca(client, s, contas):
 
 
 def test_exportar_excel_com_filtros(client, s, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     cadastrar(client, usuario_id=uid(s, "ana"))
     cadastrar(client, patrimonio="000200", tipo="Monitor", hostname="", ip="", mac="")
     r = client.get("/inventario/exportar?tipo=Desktop")
@@ -132,10 +133,12 @@ def test_exportar_excel_com_filtros(client, s, contas):
 
 
 def test_so_admin_apaga_equipamento(client, s, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     cadastrar(client)
     e = eq(s, "000123")
-    assert client.post(f"/inventario/{e.id}/apagar", data={"csrf": csrf(client, "/inventario/")}).status_code == 403
+    client.post("/logout", data={"csrf": csrf(client, "/conta/")})
+    entrar(client, "carlos", "carlos123")
+    assert client.post(f"/inventario/{e.id}/apagar", data={"csrf": csrf(client, "/conta/")}).status_code == 403
     client.post("/logout", data={"csrf": csrf(client, "/conta/")})
     entrar(client, "admin", "admin123")
     client.post(f"/inventario/{e.id}/apagar", data={"csrf": csrf(client, "/inventario/")})
@@ -143,7 +146,7 @@ def test_so_admin_apaga_equipamento(client, s, contas):
 
 
 def test_usuario_desativado_continua_no_equipamento(client, s, contas):
-    entrar(client, "carlos", "carlos123")
+    entrar(client, "admin", "admin123")
     cadastrar(client, usuario_id=uid(s, "ana"))
     ana = s.get(Usuario, uid(s, "ana"))
     ana.ativo = False
