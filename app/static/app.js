@@ -14,14 +14,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Cor do sistema: paleta com cores prontas; a escolha fica neste navegador
+  // Cor do sistema: cor principal + intensidade (1–5); a escolha fica neste navegador
   document.querySelectorAll("[data-seletor-cor]").forEach((caixa) => {
+    const raiz = document.documentElement;
     const abrir = caixa.querySelector("[data-abrir-paleta]");
     const paleta = caixa.querySelector(".paleta");
     const amostras = Array.from(paleta.querySelectorAll("[data-cor]"));
+    const faixa = paleta.querySelector("[data-intensidade-cor]");
+    const nomeFaixa = paleta.querySelector("[data-nome-intensidade]");
+    const nomes = (faixa.dataset.nomes || "").split("|");
+    const salvar = (chave, valor) => {
+      try { localStorage.setItem(chave, valor); } catch (e) { /* só vale nesta página */ }
+    };
     const marcar = () => {
-      const atual = document.documentElement.dataset.cor || "azul";
+      const atual = raiz.dataset.cor || "padrao";
       amostras.forEach((a) => a.setAttribute("aria-checked", String(a.dataset.cor === atual)));
+      faixa.value = raiz.dataset.intensidade || faixa.value;
+      faixa.disabled = atual === "padrao";
+      nomeFaixa.textContent = faixa.disabled ? "—" : (nomes[faixa.value - 1] || faixa.value);
     };
     const fechar = () => { paleta.hidden = true; abrir.setAttribute("aria-expanded", "false"); };
     abrir.addEventListener("click", (e) => {
@@ -31,11 +41,24 @@ document.addEventListener("DOMContentLoaded", () => {
       marcar();
     });
     amostras.forEach((a) => a.addEventListener("click", () => {
-      const raiz = document.documentElement;
-      if (a.dataset.cor === "azul") delete raiz.dataset.cor; else raiz.dataset.cor = a.dataset.cor;
-      try { localStorage.setItem("cor", a.dataset.cor); } catch (e) { /* só vale nesta página */ }
+      if (a.dataset.cor === "padrao") {
+        delete raiz.dataset.cor;
+        delete raiz.dataset.intensidade;
+      } else {
+        raiz.dataset.cor = a.dataset.cor;
+        raiz.dataset.intensidade = faixa.value;
+        salvar("intensidade", faixa.value);
+      }
+      salvar("cor", a.dataset.cor);
       marcar();
     }));
+    // Muda ao arrastar (prévia ao vivo) e guarda o valor
+    faixa.addEventListener("input", () => {
+      if (!raiz.dataset.cor) return;
+      raiz.dataset.intensidade = faixa.value;
+      salvar("intensidade", faixa.value);
+      marcar();
+    });
     document.addEventListener("click", (e) => { if (!caixa.contains(e.target)) fechar(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
   });

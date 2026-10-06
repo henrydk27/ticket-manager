@@ -36,7 +36,8 @@ def create_app(cfg: Config | None = None) -> Flask:
     formatos.registrar(app)
     app.jinja_env.globals.update(csrf_token=seguranca.csrf_token, STATUS=STATUS, SETORES=SETORES,
                                  PRIORIDADES=PRIORIDADES, AVALIACOES=AVALIACOES, PAPEIS=PAPEIS,
-                                 CORES=temas.opcoes())
+                                 CORES=temas.opcoes(),
+                                 INTENSIDADES=list(temas.INTENSIDADES.values()))
 
     @app.url_defaults
     def _versao_dos_estaticos(endpoint, valores):

@@ -18,8 +18,9 @@ Navegador  →  Nginx  →  Ticket Manager (Gunicorn)  →  PostgreSQL
 - **Backup** automático todo dia às 2h30, guardando 14 dias.
 
 Os usuários não instalam nada: acessam pelo navegador (computador ou celular). No canto da
-tela, um botão alterna entre modo claro e escuro e outro (o círculo colorido) escolhe a cor do
-sistema entre 7 opções. Cada navegador lembra a escolha da pessoa.
+tela, um botão alterna entre modo claro e escuro e outro (o círculo colorido) escolhe o tema de
+cor da tela (Padrão ou 8 cores) e a intensidade, de Suave a Intensa. Cada navegador lembra a
+escolha da pessoa.
 
 ## Tarefas do administrador (pelo navegador)
 

@@ -42,12 +42,20 @@
         <button type="button" class="alternar-tema" data-abrir-paleta aria-haspopup="true" aria-expanded="false"
                 title="Cor do sistema" aria-label="Escolher a cor do sistema"><span class="icone-paleta" aria-hidden="true"></span></button>
         <button type="button" class="alternar-tema" data-alternar-tema title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro"><span class="icone-escuro" aria-hidden="true">☾</span><span class="icone-claro" aria-hidden="true">☀</span></button>
-        <div class="paleta" role="radiogroup" aria-label="Cor do sistema" hidden>
+        <div class="paleta" hidden>
           <span class="paleta-titulo">Cor do sistema</span>
-          {% for chave, nome, claro, escuro in CORES %}
-          <button type="button" class="amostra" role="radio" aria-checked="false" data-cor="{{ chave }}"
-                  style="--amostra-claro: {{ claro }}; --amostra-escuro: {{ escuro }}" title="{{ nome }}" aria-label="{{ nome }}"></button>
-          {% endfor %}
+          <div class="paleta-cores" role="radiogroup" aria-label="Cor do sistema">
+            {% for chave, nome, claro, escuro in CORES %}
+            <button type="button" class="amostra{% if chave == 'padrao' %} amostra-padrao{% endif %}" role="radio" aria-checked="false" data-cor="{{ chave }}"
+                    style="--amostra-claro: {{ claro }}; --amostra-escuro: {{ escuro }}" title="{{ nome }}" aria-label="{{ nome }}"></button>
+            {% endfor %}
+          </div>
+          <label class="paleta-intensidade">
+            <span class="paleta-titulo">Intensidade: <strong data-nome-intensidade>Média</strong></span>
+            <input type="range" min="1" max="5" step="1" value="3" data-intensidade-cor
+                   data-nomes="{{ INTENSIDADES|join('|') }}" aria-label="Intensidade da cor">
+            <span class="paleta-extremos" aria-hidden="true"><span>Suave</span><span>Intensa</span></span>
+          </label>
         </div>
       </div>
       <form method="post" action="{{ url_for('auth.logout') }}">
@@ -62,12 +70,20 @@
   <button type="button" class="alternar-tema" data-abrir-paleta aria-haspopup="true" aria-expanded="false"
           title="Cor do sistema" aria-label="Escolher a cor do sistema"><span class="icone-paleta" aria-hidden="true"></span></button>
   <button type="button" class="alternar-tema" data-alternar-tema title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro"><span class="icone-escuro" aria-hidden="true">☾</span><span class="icone-claro" aria-hidden="true">☀</span></button>
-  <div class="paleta" role="radiogroup" aria-label="Cor do sistema" hidden>
+  <div class="paleta" hidden>
     <span class="paleta-titulo">Cor do sistema</span>
-    {% for chave, nome, claro, escuro in CORES %}
-    <button type="button" class="amostra" role="radio" aria-checked="false" data-cor="{{ chave }}"
-            style="--amostra-claro: {{ claro }}; --amostra-escuro: {{ escuro }}" title="{{ nome }}" aria-label="{{ nome }}"></button>
-    {% endfor %}
+    <div class="paleta-cores" role="radiogroup" aria-label="Cor do sistema">
+      {% for chave, nome, claro, escuro in CORES %}
+      <button type="button" class="amostra{% if chave == 'padrao' %} amostra-padrao{% endif %}" role="radio" aria-checked="false" data-cor="{{ chave }}"
+              style="--amostra-claro: {{ claro }}; --amostra-escuro: {{ escuro }}" title="{{ nome }}" aria-label="{{ nome }}"></button>
+      {% endfor %}
+    </div>
+    <label class="paleta-intensidade">
+      <span class="paleta-titulo">Intensidade: <strong data-nome-intensidade>Média</strong></span>
+      <input type="range" min="1" max="5" step="1" value="3" data-intensidade-cor
+             data-nomes="{{ INTENSIDADES|join('|') }}" aria-label="Intensidade da cor">
+      <span class="paleta-extremos" aria-hidden="true"><span>Suave</span><span>Intensa</span></span>
+    </label>
   </div>
 </div>
 {% endif %}

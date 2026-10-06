@@ -42,9 +42,11 @@ fez. A lista tem busca, filtros e **exportação para Excel**.
 
 - **Avisos por e-mail** (chamado novo, encaminhado, respostas, status e encerramento), pelo
   servidor de e-mail da empresa via SMTP. Configuração em [deploy/OPERACAO.md](deploy/OPERACAO.md#avisos-por-e-mail).
-- **Modo claro/escuro e cor do sistema:** botões no canto da tela. A paleta tem 7 cores prontas
-  (Azul, Petróleo, Verde, Roxo, Vermelho, Laranja, Grafite), todas com contraste conferido nos dois
-  modos. A escolha fica guardada em cada navegador (sem escolha: azul e o tema do computador).
+- **Modo claro/escuro e tema de cor:** botões no canto da tela. O tema pinta a tela inteira
+  (fundo, cartões, bordas, botões e gráficos): Padrão (o visual original) ou uma de 8 cores
+  (Azul, Petróleo, Verde, Roxo, Rosa, Vermelho, Laranja, Grafite), com intensidade de 1 (Suave)
+  a 5 (Intensa). As cores de situação e de alerta não mudam. Todas as combinações têm contraste
+  conferido nos dois modos. A escolha fica guardada em cada navegador.
 - Quem esquece a senha pede ao administrador para redefini-la; a pessoa entra com a senha
   temporária e é obrigada a criar uma nova.
 - Funciona no computador e no celular; ninguém precisa instalar nada.
@@ -86,7 +88,7 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/notificacoes.py`, `app/correio.py` | quem recebe cada aviso e o envio por SMTP em segundo plano |
 | `app/rotas/` | páginas: `auth` (login/cadastro), `conta`, `chamados`, `admin` (painel, relatório, usuários), `inventario` |
 | `app/templates/`, `app/static/` | HTML, CSS e JavaScript (sem build, sem CDN); `tema.js` aplica claro/escuro e a cor |
-| `app/temas.py` | paletas de cor; gera `static/cores.css` (`python -m app.temas`) |
+| `app/temas.py` | temas de cor (cor × intensidade × claro/escuro); gera `static/cores.css` (`python -m app.temas`) |
 | `migracoes/` | versões da estrutura do banco (Alembic) |
 | `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email` |
 | `wsgi.py` | ponto de entrada do Gunicorn |
@@ -103,8 +105,8 @@ python manage.py migrar
 ```
 
 Setores, prioridades, status, tipos de equipamento e situações ficam em listas no início de
-`app/modelos.py`. Para incluir ou mudar uma cor da paleta, edite `app/temas.py` e rode
-`python -m app.temas` (o comando mostra o contraste de cada cor; um teste confere o `cores.css`). Quem atende cada setor é definido na tela **Usuários**.
+`app/modelos.py`. Para incluir ou mudar uma cor do tema, edite `CORES` em `app/temas.py` e rode
+`python -m app.temas` (o comando aponta combinações sem contraste; um teste confere o `cores.css`). Quem atende cada setor é definido na tela **Usuários**.
 
 ### Arquivos estáticos
 

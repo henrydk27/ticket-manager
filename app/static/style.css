@@ -382,15 +382,21 @@ a.usuario-nome { color: var(--texto); }
 .controles-flutuantes .alternar-tema:hover,
 .controles-flutuantes .alternar-tema:focus-visible { opacity: 1; border-color: var(--borda); }
 .paleta {
-  position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: 216px;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px;
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: 236px;
+  display: grid; gap: 10px; padding: 12px;
   background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio);
   box-shadow: 0 8px 24px rgba(16, 24, 40, .14);
 }
 .paleta[hidden] { display: none; }
-.paleta-titulo { grid-column: 1 / -1; font-size: .8rem; color: var(--texto-2); font-weight: 600; }
+.paleta-titulo { font-size: .8rem; color: var(--texto-2); font-weight: 600; }
+.paleta-titulo strong { color: var(--texto); }
+.paleta-cores { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; justify-items: center; }
+.paleta-intensidade { display: grid; gap: 4px; border-top: 1px solid var(--borda); padding-top: 10px; }
+.paleta-intensidade input { width: 100%; accent-color: var(--primaria); margin: 0; }
+.paleta-intensidade input:disabled { opacity: .4; }
+.paleta-extremos { display: flex; justify-content: space-between; font-size: .72rem; color: var(--texto-2); }
 .amostra {
-  width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--superficie); cursor: pointer;
+  width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--superficie); cursor: pointer;
   background: var(--amostra-claro); box-shadow: 0 0 0 1px var(--borda); padding: 0;
 }
 .amostra:hover { transform: scale(1.08); }
@@ -400,6 +406,8 @@ a.usuario-nome { color: var(--texto); }
 }
 :root[data-theme="dark"] .amostra { background: var(--amostra-escuro); }
 .amostra[aria-checked="true"] { box-shadow: 0 0 0 2px var(--texto); }
+/* "Padrão": metade cinza (fundo neutro) e metade azul-marinho (destaque original) */
+.amostra-padrao { background: linear-gradient(135deg, #e3e6ea 50%, var(--amostra-claro) 50%) !important; }
 .icone-paleta {
   display: inline-block; width: 14px; height: 14px; border-radius: 50%;
   background: conic-gradient(#2a78d6 0 25%, #2e8b57 0 50%, #d33a40 0 75%, #e07a1f 0);

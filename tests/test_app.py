@@ -687,18 +687,30 @@ def test_cores_css_gerado_de_temas_py():
         assert f.read() == temas.gerar_css(), "rode: python -m app.temas"
 
 
-def test_paletas_com_contraste_legivel():
+def test_todas_as_cores_e_intensidades_com_contraste_legivel():
     from app import temas
-    for chave, (nome, claro, escuro) in temas.PALETAS.items():
-        assert temas.contraste(claro[0], temas.texto_sobre(claro[0])) >= 4.5, nome
-        assert temas.contraste(escuro[0], temas.texto_sobre(escuro[0])) >= 4.5, nome
-        assert temas.contraste(claro[0], "#ffffff") >= 4.5, nome        # link sobre fundo branco
-        assert temas.contraste(escuro[0], "#1b1e22") >= 4.5, nome       # link sobre fundo escuro
+    for cor in temas.CORES:
+        for n in temas.INTENSIDADES:
+            for escuro in (False, True):
+                assert temas.verificar(cor, n, escuro) == [], (cor, n, escuro)
+    for escuro in (False, True):                       # Padrão sobre os fundos do style.css
+        v = temas.variaveis_padrao(escuro)
+        assert temas.contraste(v["primaria"], v["sobre-primaria"]) >= 4.5
+        assert temas.contraste(v["primaria"], "#1b1e22" if escuro else "#ffffff") >= 4.5
+
+
+def test_intensidade_muda_o_fundo_da_tela():
+    from app import temas
+    suave, intensa = temas.variaveis("verde", 1, False), temas.variaveis("verde", 5, False)
+    assert suave["fundo"] != intensa["fundo"] and suave["borda"] != intensa["borda"]
+    css = temas.gerar_css()
+    assert ':root[data-cor="verde"][data-intensidade="5"][data-theme="dark"]' in css
+    assert css.count("--fundo:") == len(temas.CORES) * len(temas.INTENSIDADES) * 3
 
 
 def test_seletor_de_cor_na_pagina(client):
     from app import temas
     html = client.get("/login").get_data(as_text=True)
-    assert "cores.css?v=" in html and "data-abrir-paleta" in html
-    for chave in temas.PALETAS:
+    assert "cores.css?v=" in html and "data-abrir-paleta" in html and "data-intensidade-cor" in html
+    for chave, *_ in temas.opcoes():
         assert f'data-cor="{chave}"' in html
