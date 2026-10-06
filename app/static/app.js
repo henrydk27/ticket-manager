@@ -14,6 +14,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Cor do sistema: paleta com cores prontas; a escolha fica neste navegador
+  document.querySelectorAll("[data-seletor-cor]").forEach((caixa) => {
+    const abrir = caixa.querySelector("[data-abrir-paleta]");
+    const paleta = caixa.querySelector(".paleta");
+    const amostras = Array.from(paleta.querySelectorAll("[data-cor]"));
+    const marcar = () => {
+      const atual = document.documentElement.dataset.cor || "azul";
+      amostras.forEach((a) => a.setAttribute("aria-checked", String(a.dataset.cor === atual)));
+    };
+    const fechar = () => { paleta.hidden = true; abrir.setAttribute("aria-expanded", "false"); };
+    abrir.addEventListener("click", (e) => {
+      e.stopPropagation();
+      paleta.hidden = !paleta.hidden;
+      abrir.setAttribute("aria-expanded", String(!paleta.hidden));
+      marcar();
+    });
+    amostras.forEach((a) => a.addEventListener("click", () => {
+      const raiz = document.documentElement;
+      if (a.dataset.cor === "azul") delete raiz.dataset.cor; else raiz.dataset.cor = a.dataset.cor;
+      try { localStorage.setItem("cor", a.dataset.cor); } catch (e) { /* só vale nesta página */ }
+      marcar();
+    }));
+    document.addEventListener("click", (e) => { if (!caixa.contains(e.target)) fechar(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
+  });
+
   // Linha da tabela inteira clicável
   document.querySelectorAll("tr[data-href]").forEach((tr) => {
     tr.addEventListener("click", (e) => {

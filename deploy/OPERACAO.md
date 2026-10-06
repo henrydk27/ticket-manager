@@ -17,8 +17,9 @@ Navegador  →  Nginx  →  Ticket Manager (Gunicorn)  →  PostgreSQL
 - **PostgreSQL** guarda contas, chamados, comentários e o inventário. Os **anexos** ficam em disco.
 - **Backup** automático todo dia às 2h30, guardando 14 dias.
 
-Os usuários não instalam nada: acessam pelo navegador (computador ou celular). O botão no
-canto da tela alterna entre modo claro e escuro, e cada navegador lembra a escolha.
+Os usuários não instalam nada: acessam pelo navegador (computador ou celular). No canto da
+tela, um botão alterna entre modo claro e escuro e outro (o círculo colorido) escolhe a cor do
+sistema entre 7 opções. Cada navegador lembra a escolha da pessoa.
 
 ## Tarefas do administrador (pelo navegador)
 

@@ -1,4 +1,5 @@
 /* Ticket Manager Web ──────────────────────────────────────────────────── */
+/* As cores de destaque (--primaria, --foco, --serie...) ficam em cores.css. */
 
 :root {
   color-scheme: light;
@@ -8,12 +9,7 @@
   --borda: #dfe3e8;
   --texto: #1b1f24;
   --texto-2: #5b636e;
-  --primaria: #1f3a5f;
-  --primaria-hover: #16304f;
-  --primaria-suave: #e6edf6;
   --marca: #c8262c;
-  --foco: #2a78d6;
-  --serie: #2a78d6;
   --trilho: #eef1f4;
   --perigo: #b42318;
   --ok-fundo: #e7f6ec;   --ok-texto: #1e6b3a;
@@ -38,11 +34,6 @@
     --borda: #30353c;
     --texto: #eef0f3;
     --texto-2: #a4acb7;
-    --primaria: #4d8fe0;
-    --primaria-hover: #639ee6;
-    --primaria-suave: #1c2a3d;
-    --foco: #6aa5ee;
-    --serie: #3987e5;
     --trilho: #262a30;
     --perigo: #f0625a;
     --ok-fundo: #15301f;   --ok-texto: #8fdcaa;
@@ -63,11 +54,6 @@
   --borda: #30353c;
   --texto: #eef0f3;
   --texto-2: #a4acb7;
-  --primaria: #4d8fe0;
-  --primaria-hover: #639ee6;
-  --primaria-suave: #1c2a3d;
-  --foco: #6aa5ee;
-  --serie: #3987e5;
   --trilho: #262a30;
   --perigo: #f0625a;
   --ok-fundo: #15301f;   --ok-texto: #8fdcaa;
@@ -142,7 +128,7 @@ h2 { font-size: 1.1rem; }
   cursor: pointer; white-space: nowrap; line-height: 1.3;
 }
 .botao:hover { background: var(--superficie-2); text-decoration: none; }
-.botao-primario { background: var(--primaria); border-color: var(--primaria); color: #fff; }
+.botao-primario { background: var(--primaria); border-color: var(--primaria); color: var(--sobre-primaria); }
 .botao-primario:hover { background: var(--primaria-hover); }
 .botao-perigo { color: var(--perigo); border-color: var(--perigo); background: transparent; }
 .botao-perigo:hover { background: var(--erro-fundo); }
@@ -350,11 +336,6 @@ a.usuario-nome { color: var(--texto); }
   color: var(--texto-2); cursor: pointer; font-size: 1rem; line-height: 1;
 }
 .alternar-tema:hover { color: var(--texto); background: var(--superficie-2); }
-.alternar-tema-flutuante {
-  position: fixed; top: 12px; right: 12px; z-index: 20; width: 32px; height: 32px;
-  background: transparent; border-color: transparent; opacity: .7;
-}
-.alternar-tema-flutuante:hover, .alternar-tema-flutuante:focus-visible { opacity: 1; border-color: var(--borda); }
 .alternar-tema .icone-claro { display: none; }
 :root[data-theme="dark"] .alternar-tema .icone-escuro { display: none; }
 :root[data-theme="dark"] .alternar-tema .icone-claro { display: inline; }
@@ -393,3 +374,33 @@ a.usuario-nome { color: var(--texto); }
 .historico-equipamento { list-style: none; padding: 0; margin: 0; font-size: .9rem; }
 .historico-equipamento li { padding: 8px 0 8px 12px; border-left: 3px solid var(--borda); }
 .historico-equipamento li + li { margin-top: 2px; }
+
+/* ─── Seletor de cor ───────────────────────────────────────────────────── */
+.controles-tema { display: flex; gap: 6px; align-items: center; position: relative; }
+.controles-flutuantes { position: fixed; top: 12px; right: 12px; z-index: 20; }
+.controles-flutuantes .alternar-tema { background: transparent; border-color: transparent; opacity: .7; width: 32px; height: 32px; }
+.controles-flutuantes .alternar-tema:hover,
+.controles-flutuantes .alternar-tema:focus-visible { opacity: 1; border-color: var(--borda); }
+.paleta {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: 216px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px;
+  background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio);
+  box-shadow: 0 8px 24px rgba(16, 24, 40, .14);
+}
+.paleta[hidden] { display: none; }
+.paleta-titulo { grid-column: 1 / -1; font-size: .8rem; color: var(--texto-2); font-weight: 600; }
+.amostra {
+  width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--superficie); cursor: pointer;
+  background: var(--amostra-claro); box-shadow: 0 0 0 1px var(--borda); padding: 0;
+}
+.amostra:hover { transform: scale(1.08); }
+/* No modo escuro, a bolinha mostra a cor que realmente vai aparecer */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .amostra { background: var(--amostra-escuro); }
+}
+:root[data-theme="dark"] .amostra { background: var(--amostra-escuro); }
+.amostra[aria-checked="true"] { box-shadow: 0 0 0 2px var(--texto); }
+.icone-paleta {
+  display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+  background: conic-gradient(#2a78d6 0 25%, #2e8b57 0 50%, #d33a40 0 75%, #e07a1f 0);
+}

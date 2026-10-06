@@ -1,0 +1,44 @@
+/* GERADO por app/temas.py (python -m app.temas). Não edite à mão. */
+/* Cor de destaque escolhida no botão 🎨: data-cor no <html>. Sem data-cor = azul (padrão). */
+
+:root { --primaria: #1f3a5f; --primaria-hover: #16304f; --primaria-suave: #e6edf6; --foco: #2a78d6; --serie: #2a78d6; --sobre-primaria: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --primaria: #4d8fe0; --primaria-hover: #639ee6; --primaria-suave: #1c2a3d; --foco: #6aa5ee; --serie: #3987e5; --sobre-primaria: #111418; }
+}
+:root[data-theme="dark"] { --primaria: #4d8fe0; --primaria-hover: #639ee6; --primaria-suave: #1c2a3d; --foco: #6aa5ee; --serie: #3987e5; --sobre-primaria: #111418; }
+
+:root[data-cor="petroleo"]:not([data-theme="dark"]) { --primaria: #0f5e66; --primaria-hover: #0b4a50; --primaria-suave: #e3f1f2; --foco: #13838e; --serie: #13838e; --sobre-primaria: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root[data-cor="petroleo"]:not([data-theme="light"]) { --primaria: #3cb4bf; --primaria-hover: #5cc3cc; --primaria-suave: #12302f; --foco: #5cc3cc; --serie: #2ea7b2; --sobre-primaria: #111418; }
+}
+:root[data-cor="petroleo"][data-theme="dark"] { --primaria: #3cb4bf; --primaria-hover: #5cc3cc; --primaria-suave: #12302f; --foco: #5cc3cc; --serie: #2ea7b2; --sobre-primaria: #111418; }
+
+:root[data-cor="verde"]:not([data-theme="dark"]) { --primaria: #1e6b3a; --primaria-hover: #17552e; --primaria-suave: #e5f3ea; --foco: #2e8b57; --serie: #2e8b57; --sobre-primaria: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root[data-cor="verde"]:not([data-theme="light"]) { --primaria: #4fbf7c; --primaria-hover: #66cc8f; --primaria-suave: #163024; --foco: #5fd18f; --serie: #3fae6c; --sobre-primaria: #111418; }
+}
+:root[data-cor="verde"][data-theme="dark"] { --primaria: #4fbf7c; --primaria-hover: #66cc8f; --primaria-suave: #163024; --foco: #5fd18f; --serie: #3fae6c; --sobre-primaria: #111418; }
+
+:root[data-cor="roxo"]:not([data-theme="dark"]) { --primaria: #4a3aa7; --primaria-hover: #3c2f8a; --primaria-suave: #ecebfa; --foco: #6b5bd2; --serie: #6b5bd2; --sobre-primaria: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root[data-cor="roxo"]:not([data-theme="light"]) { --primaria: #9085e9; --primaria-hover: #a399ee; --primaria-suave: #24203f; --foco: #a399ee; --serie: #8a7fe6; --sobre-primaria: #111418; }
+}
+:root[data-cor="roxo"][data-theme="dark"] { --primaria: #9085e9; --primaria-hover: #a399ee; --primaria-suave: #24203f; --foco: #a399ee; --serie: #8a7fe6; --sobre-primaria: #111418; }
+
+:root[data-cor="vermelho"]:not([data-theme="dark"]) { --primaria: #b42328; --primaria-hover: #931c20; --primaria-suave: #fbe9ea; --foco: #d33a40; --serie: #d33a40; --sobre-primaria: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root[data-cor="vermelho"]:not([data-theme="light"]) { --primaria: #ef6b6f; --primaria-hover: #f38588; --primaria-suave: #3a1718; --foco: #f38588; --serie: #e45b60; --sobre-primaria: #111418; }
+}
+:root[data-cor="vermelho"][data-theme="dark"] { --primaria: #ef6b6f; --primaria-hover: #f38588; --primaria-suave: #3a1718; --foco: #f38588; --serie: #e45b60; --sobre-primaria: #111418; }
+
+:root[data-cor="laranja"]:not([data-theme="dark"]) { --primaria: #a84d08; --primaria-hover: #8a3f06; --primaria-suave: #fdf0e4; --foco: #e07a1f; --serie: #e07a1f; --sobre-primaria: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root[data-cor="laranja"]:not([data-theme="light"]) { --primaria: #f0973f; --primaria-hover: #f4a95e; --primaria-suave: #3a2612; --foco: #f4a95e; --serie: #e8893a; --sobre-primaria: #111418; }
+}
+:root[data-cor="laranja"][data-theme="dark"] { --primaria: #f0973f; --primaria-hover: #f4a95e; --primaria-suave: #3a2612; --foco: #f4a95e; --serie: #e8893a; --sobre-primaria: #111418; }
+
+:root[data-cor="grafite"]:not([data-theme="dark"]) { --primaria: #374151; --primaria-hover: #1f2937; --primaria-suave: #eceef1; --foco: #4b5563; --serie: #4b5563; --sobre-primaria: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root[data-cor="grafite"]:not([data-theme="light"]) { --primaria: #a5b0bf; --primaria-hover: #bcc5d1; --primaria-suave: #262b33; --foco: #bcc5d1; --serie: #8b97a8; --sobre-primaria: #111418; }
+}
+:root[data-cor="grafite"][data-theme="dark"] { --primaria: #a5b0bf; --primaria-hover: #bcc5d1; --primaria-suave: #262b33; --foco: #bcc5d1; --serie: #8b97a8; --sobre-primaria: #111418; }

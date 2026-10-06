@@ -9,6 +9,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icone-180.png') }}">
   <script src="{{ url_for('static', filename='tema.js') }}"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='cores.css') }}">
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body class="{% block classe_body %}{% endblock %}">
@@ -37,7 +38,18 @@
       <a class="usuario-nome" href="{{ url_for('conta.perfil') }}" title="Minha conta · {{ usuario.papel_nome }}">
         {{ usuario.nome.split()[0] }}{% if usuario.is_atendente %} <small>{{ 'admin' if usuario.is_admin else 'atendente' }}</small>{% endif %}
       </a>
-      <button type="button" class="alternar-tema" data-alternar-tema title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro"><span class="icone-escuro" aria-hidden="true">☾</span><span class="icone-claro" aria-hidden="true">☀</span></button>
+      <div class="controles-tema" data-seletor-cor>
+        <button type="button" class="alternar-tema" data-abrir-paleta aria-haspopup="true" aria-expanded="false"
+                title="Cor do sistema" aria-label="Escolher a cor do sistema"><span class="icone-paleta" aria-hidden="true"></span></button>
+        <button type="button" class="alternar-tema" data-alternar-tema title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro"><span class="icone-escuro" aria-hidden="true">☾</span><span class="icone-claro" aria-hidden="true">☀</span></button>
+        <div class="paleta" role="radiogroup" aria-label="Cor do sistema" hidden>
+          <span class="paleta-titulo">Cor do sistema</span>
+          {% for chave, nome, claro, escuro in CORES %}
+          <button type="button" class="amostra" role="radio" aria-checked="false" data-cor="{{ chave }}"
+                  style="--amostra-claro: {{ claro }}; --amostra-escuro: {{ escuro }}" title="{{ nome }}" aria-label="{{ nome }}"></button>
+          {% endfor %}
+        </div>
+      </div>
       <form method="post" action="{{ url_for('auth.logout') }}">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <button class="botao-link" type="submit">Sair</button>
@@ -46,7 +58,18 @@
   </div>
 </header>
 {% else %}
-<button type="button" class="alternar-tema alternar-tema-flutuante" data-alternar-tema title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro"><span class="icone-escuro" aria-hidden="true">☾</span><span class="icone-claro" aria-hidden="true">☀</span></button>
+<div class="controles-tema controles-flutuantes" data-seletor-cor>
+  <button type="button" class="alternar-tema" data-abrir-paleta aria-haspopup="true" aria-expanded="false"
+          title="Cor do sistema" aria-label="Escolher a cor do sistema"><span class="icone-paleta" aria-hidden="true"></span></button>
+  <button type="button" class="alternar-tema" data-alternar-tema title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro"><span class="icone-escuro" aria-hidden="true">☾</span><span class="icone-claro" aria-hidden="true">☀</span></button>
+  <div class="paleta" role="radiogroup" aria-label="Cor do sistema" hidden>
+    <span class="paleta-titulo">Cor do sistema</span>
+    {% for chave, nome, claro, escuro in CORES %}
+    <button type="button" class="amostra" role="radio" aria-checked="false" data-cor="{{ chave }}"
+            style="--amostra-claro: {{ claro }}; --amostra-escuro: {{ escuro }}" title="{{ nome }}" aria-label="{{ nome }}"></button>
+    {% endfor %}
+  </div>
+</div>
 {% endif %}
 
 <main class="{% block classe_main %}conteudo{% endblock %}">

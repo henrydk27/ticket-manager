@@ -678,3 +678,27 @@ def test_aviso_usa_logo_embutido(client, s, contas, emails):
     abrir(client, s, "Com logo")
     assert f'src="cid:{CID_MARCA}"' in emails[0].html
     assert "/static/marca.png" in client.get("/chamados").get_data(as_text=True)   # cabeçalho do sistema
+
+
+
+def test_cores_css_gerado_de_temas_py():
+    from app import temas
+    with open(temas.CAMINHO_CSS, encoding="utf-8") as f:
+        assert f.read() == temas.gerar_css(), "rode: python -m app.temas"
+
+
+def test_paletas_com_contraste_legivel():
+    from app import temas
+    for chave, (nome, claro, escuro) in temas.PALETAS.items():
+        assert temas.contraste(claro[0], temas.texto_sobre(claro[0])) >= 4.5, nome
+        assert temas.contraste(escuro[0], temas.texto_sobre(escuro[0])) >= 4.5, nome
+        assert temas.contraste(claro[0], "#ffffff") >= 4.5, nome        # link sobre fundo branco
+        assert temas.contraste(escuro[0], "#1b1e22") >= 4.5, nome       # link sobre fundo escuro
+
+
+def test_seletor_de_cor_na_pagina(client):
+    from app import temas
+    html = client.get("/login").get_data(as_text=True)
+    assert "cores.css?v=" in html and "data-abrir-paleta" in html
+    for chave in temas.PALETAS:
+        assert f'data-cor="{chave}"' in html
