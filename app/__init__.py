@@ -47,6 +47,10 @@ def create_app(cfg: Config | None = None) -> Flask:
             except OSError:
                 pass
 
+    @app.get("/favicon.ico")
+    def _favicon():
+        return app.send_static_file("favicon.ico")
+
     @app.before_request
     def _antes():
         seguranca.verificar_csrf()

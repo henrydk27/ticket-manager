@@ -649,3 +649,11 @@ def test_estaticos_com_versao_para_nao_usar_cache_antigo(client, app):
         mtime = int(os.stat(os.path.join(app.static_folder, arquivo)).st_mtime)
         assert f"/static/{arquivo}?v={mtime}" in html, arquivo
     assert client.get(f"/static/style.css?v=123").status_code == 200   # a versão não atrapalha o arquivo
+
+
+
+def test_icone_do_site(client):
+    html = client.get("/login").get_data(as_text=True)
+    assert "/static/favicon.ico?v=" in html and "/static/icone-180.png?v=" in html
+    r = client.get("/favicon.ico")
+    assert r.status_code == 200 and r.data[:4] == b"\x00\x00\x01\x00"   # arquivo .ico de verdade
