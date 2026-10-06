@@ -73,7 +73,7 @@ def novo():
             flash(str(e), "erro")
         else:
             flash(f"Equipamento {eq.patrimonio} cadastrado.", "ok")
-            return redirect(url_for("inventario.equipamento", equipamento_id=eq.id))
+            return redirect(url_for("inventario.lista"))
     dados = request.form if request.method == "POST" else {"situacao": "Em estoque", "tipo": request.args.get("tipo", "")}
     return render_template("inventario/equipamento.html", eq=None, dados=dados, **_contexto_form())
 
@@ -93,8 +93,8 @@ def equipamento(equipamento_id: int):
             flash(str(e), "erro")
             dados = request.form
         else:
-            flash("Alterações salvas.", "ok")
-            return redirect(url_for("inventario.equipamento", equipamento_id=eq.id))
+            flash(f"Equipamento {eq.patrimonio} salvo.", "ok")
+            return redirect(url_for("inventario.lista"))
     if dados is None:
         dados = {c: getattr(eq, c) for c in CAMPOS_FORM if c != "usuario_id"} | {"usuario_id": eq.usuario_id}
         dados = {k: ("" if v is None else str(v)) for k, v in dados.items()}

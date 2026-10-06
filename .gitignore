@@ -2,6 +2,7 @@
 config.ini
 anexos/
 demo/
+ticket manager.txt
 
 # Python
 __pycache__/

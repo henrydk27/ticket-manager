@@ -56,6 +56,11 @@ def test_cadastrar_com_patrimonio_existente_e_normalizar(client, s, contas):
     e = eq(s, "000123")
     assert e.mac == "AA:BB:CC:DD:EE:FF" and e.ip == "192.168.0.25" and e.situacao == "Em estoque"
     assert e.historico[0].descricao == "Cadastrado: Em estoque." and e.historico[0].autor.login == "admin"
+    # depois de salvar, volta para a lista do inventário
+    r = cadastrar(client, patrimonio="000124", numero_serie="XYZ9", hostname="", ip="", mac="")
+    assert r.request.path == "/inventario/"
+    r = editar(client, eq(s, "000123"), memoria="32 GB")
+    assert r.request.path == "/inventario/" and "Equipamento 000123 salvo." in r.get_data(as_text=True)
 
 
 def test_patrimonio_unico_e_validacoes(client, contas):
