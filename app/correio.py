@@ -5,6 +5,7 @@ Se falhar, o erro vai para o log do serviço (journalctl) e o sistema segue norm
 """
 
 import logging
+import os
 import smtplib
 import ssl
 from concurrent.futures import ThreadPoolExecutor
@@ -17,6 +18,11 @@ from flask import Flask, current_app
 from .config import ConfigEmail
 
 log = logging.getLogger("ticket_manager.email")
+
+# Logo embutido nos e-mails (referenciado no HTML como cid:...): programas de e-mail costumam
+# bloquear imagens externas, mas mostram as que vêm dentro da mensagem
+CID_MARCA = "marca@ticket-manager"
+_MARCA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "marca.png")
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="email")
 
 
@@ -60,6 +66,10 @@ def _montar(cfg: ConfigEmail, msg: Mensagem) -> EmailMessage:
     m["Message-ID"] = make_msgid(domain=cfg.remetente.rsplit("@", 1)[-1])
     m.set_content(msg.texto)
     m.add_alternative(msg.html, subtype="html")
+    if f"cid:{CID_MARCA}" in msg.html and os.path.exists(_MARCA):
+        with open(_MARCA, "rb") as f:
+            m.get_body(("html",)).add_related(f.read(), "image", "png", cid=f"<{CID_MARCA}>",
+                                               filename="marca.png", disposition="inline")
     return m
 
 

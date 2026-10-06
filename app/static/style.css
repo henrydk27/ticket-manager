@@ -111,10 +111,7 @@ h2 { font-size: 1.1rem; }
 }
 .marca { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--texto); font-size: 1.05rem; }
 .marca:hover { text-decoration: none; }
-.marca-icone {
-  display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 7px;
-  background: var(--marca); color: #fff; font-size: .75rem; letter-spacing: .5px;
-}
+.marca-icone { width: 34px; height: 34px; display: block; }
 .menu { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
 .menu a { padding: 6px 12px; border-radius: 6px; color: var(--texto-2); font-weight: 500; }
 .menu a:hover { background: var(--superficie-2); color: var(--texto); text-decoration: none; }

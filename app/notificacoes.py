@@ -35,7 +35,8 @@ def _avisar(destinos: list[Usuario | None], autor: Usuario, c: Chamado, assunto:
         if u is None or u.id == autor.id or not u.ativo or not u.email or u.id in enviados:
             continue
         enviados.add(u.id)
-        dados = dict(destino=u, c=c, frase=frase, citacao=_resumo(citacao), botao=botao, link=link)
+        dados = dict(destino=u, c=c, frase=frase, citacao=_resumo(citacao), botao=botao, link=link,
+                     cid_marca=correio.CID_MARCA)
         correio.enviar(correio.Mensagem(
             para=u.email,
             assunto=f"[Chamado #{c.id}] {assunto}: {c.titulo}",

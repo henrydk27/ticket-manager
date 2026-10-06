@@ -16,7 +16,7 @@
 <header class="topo">
   <div class="topo-interno">
     <a class="marca" href="{{ url_for('chamados.lista') }}">
-      <span class="marca-icone" aria-hidden="true">TM</span> Ticket Manager
+      <img class="marca-icone" src="{{ url_for('static', filename='marca.png') }}" alt="" width="34" height="34"> Ticket Manager
     </a>
     <nav class="menu" aria-label="Principal">
       {% set ep = request.endpoint or '' %}

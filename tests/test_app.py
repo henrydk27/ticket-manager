@@ -657,3 +657,24 @@ def test_icone_do_site(client):
     assert "/static/favicon.ico?v=" in html and "/static/icone-180.png?v=" in html
     r = client.get("/favicon.ico")
     assert r.status_code == 200 and r.data[:4] == b"\x00\x00\x01\x00"   # arquivo .ico de verdade
+
+
+
+def test_logo_embutido_no_email():
+    from app.config import ConfigEmail
+    from app.correio import CID_MARCA, Mensagem, _montar
+    cfg = ConfigEmail(host="smtp", remetente="chamados@empresa.com.br")
+    m = _montar(cfg, Mensagem(para="ana@empresa.com.br", assunto="Teste", texto="oi",
+                              html=f'<img src="cid:{CID_MARCA}"><p>oi</p>'))
+    tipos = [p.get_content_type() for p in m.walk()]
+    assert tipos == ["multipart/alternative", "text/plain", "multipart/related", "text/html", "image/png"]
+    imagem = [p for p in m.walk() if p.get_content_type() == "image/png"][0]
+    assert imagem["Content-ID"] == f"<{CID_MARCA}>" and imagem.get_payload(decode=True)[:4] == b"\x89PNG"
+
+
+def test_aviso_usa_logo_embutido(client, s, contas, emails):
+    from app.correio import CID_MARCA
+    entrar(client, "ana", "ana12345")
+    abrir(client, s, "Com logo")
+    assert f'src="cid:{CID_MARCA}"' in emails[0].html
+    assert "/static/marca.png" in client.get("/chamados").get_data(as_text=True)   # cabeçalho do sistema
