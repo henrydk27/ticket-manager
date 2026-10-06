@@ -19,8 +19,8 @@ PRIORIDADES = ["Alta", "Média", "Baixa"]
 AVALIACOES = ["Bom", "Regular", "Ruim"]
 SETORES = [
     "Contábil", "Diretoria", "Enfermaria", "Engenharia", "Expedição", "Fábrica",
-    "Faturamento", "Financeiro", "Fiscal", "Inspeção", "Manutenção", "Portaria",
-    "Qualidade", "Recebimento", "RH", "T.I", "Vendas",
+    "Faturamento", "Financeiro", "Fiscal", "Inspeção", "Manutenção", "PCP", "Portaria",
+    "Qualidade", "Recebimento", "RH", "Segurança do Trabalho", "T.I", "Vendas",
 ]
 
 # Inventário
