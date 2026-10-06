@@ -29,7 +29,7 @@ ROTULOS = {"patrimonio": "Patrimônio", "tipo": "Tipo", "ip": "IP", "mac": "MAC"
 # ─── listagem ───────────────────────────────────────────────────────────────
 
 ORDENACAO = {
-    "patrimonio": func.lower(Equipamento.patrimonio),
+    "patrimonio": Equipamento.patrimonio_ordem,        # natural: 2 antes de 10
     "tipo": Equipamento.tipo,
     "modelo": func.lower(func.coalesce(Equipamento.marca, "") + " " + func.coalesce(Equipamento.modelo, "")),
     "setor": Equipamento.setor,

@@ -1,9 +1,10 @@
 """Tabelas do sistema (SQLAlchemy). Mudanças de estrutura: ver migracoes/ (Alembic)."""
 
+import re
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
 # ─── valores fixos ──────────────────────────────────────────────────────────
 
@@ -32,6 +33,14 @@ TIPOS_COMPUTADOR = {"Desktop", "Notebook", "Servidor"}  # mostram os campos de c
 SITUACAO_USO, SITUACAO_ESTOQUE, SITUACAO_MANUTENCAO, SITUACAO_DESCARTADO = (
     "Em uso", "Em estoque", "Em manutenção", "Descartado")
 SITUACOES = [SITUACAO_USO, SITUACAO_ESTOQUE, SITUACAO_MANUTENCAO, SITUACAO_DESCARTADO]
+
+# Documentos internos (termos, regras...)
+CATEGORIAS_DOCUMENTO = ["Termos", "Regras e políticas", "Procedimentos", "Formulários", "Outros"]
+
+
+def ordem_natural(texto: str | None) -> str:
+    """Texto que ordena números pelo valor: "2" < "10" < "000123" = "123"; letras sem diferenciar caixa."""
+    return re.sub(r"\d+", lambda m: m.group().lstrip("0").rjust(15, "0"), (texto or "").lower())[:500]
 
 
 def agora() -> datetime:
@@ -181,6 +190,8 @@ class Equipamento(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     patrimonio: Mapped[str] = mapped_column(String(50), unique=True)
+    # chave de ordenação "natural" (2 antes de 10), preenchida sozinha ao gravar o patrimônio
+    patrimonio_ordem: Mapped[str] = mapped_column(String(500), default="")
     tipo: Mapped[str] = mapped_column(String(30))
     marca: Mapped[str | None] = mapped_column(String(60))
     modelo: Mapped[str | None] = mapped_column(String(100))
@@ -206,6 +217,11 @@ class Equipamento(Base):
         back_populates="equipamento", cascade="all, delete-orphan", passive_deletes=True,
         order_by="MovimentoEquipamento.momento.desc(), MovimentoEquipamento.id.desc()")
 
+    @validates("patrimonio")
+    def _ao_gravar_patrimonio(self, _chave, valor):
+        self.patrimonio_ordem = ordem_natural(valor)
+        return valor
+
     @property
     def descricao(self) -> str:
         return " ".join(p for p in (self.marca, self.modelo) if p) or self.tipo
@@ -227,4 +243,24 @@ class MovimentoEquipamento(Base):
     descricao: Mapped[str] = mapped_column(Text)
 
     equipamento: Mapped[Equipamento] = relationship(back_populates="historico")
+    autor: Mapped[Usuario | None] = relationship(lazy="joined")
+
+
+class Documento(Base):
+    """Documento interno (termo, regra, procedimento). O arquivo fica em disco (anexos_pasta)."""
+    __tablename__ = "documentos"
+    __table_args__ = (Index("ix_documentos_categoria", "categoria"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(150))
+    categoria: Mapped[str] = mapped_column(String(40))
+    descricao: Mapped[str | None] = mapped_column(Text)
+    nome: Mapped[str] = mapped_column(String(255))       # nome original do arquivo
+    tipo: Mapped[str] = mapped_column(String(100))
+    tamanho: Mapped[int] = mapped_column(Integer)
+    arquivo: Mapped[str] = mapped_column(String(100), unique=True)  # nome em disco (aleatório)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, onupdate=agora)
+
     autor: Mapped[Usuario | None] = relationship(lazy="joined")

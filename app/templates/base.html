@@ -26,6 +26,7 @@
       <a href="{{ url_for('admin.painel') }}" class="{{ 'ativo' if ep == 'admin.painel' }}">Painel</a>
       <a href="{{ url_for('admin.relatorio') }}" class="{{ 'ativo' if ep == 'admin.relatorio' }}">Relatório</a>
       {% endif %}
+      <a href="{{ url_for('documentos.lista') }}" class="{{ 'ativo' if ep.startswith('documentos.') }}">Documentos</a>
       {% if usuario.cuida_inventario %}
       <a href="{{ url_for('inventario.lista') }}" class="{{ 'ativo' if ep.startswith('inventario.') }}">Inventário</a>
       {% endif %}

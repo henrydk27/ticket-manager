@@ -85,8 +85,8 @@ def create_app(cfg: Config | None = None) -> Flask:
     app.register_error_handler(500, lambda e: _erro(500, "Erro interno",
                                                     "Algo deu errado. Se continuar, avise o suporte."))
 
-    from .rotas import admin, auth, chamados, conta, inventario
-    for modulo in (auth, conta, chamados, admin, inventario):
+    from .rotas import admin, auth, chamados, conta, documentos, inventario
+    for modulo in (auth, conta, chamados, admin, inventario, documentos):
         app.register_blueprint(modulo.bp)
 
     @app.context_processor

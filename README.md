@@ -21,6 +21,7 @@ rodar num servidor **Ubuntu**. Refeito do zero a partir das funções da versão
 | Buscar e filtrar os próprios chamados | Encaminhar para outra pessoa ou outro setor | Desativar contas e redefinir senhas |
 | Avaliar chamados encerrados | Painel e relatório Excel/PDF do setor | Painel e relatório de todos os setores |
 | Alterar nome, e-mail e senha em Minha conta | | **Inventário de TI** |
+| Consultar e baixar os **Documentos** da empresa | | Cadastrar, trocar e apagar documentos |
 
 - Quem atende e abre um pedido para **outro** setor acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
@@ -36,7 +37,15 @@ Só para administradores: equipamentos cadastrados com o **nº de
 patrimônio que já têm** (editável e único), tipo, marca/modelo, série, configuração do
 computador e rede (hostname, IP, MAC). Cada equipamento fica com um **usuário** e/ou um
 **setor**, e toda troca de usuário, setor ou situação vai para o **histórico**, com data e quem
-fez. A lista tem busca, filtros e **exportação para Excel**.
+fez. A lista tem busca, filtros e **exportação para Excel**; o patrimônio é ordenado pelo
+número (2, 99, 100...).
+
+## Documentos
+
+Termos, regras, procedimentos e formulários internos da empresa. Todos que entram no sistema
+consultam, abrem (PDF e imagens no navegador) e baixam; só administradores cadastram, trocam o
+arquivo e apagam. Cada documento tem título, categoria, descrição opcional e um arquivo
+(PDF, Word, Excel, PowerPoint, texto ou imagem), guardado na mesma pasta dos anexos.
 
 ## Outros
 
@@ -85,6 +94,7 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/seguranca.py` | sessão, permissões e proteção CSRF |
 | `app/anexos.py` | validação e gravação dos anexos em disco |
 | `app/inventario.py`, `app/rotas/inventario.py` | inventário de TI: equipamentos, atribuição e histórico |
+| `app/documentos.py`, `app/rotas/documentos.py` | documentos internos (termos, regras, procedimentos) |
 | `app/notificacoes.py`, `app/correio.py` | quem recebe cada aviso e o envio por SMTP em segundo plano |
 | `app/rotas/` | páginas: `auth` (login/cadastro), `conta`, `chamados`, `admin` (painel, relatório, usuários), `inventario` |
 | `app/templates/`, `app/static/` | HTML, CSS e JavaScript (sem build, sem CDN); `tema.js` aplica claro/escuro e a cor |

@@ -412,3 +412,7 @@ a.usuario-nome { color: var(--texto); }
   display: inline-block; width: 14px; height: 14px; border-radius: 50%;
   background: conic-gradient(#2a78d6 0 25%, #2e8b57 0 50%, #d33a40 0 75%, #e07a1f 0);
 }
+
+/* ─── Documentos ───────────────────────────────────────────────────────── */
+.col-acoes { text-align: right; white-space: nowrap; }
+.col-acoes .botao + .botao { margin-left: 4px; }

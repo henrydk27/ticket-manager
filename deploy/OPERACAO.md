@@ -14,7 +14,8 @@ Navegador  →  Nginx  →  Ticket Manager (Gunicorn)  →  PostgreSQL
 - **Nginx** recebe os acessos em `http://IP-DO-SERVIDOR` e repassa ao sistema.
 - **Ticket Manager** roda como serviço (`ticket-manager`): liga sozinho quando o servidor
   reinicia e se reinicia sozinho se travar. Não precisa de ninguém logado no servidor.
-- **PostgreSQL** guarda contas, chamados, comentários e o inventário. Os **anexos** ficam em disco.
+- **PostgreSQL** guarda contas, chamados, comentários, o inventário e o cadastro dos documentos.
+  Os **anexos** e os arquivos dos **documentos** ficam em disco (na pasta de anexos).
 - **Backup** automático todo dia às 2h30, guardando 14 dias.
 
 Os usuários não instalam nada: acessam pelo navegador (computador ou celular). No canto da
@@ -44,11 +45,11 @@ Um setor só aparece na tela de novo chamado quando tem pelo menos uma pessoa ma
 
 ### Quem vê o quê
 
-| | Chamados | Painel e relatório | Inventário | Usuários |
-|---|---|---|---|---|
-| **Usuário** | só os que ele abriu | — | — | — |
-| **Quem atende chamados** | os do seu setor + os que ele abriu | do seu setor | — | — |
-| **Administrador** | todos | todos os setores (com filtro) | sim | sim |
+| | Chamados | Painel e relatório | Inventário | Documentos | Usuários |
+|---|---|---|---|---|---|
+| **Usuário** | só os que ele abriu | — | — | consulta | — |
+| **Quem atende chamados** | os do seu setor + os que ele abriu | do seu setor | — | consulta | — |
+| **Administrador** | todos | todos os setores (com filtro) | sim | consulta e cadastra | sim |
 
 Para impedir que qualquer pessoa crie conta, defina `cadastro_aberto = false` no
 `config.ini` (veja [Mudar a configuração](#mudar-a-configuração)).
@@ -69,6 +70,21 @@ Menu **Inventário**, visível só para **administradores**.
 
 Cada cadastro, troca de usuário, setor ou situação e edição fica no **Histórico** do equipamento,
 com data e quem fez. Só o administrador pode apagar um equipamento de vez (prefira "Descartado").
+Depois de salvar, o sistema volta para a lista. A coluna Patrimônio ordena pelo número (2, 99, 100...).
+
+## Documentos
+
+Menu **Documentos**, visível para **todos**: termos, regras, procedimentos e formulários internos.
+
+| Situação | O que fazer |
+|---|---|
+| Publicar um documento (admin) | **+ Novo documento** → título, categoria, descrição (opcional) e o arquivo → **Cadastrar** |
+| Saiu uma nova versão (admin) | **Editar** → escolha o arquivo novo em **Trocar o arquivo** → **Salvar alterações** (o antigo é apagado) |
+| Tirar do ar (admin) | **Editar** → **Apagar documento** |
+| Consultar | Clique no título (PDF e imagens abrem no navegador) ou em **Baixar** |
+
+Arquivos aceitos: PDF, Word, Excel, PowerPoint, texto e imagens, até o limite `anexo_max_mb` do
+`config.ini` (padrão 10 MB). Os arquivos ficam na pasta de anexos e entram no backup junto com eles.
 
 ## Painel e relatório
 

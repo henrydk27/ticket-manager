@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block titulo %}Documentos{% endblock %}
+
+{% block conteudo %}
+<div class="cabecalho">
+  <div>
+    <h1>Documentos</h1>
+    <p class="suave">Termos, regras e procedimentos internos da empresa.</p>
+  </div>
+  {% if usuario.is_admin %}
+  <div class="acoes-cabecalho">
+    <a class="botao botao-primario" href="{{ url_for('documentos.novo', categoria=categoria or None) }}">+ Novo documento</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="resumo-situacoes">
+  <a class="resumo-situacao{{ ' ativa' if not categoria }}" href="{{ url_for('documentos.lista', q=texto or None) }}">
+    <span class="resumo-numero">{{ contagem.values()|sum }}</span> Todos
+  </a>
+  {% for c in CATEGORIAS %}
+  <a class="resumo-situacao{{ ' ativa' if categoria == c }}" href="{{ url_for('documentos.lista', categoria=c, q=texto or None) }}">
+    <span class="resumo-numero">{{ contagem.get(c, 0) }}</span> {{ c }}
+  </a>
+  {% endfor %}
+</div>
+
+<form class="filtros" method="get" action="{{ url_for('documentos.lista') }}">
+  <input type="search" name="q" value="{{ texto }}" class="filtro-busca" aria-label="Buscar"
+         placeholder="Buscar por título, descrição ou nome do arquivo">
+  {% if categoria %}<input type="hidden" name="categoria" value="{{ categoria }}">{% endif %}
+  <button class="botao botao-primario" type="submit">Buscar</button>
+  {% if texto or categoria %}<a class="botao" href="{{ url_for('documentos.lista') }}">Limpar</a>{% endif %}
+</form>
+
+{% if itens %}
+<div class="tabela-rolagem">
+<table class="tabela">
+  <thead>
+    <tr><th>Documento</th><th>Categoria</th><th>Arquivo</th><th>Atualizado</th><th class="col-acoes"></th></tr>
+  </thead>
+  <tbody>
+    {% for d in itens %}
+    {% set link = url_for('documentos.arquivo', documento_id=d.id) %}
+    <tr>
+      <td class="col-titulo"><a href="{{ link }}" target="_blank" rel="noopener"><strong>{{ d.titulo }}</strong></a>
+        {% if d.descricao %}<div class="subtitulo">{{ d.descricao }}</div>{% endif %}</td>
+      <td>{{ d.categoria }}</td>
+      <td><span class="suave">{{ d.nome }} · {{ d.tamanho|tamanho }}</span></td>
+      <td>{{ d.atualizado_em|data }}</td>
+      <td class="col-acoes">
+        <a class="botao botao-pequeno" href="{{ link }}?baixar=1">Baixar</a>
+        {% if usuario.is_admin %}<a class="botao botao-pequeno" href="{{ url_for('documentos.editar', documento_id=d.id) }}">Editar</a>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="vazio">
+  {% if texto or categoria %}
+  <h2>Nenhum documento encontrado</h2>
+  <p><a class="botao" href="{{ url_for('documentos.lista') }}">Ver todos</a></p>
+  {% else %}
+  <h2>Nenhum documento cadastrado ainda</h2>
+  {% if usuario.is_admin %}
+  <p class="suave">Cadastre aqui os termos, regras e procedimentos da empresa (PDF, Word, Excel...).</p>
+  <p><a class="botao botao-primario" href="{{ url_for('documentos.novo') }}">Cadastrar documento</a></p>
+  {% else %}
+  <p class="suave">Quando a empresa publicar termos e regras internas, eles aparecem aqui.</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

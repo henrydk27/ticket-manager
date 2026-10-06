@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block titulo %}{{ doc.titulo if doc else 'Novo documento' }}{% endblock %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('documentos.lista') }}">‹ Documentos</a></p>
+<div class="cabecalho">
+  <div>
+    {% if doc %}<p class="suave numero">Atualizado em {{ doc.atualizado_em|data_hora }}{% if doc.autor %} por {{ doc.autor.nome }}{% endif %}</p>{% endif %}
+    <h1>{{ 'Editar documento' if doc else 'Novo documento' }}</h1>
+  </div>
+</div>
+
+<div class="detalhe-grade">
+  <section class="detalhe-principal">
+    <form class="cartao formulario" method="post" enctype="multipart/form-data"
+          action="{{ url_for('documentos.editar', documento_id=doc.id) if doc else url_for('documentos.novo') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <div class="grade-campos">
+        <div>
+          <label for="titulo">Título</label>
+          <input id="titulo" name="titulo" maxlength="150" required value="{{ dados.get('titulo') or '' }}"
+                 placeholder="Ex.: Termo de responsabilidade de equipamentos" {{ 'autofocus' if not doc }}>
+        </div>
+        <div>
+          <label for="categoria">Categoria</label>
+          <select id="categoria" name="categoria" required>
+            <option value="">Selecione</option>
+            {% for c in CATEGORIAS %}<option {{ 'selected' if dados.get('categoria') == c }}>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <label for="descricao">Descrição <span class="suave">(opcional)</span></label>
+      <textarea id="descricao" name="descricao" rows="3" maxlength="2000"
+                placeholder="Do que trata o documento, a quem se aplica...">{{ dados.get('descricao') or '' }}</textarea>
+
+      <label for="arquivo">{{ 'Trocar o arquivo' if doc else 'Arquivo' }}
+        <span class="suave">({{ 'opcional; ' if doc }}PDF, Word, Excel, PowerPoint, texto ou imagem)</span></label>
+      {% if doc %}
+      <p class="suave">Arquivo atual: <a href="{{ url_for('documentos.arquivo', documento_id=doc.id) }}" target="_blank" rel="noopener">{{ doc.nome }}</a> · {{ doc.tamanho|tamanho }}</p>
+      {% endif %}
+      <input id="arquivo" name="arquivo" type="file" accept="{{ extensoes }}" {{ 'required' if not doc }} data-lista-arquivos>
+      <ul class="lista-arquivos" aria-live="polite"></ul>
+
+      <div class="acoes">
+        <a class="botao" href="{{ url_for('documentos.lista') }}">Cancelar</a>
+        <button class="botao botao-primario" type="submit">{{ 'Salvar alterações' if doc else 'Cadastrar' }}</button>
+      </div>
+    </form>
+  </section>
+
+  {% if doc %}
+  <aside>
+    <form method="post" action="{{ url_for('documentos.apagar', documento_id=doc.id) }}"
+          data-confirmar="Apagar o documento “{{ doc.titulo }}”? O arquivo também será apagado.">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="botao botao-perigo botao-largo" type="submit">Apagar documento</button>
+    </form>
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}
