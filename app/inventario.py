@@ -160,8 +160,9 @@ def _validar(s: Session, dados: dict, atual: Equipamento | None) -> dict:
         valores["setor"] = valores["usuario"].setor           # com a pessoa → setor dela
     if valores["situacao"] == SITUACAO_DESCARTADO:
         valores["usuario"], valores["setor"] = None, None      # descartado não fica com ninguém
-    elif valores["situacao"] == SITUACAO_ESTOQUE and (valores["usuario"] or valores["setor"]):
-        valores["situacao"] = SITUACAO_USO                     # atribuído deixa de estar em estoque
+    elif valores["situacao"] == SITUACAO_ESTOQUE and valores["usuario"]:
+        valores["situacao"] = SITUACAO_USO                     # com uma pessoa deixa de estar em estoque
+    # Só setor (ex.: guardado na T.I) pode continuar "Em estoque"
     return valores
 
 

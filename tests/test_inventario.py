@@ -160,3 +160,16 @@ def test_usuario_desativado_continua_no_equipamento(client, s, contas):
     assert "Ana Souza (conta desativada)" in html
     editar(client, eq(s, "000123"), memoria="8 GB")                 # salvar outra coisa não perde o vínculo
     assert eq(s, "000123").usuario_id == ana.id
+
+
+def test_varios_em_estoque_com_setor(client, s, contas):
+    """Guardado num setor (ex.: T.I) continua em estoque; só com uma pessoa vira "Em uso"."""
+    entrar(client, "admin", "admin123")
+    for i, p in enumerate(("E-1", "E-2", "E-3")):
+        cadastrar(client, patrimonio=p, numero_serie=f"E{i}", hostname="", ip="", mac="", setor="T.I")
+    assert [eq(s, p).situacao for p in ("E-1", "E-2", "E-3")] == ["Em estoque"] * 3
+    cadastrar(client, patrimonio="E-4", numero_serie="E9", hostname="", ip="", mac="", setor="Ferramentaria",
+              usuario_id=uid(s, "bruno"))
+    assert eq(s, "E-4").situacao == "Em uso"
+    html = client.get("/inventario/novo").get_data(as_text=True)
+    assert ">Compras</option>" in html and ">Ferramentaria</option>" in html
