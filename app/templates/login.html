@@ -14,13 +14,14 @@
       <input id="login" name="login" value="{{ login }}" autocomplete="username"
              autocapitalize="none" required autofocus>
       <label for="senha">Senha</label>
-      <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+      <input id="senha" name="senha" type="password" autocomplete="current-password">
+      <p class="dica">Conta cadastrada pelo CPD ou senha liberada? Digite só o usuário e clique em Entrar.</p>
       <button class="botao botao-primario botao-largo" type="submit">Entrar</button>
     </form>
+    <p class="login-rodape"><a href="{{ url_for('auth.solicitar_senha') }}">Esqueceu a senha? Solicitar nova senha</a></p>
     {% if cadastro_aberto %}
-    <p class="login-rodape">Primeiro acesso? <a href="{{ url_for('auth.cadastro') }}">Crie sua conta</a></p>
+    <p class="login-rodape">Ainda não tem conta? <a href="{{ url_for('auth.cadastro') }}">Crie sua conta</a></p>
     {% endif %}
-    <p class="login-rodape suave">Esqueceu a senha? Peça ao administrador para redefinir.</p>
   </div>
   <div class="login-logo">
     <img src="{{ url_for('static', filename='logo.png') }}" alt="Suprens 60 anos">

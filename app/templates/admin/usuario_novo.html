@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titulo %}Cadastrar usuário{% endblock %}
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('admin.usuarios') }}">‹ Usuários</a></p>
+<div class="cabecalho">
+  <h1>Cadastrar usuário</h1>
+</div>
+
+<form class="cartao formulario formulario-estreito" method="post" action="{{ url_for('admin.usuario_novo') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <p class="suave">A conta é criada sem senha. No primeiro acesso, a pessoa digita só o usuário na
+    tela de login e cria a própria senha (prazo de 7 dias; depois disso, use "Liberar nova senha").</p>
+
+  <label for="nome">Nome completo</label>
+  <input id="nome" name="nome" value="{{ form.nome or '' }}" maxlength="100" required autofocus>
+
+  <label for="login">Usuário</label>
+  <input id="login" name="login" value="{{ form.login or '' }}" maxlength="50" autocapitalize="none"
+         pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]{2,49}" required>
+  <p class="dica">Usado para entrar. Ex.: joao.silva (letras, números, ponto, hífen).</p>
+
+  <label for="email">E-mail <span class="suave">(opcional)</span></label>
+  <input id="email" name="email" type="email" value="{{ form.email or '' }}" maxlength="150">
+  <p class="dica">Se ficar em branco, a pessoa informa o e-mail depois de criar a senha.</p>
+
+  <label for="setor">Setor</label>
+  <select id="setor" name="setor" required>
+    <option value="">Selecione</option>
+    {% for s in SETORES %}<option {{ 'selected' if form.setor == s }}>{{ s }}</option>{% endfor %}
+  </select>
+
+  <label for="papel">Perfil</label>
+  <select id="papel" name="papel">
+    {% for chave, nome in PAPEIS.items() %}<option value="{{ chave }}" {{ 'selected' if (form.papel or 'usuario') == chave }}>{{ nome }}</option>{% endfor %}
+  </select>
+
+  <label class="opcao"><input type="checkbox" name="atende" value="1" {{ 'checked' if form.atende }}>
+    Atende chamados do setor</label>
+
+  <div class="acoes">
+    <a class="botao" href="{{ url_for('admin.usuarios') }}">Cancelar</a>
+    <button class="botao botao-primario" type="submit">Cadastrar</button>
+  </div>
+</form>
+{% endblock %}

@@ -137,22 +137,6 @@ def test_admin_define_setor_atende_e_perfil(client, s, contas):
     assert usuario(s, "bruno").is_admin
 
 
-def test_admin_redefine_senha_e_usuario_troca(client, s, contas):
-    entrar(client, "admin", "admin123")
-    bruno = usuario(s, "bruno")
-    html = client.post(f"/usuarios/{bruno.id}/senha", data={"csrf": csrf(client, "/usuarios")}).get_data(as_text=True)
-    temporaria = re.search(r'class="senha-temporaria">([^<]+)<', html).group(1)
-    sair(client)
-
-    r = entrar(client, "bruno", temporaria)
-    assert r.location.endswith("/conta/senha")
-    assert client.get("/chamados").location.endswith("/conta/senha")
-    token = csrf(client, "/conta/senha")
-    client.post("/conta/senha", data={"csrf": token, "nova": "novasenha1", "confirmar": "novasenha1"})
-    assert client.get("/chamados").status_code == 200
-    assert not usuario(s, "bruno").trocar_senha
-
-
 def test_nao_remove_ultimo_admin(s, contas):
     with pytest.raises(servicos.ErroValidacao):
         servicos.atualizar_usuario(s, usuario(s, "admin"), "T.I", True, "usuario")

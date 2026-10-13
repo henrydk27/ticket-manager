@@ -1,0 +1,16 @@
+Pedido de nova senha no Ticket Manager
+
+{{ u.nome }} pediu uma nova senha na tela de login.
+
+Usuário: {{ u.login }}
+Setor: {{ u.setor }}
+E-mail: {{ u.email or "não cadastrado" }}
+Pedido em: {{ u.senha_solicitada_em|data_hora }}{% if ip %} (de {{ ip }}){% endif %}
+
+Confirme que o pedido é mesmo da pessoa. Depois, em Usuários, clique em "Liberar nova senha":
+no próximo acesso ela digita só o usuário e cria a senha nova.
+
+Abrir Usuários: {{ link }}
+
+--
+Aviso automático do Ticket Manager.

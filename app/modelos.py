@@ -1,7 +1,7 @@
 """Tabelas do sistema (SQLAlchemy). Mudanças de estrutura: ver migracoes/ (Alembic)."""
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
@@ -38,6 +38,10 @@ SITUACOES = [SITUACAO_USO, SITUACAO_ESTOQUE, SITUACAO_MANUTENCAO, SITUACAO_DESCA
 CATEGORIAS_DOCUMENTO = ["Termos", "Regras e políticas", "Procedimentos", "Formulários", "Outros"]
 
 
+# Quanto tempo a pessoa tem para criar a senha depois que o admin cadastra ou libera
+PRAZO_CRIAR_SENHA = timedelta(days=7)
+
+
 def ordem_natural(texto: str | None) -> str:
     """Texto que ordena números pelo valor: "2" < "10" < "000123" = "123"; letras sem diferenciar caixa."""
     return re.sub(r"\d+", lambda m: m.group().lstrip("0").rjust(15, "0"), (texto or "").lower())[:500]
@@ -65,6 +69,10 @@ class Usuario(Base):
     papel: Mapped[str] = mapped_column(String(20), default=PAPEL_USUARIO)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
     trocar_senha: Mapped[bool] = mapped_column(Boolean, default=False)  # após reset pelo admin
+    # Conta cadastrada pelo admin ou nova senha liberada: a pessoa cria a senha ao entrar
+    senha_liberada_em: Mapped[datetime | None] = mapped_column(DateTime)
+    # Pedido de nova senha feito na tela de login (o CPD recebe um e-mail)
+    senha_solicitada_em: Mapped[datetime | None] = mapped_column(DateTime)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
     ultimo_acesso: Mapped[datetime | None] = mapped_column(DateTime)
 
@@ -80,6 +88,16 @@ class Usuario(Base):
     @property
     def papel_nome(self) -> str:
         return PAPEIS.get(self.papel, self.papel)
+
+    @property
+    def pode_criar_senha(self) -> bool:
+        """Senha liberada pelo admin e ainda no prazo: ao entrar, a pessoa cria a própria senha."""
+        return (self.ativo and self.senha_liberada_em is not None
+                and agora() - self.senha_liberada_em <= PRAZO_CRIAR_SENHA)
+
+    @property
+    def prazo_senha_vencido(self) -> bool:
+        return self.senha_liberada_em is not None and not self.pode_criar_senha
 
     def trabalha_em(self, chamado: "Chamado") -> bool:
         """Pode atender o chamado: assumir, mudar status, encaminhar."""

@@ -18,7 +18,7 @@ rodar num servidor **Ubuntu**. Refeito do zero a partir das funções da versão
 | Criar a própria conta | Ver os chamados do setor | Ver e atender **todos** os chamados |
 | Abrir chamado para um setor e funcionário, com anexos | Assumir um chamado do setor | Definir setor, quem atende e perfil de cada conta |
 | Comentar e anexar arquivos | Mudar status (Aberto, Em andamento, Aguardando usuário, Fechado) e reabrir | **Apagar** chamados e equipamentos |
-| Buscar e filtrar os próprios chamados | Encaminhar para outra pessoa ou outro setor | Desativar contas e redefinir senhas |
+| Buscar e filtrar os próprios chamados | Encaminhar para outra pessoa ou outro setor | Cadastrar contas, desativar e liberar nova senha |
 | Avaliar chamados encerrados | Painel e relatório Excel/PDF do setor | Painel e relatório de todos os setores |
 | Alterar nome, e-mail e senha em Minha conta | | **Inventário de TI** |
 | Consultar e baixar os **Documentos** da empresa | | Cadastrar, trocar e apagar documentos |
@@ -56,8 +56,12 @@ arquivo e apagam. Cada documento tem título, categoria, descrição opcional e 
   (Azul, Petróleo, Verde, Roxo, Rosa, Vermelho, Laranja, Grafite), com intensidade de 1 (Suave)
   a 5 (Intensa). As cores de situação e de alerta não mudam. Todas as combinações têm contraste
   conferido nos dois modos. A escolha fica guardada em cada navegador.
-- Quem esquece a senha pede ao administrador para redefini-la; a pessoa entra com a senha
-  temporária e é obrigada a criar uma nova.
+- O administrador também **cadastra contas** (ex.: para atribuir equipamentos a quem ainda não
+  tem conta). A conta nasce sem senha: no primeiro acesso a pessoa digita só o usuário e cria a
+  própria senha (prazo de 7 dias).
+- **Esqueceu a senha?** Na tela de login, **Solicitar nova senha** manda um e-mail ao CPD. O
+  administrador confere com a pessoa e clica em **Liberar nova senha**; ela entra digitando só o
+  usuário e cria a senha nova.
 - Funciona no computador e no celular; ninguém precisa instalar nada.
 
 ## Servidor

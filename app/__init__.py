@@ -6,7 +6,7 @@ from datetime import timedelta
 from flask import Flask, g, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import banco, correio, formatos, seguranca, temas
+from . import banco, correio, formatos, seguranca, servicos, temas
 from .config import Config, carregar_config
 from .modelos import AVALIACOES, PAPEIS, PRIORIDADES, SETORES, STATUS
 
@@ -91,6 +91,8 @@ def create_app(cfg: Config | None = None) -> Flask:
 
     @app.context_processor
     def _contexto():
-        return {"usuario": g.get("usuario")}
+        u = g.get("usuario")
+        pedidos = servicos.pedidos_de_senha(banco.db()) if u is not None and u.is_admin else 0
+        return {"usuario": u, "pedidos_senha": pedidos}
 
     return app

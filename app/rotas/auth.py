@@ -4,9 +4,11 @@ from urllib.parse import urlparse
 
 from flask import (Blueprint, abort, current_app, flash, g, redirect, render_template, request,
                    session, url_for)
+from sqlalchemy import select
 
-from .. import servicos
+from .. import notificacoes, servicos
 from ..banco import db
+from ..modelos import Usuario
 from ..seguranca import chave_tentativa, iniciar_sessao
 
 bp = Blueprint("auth", __name__)
@@ -39,8 +41,16 @@ def login():
         login_digitado = request.form.get("login", "").strip()
         senha = request.form.get("senha", "")
         chave = chave_tentativa(login_digitado)
+        conta = db().scalar(select(Usuario).where(Usuario.login == servicos.normalizar_login(login_digitado)))
 
-        if not login_digitado or not senha:
+        if conta is not None and conta.pode_criar_senha:
+            # Cadastrada pelo admin ou senha liberada: vai criar a senha (não há senha para conferir)
+            session.clear()
+            session["criar_senha"] = conta.id
+            return redirect(url_for("auth.criar_senha", proximo=request.form.get("proximo") or None))
+        if conta is not None and conta.ativo and conta.prazo_senha_vencido:
+            flash("O prazo para criar sua senha venceu. Clique em \u201cSolicitar nova senha\u201d.", "erro")
+        elif not login_digitado or not senha:
             flash("Preencha usuário e senha.", "erro")
         elif (espera := servicos.segundos_bloqueado(db(), chave)):
             flash(f"Muitas tentativas. Tente de novo em {espera // 60 + 1} minuto(s).", "erro")
@@ -59,6 +69,46 @@ def login():
     return render_template("login.html", login=login_digitado,
                            proximo=request.values.get("proximo", ""),
                            cadastro_aberto=current_app.config["CADASTRO_ABERTO"])
+
+
+@bp.route("/criar-senha", methods=["GET", "POST"])
+def criar_senha():
+    """Primeiro acesso (conta cadastrada pelo admin) ou nova senha liberada pelo CPD."""
+    uid = session.get("criar_senha")
+    u = db().get(Usuario, uid) if uid else None
+    if u is None or not u.pode_criar_senha:
+        session.pop("criar_senha", None)
+        return redirect(url_for("auth.login"))
+
+    if request.method == "POST":
+        f = request.form
+        if f.get("nova", "") != f.get("confirmar", ""):
+            flash("As senhas não conferem.", "erro")
+        else:
+            try:
+                servicos.criar_senha(db(), u, f.get("nova", ""))
+            except servicos.ErroValidacao as e:
+                flash(str(e), "erro")
+            else:
+                flash("Senha criada. Bem-vindo!", "ok")
+                destino = _entrar(u)
+                return redirect(destino or _destino_seguro(f.get("proximo")))
+    return render_template("criar_senha.html", conta=u, proximo=request.values.get("proximo", ""))
+
+
+@bp.route("/solicitar-senha", methods=["GET", "POST"])
+def solicitar_senha():
+    if g.usuario is not None:
+        return redirect(url_for("conta.senha"))
+    if request.method == "POST":
+        u = servicos.solicitar_nova_senha(db(), request.form.get("identificacao", ""))
+        if u is not None:
+            notificacoes.pedido_nova_senha(u)
+        # Mesma resposta para qualquer caso (não revela quais usuários existem)
+        flash("Pedido enviado ao CPD. Quando a nova senha for liberada, entre digitando só o seu "
+              "usuário e clique em Entrar para criar a senha.", "ok")
+        return redirect(url_for("auth.login"))
+    return render_template("solicitar_senha.html")
 
 
 @bp.route("/cadastro", methods=["GET", "POST"])

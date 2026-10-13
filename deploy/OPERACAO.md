@@ -27,11 +27,12 @@ escolha da pessoa.
 
 | Situação | O que fazer |
 |---|---|
-| Pessoa nova | Ela mesma cria a conta em **Crie sua conta** na tela de login |
+| Pessoa nova | Ela mesma cria a conta em **Crie sua conta** na tela de login, ou o admin cadastra (abaixo) |
+| Cadastrar alguém que ainda não tem conta | **Usuários** → **+ Cadastrar usuário** → nome, usuário, setor (e-mail opcional). Avise a pessoa: no primeiro acesso ela digita **só o usuário**, clica em **Entrar** e cria a senha (prazo de 7 dias) |
 | Alguém vai atender chamados do setor | **Usuários** → confira o **Setor** → marque **Atende chamados** → **Salvar alterações** |
 | Alguém deixou de atender | Desmarque **Atende chamados** → **Salvar alterações**; os chamados em aberto com ela ficam sem responsável |
 | Mudou de setor | **Usuários** → troque o **Setor** → **Salvar alterações** (a pessoa não consegue mudar sozinha) |
-| Esqueceu a senha | **Usuários** → **Redefinir senha** → passe a senha temporária à pessoa; no próximo acesso ela cria uma nova |
+| Esqueceu a senha | A pessoa clica em **Solicitar nova senha** no login e o CPD recebe um e-mail (o menu **Usuários** mostra um contador). Confirme com ela → **Usuários** → **Liberar nova senha**. Ela entra digitando **só o usuário** e cria a senha nova (prazo de 7 dias; vencido, libere de novo) |
 | Saiu da empresa | **Usuários** → **Desativar** (o acesso é cortado na hora; os chamados dela continuam no histórico) |
 | Outro administrador | **Usuários** → perfil **Administrador** → **Salvar alterações** (vê todos os chamados; o sistema sempre mantém pelo menos um) |
 | Apagar um chamado | Só o administrador: abra o chamado → **Apagar chamado** (permanente) |
@@ -154,8 +155,11 @@ O sistema manda e-mail quando:
 | Mudança de status | quem abriu |
 | Chamado encerrado | quem abriu (com link para avaliar) |
 
+| Pedido de nova senha (tela de login) | o CPD: `avisos_senha` do `config.ini` (em branco, o `remetente`) |
+
 Ninguém recebe aviso da própria ação, e contas desativadas não recebem nada.
-O e-mail é obrigatório no cadastro; quem tinha conta sem e-mail é levado a preencher no próximo acesso.
+O e-mail é obrigatório no cadastro; quem tinha conta sem e-mail (ou foi cadastrado pelo admin sem
+e-mail) é levado a preencher no próximo acesso.
 
 ### Configurar
 
@@ -178,6 +182,7 @@ O e-mail é obrigatório no cadastro; quem tinha conta sem e-mail é levado a pr
    remetente = chamados@suaempresa.com.br
    nome = Ticket Manager
    url_site = http://IP-OU-NOME-DO-SERVIDOR
+   avisos_senha = cpd@suaempresa.com.br   ; recebe os pedidos de nova senha (vazio = remetente)
    ```
 
 3. Teste e reinicie:

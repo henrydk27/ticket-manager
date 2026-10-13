@@ -2,16 +2,21 @@
 {% block titulo %}Usuários{% endblock %}
 {% block conteudo %}
 <div class="cabecalho">
-  <h1>Usuários</h1>
-  <span class="suave">{{ usuarios|length }} conta{{ 's' if usuarios|length != 1 }}</span>
+  <div>
+    <h1>Usuários</h1>
+    <span class="suave">{{ usuarios|length }} conta{{ 's' if usuarios|length != 1 }}</span>
+  </div>
+  <div class="acoes-cabecalho">
+    <a class="botao botao-primario" href="{{ url_for('admin.usuario_novo') }}">+ Cadastrar usuário</a>
+  </div>
 </div>
 
-{% if senha_temporaria %}
-{% set alvo, senha = senha_temporaria %}
+{% set pedidos = usuarios|selectattr('0.senha_solicitada_em')|selectattr('0.ativo')|list %}
+{% if pedidos %}
 <div class="aviso aviso-info">
-  Senha temporária de <strong>{{ alvo.nome }}</strong> ({{ alvo.login }}):<br>
-  <span class="senha-temporaria">{{ senha }}</span><br>
-  Passe para a pessoa agora: ela não aparece de novo. No próximo acesso ela vai precisar criar uma senha nova.
+  <strong>Pedido{{ 's' if pedidos|length > 1 }} de nova senha:</strong>
+  {% for u, _ in pedidos %}<a href="#u{{ u.id }}">{{ u.nome }}</a>{{ ', ' if not loop.last }}{% endfor %}.
+  Confirme com a pessoa e clique em <strong>Liberar nova senha</strong> na linha dela.
 </div>
 {% endif %}
 
@@ -33,6 +38,9 @@
     {% for u, total in usuarios %}
     <tr id="u{{ u.id }}" class="{{ 'linha-inativa' if not u.ativo }}">
       <td><strong>{{ u.nome }}</strong>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}
+        {% if u.ativo and u.senha_solicitada_em %} <span class="badge badge-andamento" title="Pedido em {{ u.senha_solicitada_em|data_hora }}">pediu nova senha</span>{% endif %}
+        {% if u.ativo and u.pode_criar_senha %} <span class="badge badge-aberto" title="Liberada em {{ u.senha_liberada_em|data_hora }}">{{ 'aguardando primeiro acesso' if not u.ultimo_acesso else 'nova senha liberada' }}</span>
+        {% elif u.ativo and u.prazo_senha_vencido %} <span class="badge badge-fechado">prazo da senha vencido</span>{% endif %}
         <div class="subtitulo">{{ u.login }} · {{ u.email or "sem e-mail" }} · {{ total }} pedido{{ "s" if total != 1 }}</div>
         <input type="hidden" name="ids" value="{{ u.id }}" form="form-usuarios"></td>
       <td>
@@ -59,9 +67,9 @@
         {% if u.id != usuario.id %}
         <div class="acoes-linha">
           <form method="post" action="{{ url_for('admin.usuario_senha', usuario_id=u.id) }}"
-                data-confirmar="Gerar uma senha temporária para {{ u.nome }}? A senha atual deixa de funcionar.">
+                data-confirmar="Liberar uma nova senha para {{ u.nome }}? A senha atual deixa de funcionar e, no próximo acesso, a pessoa digita só o usuário para criar outra.">
             <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-            <button class="botao botao-pequeno" type="submit">Redefinir senha</button>
+            <button class="botao botao-pequeno {{ 'botao-primario' if u.senha_solicitada_em }}" type="submit">Liberar nova senha</button>
           </form>
           <form method="post" action="{{ url_for('admin.usuario_ativo', usuario_id=u.id) }}"
                 {% if u.ativo %}data-confirmar="Desativar a conta de {{ u.nome }}? A pessoa não consegue mais entrar."{% endif %}>

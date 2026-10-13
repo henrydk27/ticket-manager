@@ -5,9 +5,10 @@ Regras: ninguém recebe aviso da própria ação, e só recebe quem tem e-mail e
 - encaminhado           → novo responsável
 - comentário            → solicitante e responsável
 - mudança de status     → solicitante (encerrado: com link para avaliar)
+- pedido de nova senha  → CPD (config avisos_senha; vazio = remetente)
 """
 
-from flask import current_app, render_template, url_for
+from flask import current_app, render_template, request, url_for
 
 from . import correio
 from .modelos import STATUS_FECHADO, Chamado, Comentario, Usuario
@@ -70,3 +71,21 @@ def status_alterado(c: Chamado, autor: Usuario, anterior: str) -> None:
     else:
         _avisar([c.solicitante], autor, c, f"Status: {c.status}",
                 f"{autor.nome} mudou o status do chamado de \"{anterior}\" para \"{c.status}\".")
+
+
+def pedido_nova_senha(u: Usuario) -> None:
+    """Avisa o CPD que a pessoa pediu uma nova senha na tela de login."""
+    if not correio.ativo():
+        return
+    cfg = current_app.extensions["email"]
+    destino = cfg.avisos_senha or cfg.remetente
+    if not destino:
+        return
+    dados = dict(u=u, ip=request.remote_addr, link=_link("admin.usuarios", _anchor=f"u{u.id}"),
+                 cid_marca=correio.CID_MARCA)
+    correio.enviar(correio.Mensagem(
+        para=destino,
+        assunto=f"[Ticket Manager] Pedido de nova senha: {u.nome}",
+        texto=render_template("email/senha.txt", **dados),
+        html=render_template("email/senha.html", **dados),
+    ))

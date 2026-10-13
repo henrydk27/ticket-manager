@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Criar senha{% endblock %}
+{% block classe_body %}pagina-login{% endblock %}
+{% block classe_main %}login-conteudo{% endblock %}
+{% block conteudo %}
+<div class="login-cartao login-cartao-simples">
+  <div class="login-form">
+    <h1>Criar senha</h1>
+    <p class="suave">Olá, {{ conta.nome.split()[0] }}! Crie a senha que você vai usar para entrar
+      com o usuário <strong>{{ conta.login }}</strong>.</p>
+    <form method="post" action="{{ url_for('auth.criar_senha') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="proximo" value="{{ proximo }}">
+      <input type="text" name="usuario" value="{{ conta.login }}" autocomplete="username" hidden>
+
+      <label for="nova">Nova senha</label>
+      <input id="nova" name="nova" type="password" minlength="8" autocomplete="new-password" required autofocus>
+      <p class="dica">Pelo menos 8 caracteres, com letras e números.</p>
+
+      <label for="confirmar">Confirme a nova senha</label>
+      <input id="confirmar" name="confirmar" type="password" minlength="8" autocomplete="new-password" required>
+
+      <button class="botao botao-primario botao-largo" type="submit">Criar senha e entrar</button>
+    </form>
+    <p class="login-rodape">Não é você? <a href="{{ url_for('auth.login') }}">Voltar</a></p>
+  </div>
+</div>
+{% endblock %}

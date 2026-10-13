@@ -38,9 +38,8 @@ def painel():
 
 # ─── USUÁRIOS ───────────────────────────────────────────────────────────────
 
-def _pagina_usuarios(senha_temporaria=None):
-    return render_template("admin/usuarios.html", usuarios=servicos.listar_usuarios(db()),
-                           senha_temporaria=senha_temporaria)
+def _pagina_usuarios():
+    return render_template("admin/usuarios.html", usuarios=servicos.listar_usuarios(db()))
 
 
 @bp.route("/usuarios")
@@ -54,6 +53,24 @@ def _alvo(usuario_id: int) -> Usuario:
     if u is None:
         abort(404)
     return u
+
+
+@bp.route("/usuarios/novo", methods=["GET", "POST"])
+@admin_obrigatorio
+def usuario_novo():
+    """Cadastro pelo admin (ex.: para atribuir equipamentos a quem ainda não tem conta)."""
+    f = request.form
+    if request.method == "POST":
+        try:
+            u = servicos.cadastrar_pelo_admin(db(), f.get("nome", ""), f.get("login", ""), f.get("email", ""),
+                                              f.get("setor", ""), f.get("atende") == "1", f.get("papel", ""))
+        except servicos.ErroValidacao as e:
+            flash(str(e), "erro")
+        else:
+            flash(f"Conta de {u.nome} criada. No primeiro acesso, a pessoa digita só o usuário "
+                  f"\u201c{u.login}\u201d e clica em Entrar para criar a própria senha (prazo de 7 dias).", "ok")
+            return redirect(url_for("admin.usuarios", _anchor=f"u{u.id}"))
+    return render_template("admin/usuario_novo.html", form=f)
 
 
 @bp.route("/usuarios", methods=["POST"])
@@ -95,15 +112,15 @@ def usuario_ativo(usuario_id: int):
 @bp.route("/usuarios/<int:usuario_id>/senha", methods=["POST"])
 @admin_obrigatorio
 def usuario_senha(usuario_id: int):
+    """Libera uma nova senha: a atual deixa de valer e a pessoa cria outra no próximo acesso."""
     u = _alvo(usuario_id)
     if u.id == g.usuario.id:
         flash("Para trocar a sua senha, use Minha conta.", "erro")
         return redirect(url_for("admin.usuarios"))
-    temporaria = servicos.redefinir_senha(db(), u)
-    # A senha temporária é mostrada uma única vez, nesta resposta (não vai para URL nem para log)
-    resp = make_response(_pagina_usuarios((u, temporaria)))
-    resp.headers["Cache-Control"] = "no-store"
-    return resp
+    servicos.liberar_nova_senha(db(), u)
+    flash(f"Nova senha liberada para {u.nome}. No próximo acesso, a pessoa digita só o usuário "
+          f"\u201c{u.login}\u201d e clica em Entrar para criar a senha (prazo de 7 dias).", "ok")
+    return redirect(url_for("admin.usuarios", _anchor=f"u{u.id}"))
 
 
 # ─── RELATÓRIO ──────────────────────────────────────────────────────────────

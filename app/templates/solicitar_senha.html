@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Solicitar nova senha{% endblock %}
+{% block classe_body %}pagina-login{% endblock %}
+{% block classe_main %}login-conteudo{% endblock %}
+{% block conteudo %}
+<div class="login-cartao login-cartao-simples">
+  <div class="login-form">
+    <h1>Solicitar nova senha</h1>
+    <p class="suave">O CPD recebe o seu pedido por e-mail e libera uma nova senha. Depois disso,
+      entre digitando só o seu usuário e crie a senha nova.</p>
+    <form method="post" action="{{ url_for('auth.solicitar_senha') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <label for="identificacao">Seu usuário ou e-mail</label>
+      <input id="identificacao" name="identificacao" maxlength="150" autocomplete="username"
+             autocapitalize="none" required autofocus>
+      <button class="botao botao-primario botao-largo" type="submit">Enviar pedido ao CPD</button>
+    </form>
+    <p class="login-rodape"><a href="{{ url_for('auth.login') }}">‹ Voltar para o login</a></p>
+  </div>
+</div>
+{% endblock %}

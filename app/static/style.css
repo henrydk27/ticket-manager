@@ -306,11 +306,6 @@ a.indicador:hover { border-color: var(--serie); text-decoration: none; }
 .login-rodape + .login-rodape { margin-top: 4px; font-size: .85rem; }
 a.usuario-nome { color: var(--texto); }
 .dica { font-size: .85rem; color: var(--texto-2); margin: 4px 0 0; }
-.senha-temporaria {
-  font-family: Consolas, "Courier New", monospace; font-size: 1.15rem; font-weight: 700;
-  background: var(--superficie); border: 1px dashed var(--texto-2); border-radius: 6px;
-  padding: 4px 10px; user-select: all; display: inline-block; margin: 4px 0;
-}
 .acoes-linha { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .acoes-linha form { margin: 0; display: flex; gap: 6px; }
 .acoes-linha select { padding: 4px 8px; }
@@ -416,3 +411,10 @@ a.usuario-nome { color: var(--texto); }
 /* ─── Documentos ───────────────────────────────────────────────────────── */
 .col-acoes { text-align: right; white-space: nowrap; }
 .col-acoes .botao + .botao { margin-left: 4px; }
+
+/* ─── Contas ───────────────────────────────────────────────────────────── */
+.contador-menu {
+  display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 999px; font-size: .72rem;
+  line-height: 18px; text-align: center; background: var(--perigo); color: #fff; font-weight: 700;
+}
+.opcao { display: flex; gap: 8px; align-items: center; font-weight: normal; margin-top: 14px; }

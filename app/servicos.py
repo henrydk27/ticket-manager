@@ -74,6 +74,85 @@ def criar_conta(s: Session, nome: str, login: str, email: str, setor: str, senha
     return u
 
 
+def _senha_inutilizavel() -> str:
+    """Hash de uma senha aleatória que ninguém conhece (conta sem senha válida)."""
+    return generate_password_hash(secrets.token_urlsafe(32))
+
+
+def cadastrar_pelo_admin(s: Session, nome: str, login: str, email: str, setor: str, atende: bool,
+                         papel: str) -> Usuario:
+    """Conta criada pelo admin (ex.: para atribuir equipamentos). Sem senha: a pessoa cria a
+    própria no primeiro acesso. O e-mail é opcional aqui; se faltar, é pedido depois do login."""
+    nome, email = (nome or "").strip(), (email or "").strip().lower()
+    if not nome or len(nome) > 100:
+        raise ErroValidacao("Informe o nome.")
+    if email and (len(email) > 150 or not EMAIL_VALIDO.match(email)):
+        raise ErroValidacao("E-mail inválido.")
+    if setor not in SETORES:
+        raise ErroValidacao("Escolha o setor.")
+    if papel not in PAPEIS:
+        raise ErroValidacao("Perfil inválido.")
+    login = normalizar_login(login)
+    if not LOGIN_VALIDO.match(login):
+        raise ErroValidacao("Usuário: de 3 a 50 caracteres, só letras minúsculas, números, ponto, hífen ou _.")
+    if s.scalar(select(Usuario.id).where(Usuario.login == login)):
+        raise ErroValidacao("Esse nome de usuário já está em uso.")
+    u = Usuario(nome=nome, login=login, email=email or None, setor=setor, atende=atende, papel=papel,
+                senha_hash=_senha_inutilizavel(), senha_liberada_em=agora())
+    s.add(u)
+    s.commit()
+    return u
+
+
+def liberar_nova_senha(s: Session, alvo: Usuario) -> None:
+    """A senha atual deixa de valer; no próximo acesso a pessoa cria uma nova (prazo de 7 dias)."""
+    alvo.senha_hash = _senha_inutilizavel()
+    alvo.senha_liberada_em = agora()
+    alvo.senha_solicitada_em = None
+    alvo.trocar_senha = False
+    s.commit()
+
+
+def criar_senha(s: Session, u: Usuario, senha: str) -> None:
+    """Primeiro acesso / senha liberada: a pessoa define a própria senha."""
+    if not u.pode_criar_senha:
+        raise ErroValidacao("O prazo para criar a senha venceu. Use \"Solicitar nova senha\".")
+    validar_senha(senha)
+    u.senha_hash = generate_password_hash(senha)
+    u.senha_liberada_em = None
+    u.senha_solicitada_em = None
+    u.trocar_senha = False
+    s.commit()
+
+
+ESPERA_NOVO_PEDIDO_MIN = 15
+
+
+def solicitar_nova_senha(s: Session, identificacao: str) -> Usuario | None:
+    """Registra o pedido feito na tela de login (por usuário ou e-mail).
+
+    Devolve a conta quando é preciso avisar o CPD; None se não existe, está desativada ou
+    já pediu há menos de 15 minutos (evita encher a caixa do CPD).
+    """
+    ident = (identificacao or "").strip().lower()
+    if not ident:
+        return None
+    campo = Usuario.email if "@" in ident else Usuario.login
+    u = s.scalars(select(Usuario).where(campo == ident, Usuario.ativo).order_by(Usuario.id)).first()
+    if u is None:
+        return None
+    if u.senha_solicitada_em and agora() - u.senha_solicitada_em < timedelta(minutes=ESPERA_NOVO_PEDIDO_MIN):
+        return None
+    u.senha_solicitada_em = agora()
+    s.commit()
+    return u
+
+
+def pedidos_de_senha(s: Session) -> int:
+    return s.scalar(select(func.count(Usuario.id)).where(Usuario.senha_solicitada_em.is_not(None),
+                                                         Usuario.ativo)) or 0
+
+
 def autenticar(s: Session, login: str, senha: str) -> Usuario | None:
     u = s.scalar(select(Usuario).where(Usuario.login == normalizar_login(login)))
     if u is None or not check_password_hash(u.senha_hash, senha):
@@ -169,15 +248,6 @@ def definir_ativo(s: Session, alvo: Usuario, ativo: bool) -> None:
     alvo.ativo = ativo
     _liberar_chamados(s, alvo)
     s.commit()
-
-
-def redefinir_senha(s: Session, alvo: Usuario) -> str:
-    """Gera uma senha temporária; o usuário é obrigado a trocá-la no próximo acesso."""
-    temporaria = secrets.token_urlsafe(9)
-    alvo.senha_hash = generate_password_hash(temporaria)
-    alvo.trocar_senha = True
-    s.commit()
-    return temporaria
 
 
 # ─── ATENDENTES POR SETOR ───────────────────────────────────────────────────
