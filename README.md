@@ -15,23 +15,35 @@ Apresentação com prints de todas as telas: [docs/APRESENTACAO.md](docs/APRESEN
 - **Todos que atendem o setor veem os chamados dele** e podem assumir (se o colega faltar,
   por exemplo) ou **encaminhar** para outra pessoa ou outro setor.
 
-| Todos | Quem atende chamados (do seu setor) | Administradores |
-|---|---|---|
-| Criar a própria conta | Ver os chamados do setor | Ver e atender **todos** os chamados |
-| Abrir chamado para um setor e funcionário, com anexos | Assumir um chamado do setor | Definir setor, quem atende e perfil de cada conta |
-| Comentar e anexar arquivos | Mudar status (Aberto, Em andamento, Aguardando usuário, Fechado) e reabrir | **Apagar** chamados e equipamentos |
-| Buscar e filtrar os próprios chamados | Encaminhar para outra pessoa ou outro setor | Cadastrar contas, desativar e liberar nova senha |
-| Avaliar chamados encerrados | Painel e relatório Excel/PDF do setor | Painel e relatório de todos os setores |
-| Alterar nome, e-mail e senha em Minha conta | | **Inventário de TI** |
-| Consultar e baixar os **Documentos** da empresa | | Cadastrar, trocar e apagar documentos |
+Níveis de acesso (perfil): **Usuário**, **Supervisor** e **Administrador**.
+
+| | Chamados | Painel | Relatório | Documentos | Inventário e Usuários |
+|---|---|---|---|---|---|
+| **Usuário** | os que abriu (+ os do setor, se atende) | sim | — | — | — |
+| **Supervisor** | os do seu setor + os que abriu | sim | do seu setor | consulta | — |
+| **Administrador** | todos | todos os setores (com filtro) | todos os setores | consulta e publica | sim |
+
+As **telas** dependem só do nível de acesso. **Atende chamados** é independente: define quem
+aparece na lista de funcionários ao abrir um chamado e quem atende (assume, muda status,
+encaminha) os chamados do próprio setor. O supervisor vê os chamados do setor mesmo sem atender.
+No **Painel**, quem atende e o supervisor veem o setor; o usuário que não atende vê os chamados
+que abriu.
+
+Quem **atende chamados** do setor (qualquer nível) assume, muda status (Aberto, Em andamento,
+Aguardando usuário, Fechado), reabre e encaminha para outra pessoa ou outro setor. Todos abrem
+chamados com anexos, comentam, avaliam os encerrados e alteram nome, e-mail e senha em Minha conta.
+Só o administrador define setor, nível e quem atende, cadastra e desativa contas, libera nova
+senha e **apaga** chamados e equipamentos.
 
 - Quem atende e abre um pedido para **outro** setor acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
 - O setor de cada pessoa só é alterado pelo administrador (é ele que define o que ela vê).
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - **Painel:** em aberto, sem responsável, abertos e encerrados no período, tempo médio até
-  encerrar (em dias, horas e minutos) e gráficos por status, responsável, setor, prioridade,
-  avaliações e mês. **Relatório** do período em Excel ou PDF.
+  encerrar e gráficos por status, responsável, setor, prioridade, avaliações e mês. O tempo
+  médio conta **só o expediente** (segunda a sexta, das 7h às 18h; ajuste em
+  `EXPEDIENTE_INICIO`, `EXPEDIENTE_FIM` e `DIAS_EXPEDIENTE` em `app/servicos.py`).
+  **Relatório** do período em Excel ou PDF.
 
 ## Inventário de TI
 
@@ -44,9 +56,9 @@ número (2, 99, 100...).
 
 ## Documentos
 
-Termos, regras, procedimentos e formulários internos da empresa. Todos que entram no sistema
-consultam, abrem (PDF e imagens no navegador) e baixam; só administradores cadastram, trocam o
-arquivo e apagam. Cada documento tem título, categoria, descrição opcional e um arquivo
+Termos, regras, procedimentos e formulários internos da empresa. Supervisores e
+administradores consultam, abrem (PDF e imagens no navegador) e baixam; só administradores
+cadastram, trocam o arquivo e apagam. Cada documento tem título, categoria, descrição opcional e um arquivo
 (PDF, Word, Excel, PowerPoint, texto ou imagem), guardado na mesma pasta dos anexos.
 
 ## Outros

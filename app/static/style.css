@@ -418,3 +418,4 @@ a.usuario-nome { color: var(--texto); }
   line-height: 18px; text-align: center; background: var(--perigo); color: #fff; font-weight: 700;
 }
 .opcao { display: flex; gap: 8px; align-items: center; font-weight: normal; margin-top: 14px; }
+.indicador-dica { font-size: .78rem; color: var(--texto-2); }

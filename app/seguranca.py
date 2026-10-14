@@ -57,23 +57,23 @@ def login_obrigatorio(view):
     return wrapper
 
 
-def atendente_obrigatorio(view):
-    """Quem atende chamados do seu setor e administradores."""
-    @wraps(view)
-    @login_obrigatorio
-    def wrapper(*args, **kwargs):
-        if not g.usuario.is_atendente:
-            abort(403)
-        return view(*args, **kwargs)
-    return wrapper
-
-
 def inventario_obrigatorio(view):
     """Só administradores."""
     @wraps(view)
     @login_obrigatorio
     def wrapper(*args, **kwargs):
         if not g.usuario.cuida_inventario:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapper
+
+
+def supervisor_obrigatorio(view):
+    """Supervisores e administradores (Relatório e Documentos)."""
+    @wraps(view)
+    @login_obrigatorio
+    def wrapper(*args, **kwargs):
+        if not (g.usuario.is_admin or g.usuario.is_supervisor):
             abort(403)
         return view(*args, **kwargs)
     return wrapper

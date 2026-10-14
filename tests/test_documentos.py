@@ -24,7 +24,10 @@ def enviar(client, url="/documentos/novo", arquivo=("termo.pdf", b"%PDF-1.4 test
     return client.post(url, data=dados, content_type="multipart/form-data", follow_redirects=True)
 
 
-def test_so_admin_cadastra_e_todos_consultam(client, s, app, contas):
+def test_so_admin_cadastra_e_supervisor_consulta(client, s, app, contas):
+    from app import servicos
+    from tests.test_app import usuario
+    servicos.atualizar_usuario(s, usuario(s, "ana"), "Fiscal", False, "supervisor")
     entrar(client, "ana", "ana12345")
     html = client.get("/documentos/").get_data(as_text=True)
     assert "Nenhum documento cadastrado" in html and "/documentos/novo" not in html

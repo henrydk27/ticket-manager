@@ -20,9 +20,10 @@
 </div>
 {% endif %}
 
-<p class="suave">Marque <strong>Atende chamados</strong> para quem recebe pedidos do seu setor: essa pessoa
-  aparece na lista ao abrir um chamado para o setor e vê os chamados dele.
-  <strong>Administradores</strong> veem todos os chamados e gerenciam as contas.</p>
+<p class="suave">O <strong>perfil</strong> define as telas: <strong>Usuário</strong> vê Chamados e Painel;
+  <strong>Supervisor</strong> também Relatório e Documentos, e os chamados do seu setor;
+  <strong>Administrador</strong> vê tudo e gerencia as contas. Marque <strong>Atende chamados</strong> para
+  quem recebe pedidos do seu setor: a pessoa aparece na lista ao abrir um chamado e atende os chamados dele.</p>
 
 {# Um formulário só para setor/atende/perfil de todas as linhas; os campos apontam para ele com form="..." #}
 <form id="form-usuarios" method="post" action="{{ url_for('admin.usuarios_salvar') }}" data-avisar-alteracoes>

@@ -8,9 +8,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship,
 
 # ─── valores fixos ──────────────────────────────────────────────────────────
 
-# Quem atende chamados é marcado pelo admin (Usuario.atende), junto com o setor da pessoa
-PAPEL_USUARIO, PAPEL_ADMIN = "usuario", "admin"
-PAPEIS = {PAPEL_USUARIO: "Usuário", PAPEL_ADMIN: "Administrador"}
+# Nível de acesso (papel) define as telas; "Atende chamados" (Usuario.atende) só define quem
+# recebe e atende os chamados do próprio setor.
+#   usuário:       Chamados e Painel
+#   supervisor:    Chamados, Painel, Relatório e Documentos (vê os chamados do próprio setor)
+#   administrador: tudo
+PAPEL_USUARIO, PAPEL_SUPERVISOR, PAPEL_ADMIN = "usuario", "supervisor", "admin"
+PAPEIS = {PAPEL_USUARIO: "Usuário", PAPEL_SUPERVISOR: "Supervisor", PAPEL_ADMIN: "Administrador"}
 
 STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO = (
     "Aberto", "Em andamento", "Aguardando usuário", "Fechado")
@@ -19,7 +23,7 @@ STATUS = [STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO]
 PRIORIDADES = ["Alta", "Média", "Baixa"]
 AVALIACOES = ["Bom", "Regular", "Ruim"]
 SETORES = [
-    "Compras", "Contábil", "Diretoria", "Enfermaria", "Engenharia", "Expedição", "Fábrica",
+    "Administração", "Compras", "Contábil", "Diretoria", "Enfermaria", "Engenharia", "Expedição", "Fábrica",
     "Faturamento", "Ferramentaria", "Financeiro", "Fiscal", "Inspeção", "Manutenção", "PCP",
     "Portaria", "Qualidade", "Recebimento", "RH", "Segurança do Trabalho", "T.I", "Vendas",
 ]
@@ -81,9 +85,27 @@ class Usuario(Base):
         return self.papel == PAPEL_ADMIN
 
     @property
+    def is_supervisor(self) -> bool:
+        return self.papel == PAPEL_SUPERVISOR
+
+    @property
     def is_atendente(self) -> bool:
         """Atende chamados do seu setor (o administrador atende todos)."""
         return self.is_admin or (self.atende and self.ativo)
+
+    @property
+    def ve_setor(self) -> bool:
+        """Vê os chamados enviados ao próprio setor: quem atende e o supervisor."""
+        return self.is_admin or (self.ativo and (self.atende or self.is_supervisor))
+
+    # Telas liberadas pelo nível de acesso (independe de "Atende chamados")
+    @property
+    def ve_relatorio(self) -> bool:
+        return self.is_admin or self.is_supervisor
+
+    @property
+    def ve_documentos(self) -> bool:
+        return self.is_admin or self.is_supervisor
 
     @property
     def papel_nome(self) -> str:
@@ -104,7 +126,8 @@ class Usuario(Base):
         return self.is_admin or (self.atende and self.ativo and chamado.setor_destino == self.setor)
 
     def pode_ver(self, chamado: "Chamado") -> bool:
-        return chamado.solicitante_id == self.id or self.trabalha_em(chamado)
+        return (chamado.solicitante_id == self.id or self.trabalha_em(chamado)
+                or (self.ve_setor and chamado.setor_destino == self.setor))
 
     @property
     def cuida_inventario(self) -> bool:

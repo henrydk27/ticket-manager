@@ -1,4 +1,5 @@
-"""Documentos internos: todos consultam; administradores cadastram, trocam e apagam."""
+"""Documentos internos: supervisores e administradores consultam; administradores cadastram,
+trocam e apagam."""
 
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
 
@@ -7,7 +8,7 @@ from .. import documentos
 from ..anexos import TIPOS_EXIBIVEIS, AnexoInvalido, ler_anexos
 from ..banco import db
 from ..modelos import CATEGORIAS_DOCUMENTO
-from ..seguranca import admin_obrigatorio, login_obrigatorio
+from ..seguranca import admin_obrigatorio, supervisor_obrigatorio
 from ..servicos import ErroValidacao
 
 bp = Blueprint("documentos", __name__, url_prefix="/documentos")
@@ -41,7 +42,7 @@ def _formulario(doc):
 
 
 @bp.route("/")
-@login_obrigatorio
+@supervisor_obrigatorio
 def lista():
     texto = request.args.get("q", "").strip()[:100]
     categoria = request.args.get("categoria", "")
@@ -73,7 +74,7 @@ def apagar(documento_id: int):
 
 
 @bp.route("/<int:documento_id>/arquivo")
-@login_obrigatorio
+@supervisor_obrigatorio
 def arquivo(documento_id: int):
     doc = _obter(documento_id)
     ext = arquivos_disco.extensao(doc.nome)

@@ -22,11 +22,13 @@
     <nav class="menu" aria-label="Principal">
       {% set ep = request.endpoint or '' %}
       <a href="{{ url_for('chamados.lista') }}" class="{{ 'ativo' if ep in ('chamados.lista', 'chamados.detalhe') }}">Chamados</a>
-      {% if usuario.is_atendente %}
       <a href="{{ url_for('admin.painel') }}" class="{{ 'ativo' if ep == 'admin.painel' }}">Painel</a>
+      {% if usuario.ve_relatorio %}
       <a href="{{ url_for('admin.relatorio') }}" class="{{ 'ativo' if ep == 'admin.relatorio' }}">Relatório</a>
       {% endif %}
+      {% if usuario.ve_documentos %}
       <a href="{{ url_for('documentos.lista') }}" class="{{ 'ativo' if ep.startswith('documentos.') }}">Documentos</a>
+      {% endif %}
       {% if usuario.cuida_inventario %}
       <a href="{{ url_for('inventario.lista') }}" class="{{ 'ativo' if ep.startswith('inventario.') }}">Inventário</a>
       {% endif %}
@@ -37,7 +39,7 @@
     <div class="topo-direita">
       <a class="botao botao-primario botao-novo" href="{{ url_for('chamados.novo') }}">+ Novo chamado</a>
       <a class="usuario-nome" href="{{ url_for('conta.perfil') }}" title="Minha conta · {{ usuario.papel_nome }}">
-        {{ usuario.nome.split()[0] }}{% if usuario.is_atendente %} <small>{{ 'admin' if usuario.is_admin else 'atendente' }}</small>{% endif %}
+        {{ usuario.nome.split()[0] }}{% if usuario.is_admin %} <small>admin</small>{% elif usuario.is_supervisor %} <small>supervisor</small>{% elif usuario.atende %} <small>atendente</small>{% endif %}
       </a>
       <div class="controles-tema" data-seletor-cor>
         <button type="button" class="alternar-tema" data-abrir-paleta aria-haspopup="true" aria-expanded="false"

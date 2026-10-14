@@ -48,8 +48,10 @@ encaminhado. Ninguém recebe aviso da própria ação.
 ### Painel e relatórios
 
 Chamados em aberto, sem responsável, abertos e encerrados no período e tempo médio até encerrar,
-com gráficos por setor, status, responsável, prioridade, avaliação e mês. O relatório do período
-sai em **Excel** ou **PDF**. Cada atendente vê o próprio setor; o administrador vê todos.
+com gráficos por setor, status, responsável, prioridade, avaliação e mês. O tempo médio conta só
+o **horário de expediente** (segunda a sexta, das 7h às 18h): um chamado aberto na sexta às 17h e
+fechado na segunda às 8h levou 2 horas. O relatório do período sai em **Excel** ou **PDF**
+(supervisores e administradores).
 
 ![Painel](prints/05-painel.png)
 
@@ -65,15 +67,15 @@ estoque, e toda troca vai para o histórico, com data e quem fez. A lista export
 
 ### Documentos internos
 
-Termos, regras, procedimentos e formulários da empresa num lugar só. Todos consultam e baixam;
-o administrador publica e troca as versões.
+Termos, regras, procedimentos e formulários da empresa num lugar só. Supervisores e
+administradores consultam e baixam; o administrador publica e troca as versões.
 
 ![Documentos](prints/08-documentos.png)
 
 ### Contas e acesso
 
-O administrador define o setor de cada pessoa, quem atende chamados e quem é administrador, e
-salva tudo de uma vez. Ele também pode cadastrar uma conta: a pessoa cria a própria senha no
+O administrador define o setor de cada pessoa, quem atende chamados e o nível de acesso
+(Usuário, Supervisor ou Administrador), e salva tudo de uma vez. Ele também pode cadastrar uma conta: a pessoa cria a própria senha no
 primeiro acesso. Quem esquece a senha clica em **Solicitar nova senha** no login, o CPD recebe
 um e-mail e libera uma nova.
 
@@ -91,11 +93,14 @@ WCAG. As cores de status e de alerta não mudam.
 
 ## Quem vê o quê
 
-| | Chamados | Painel e relatório | Inventário | Documentos | Usuários |
+| | Chamados | Painel | Relatório | Documentos | Inventário e Usuários |
 |---|---|---|---|---|---|
-| **Usuário** | os que abriu | — | — | consulta | — |
-| **Quem atende** | os do seu setor + os que abriu | do seu setor | — | consulta | — |
-| **Administrador** | todos | todos os setores | sim | consulta e publica | sim |
+| **Usuário** | os que abriu (+ os do setor, se atende) | sim | — | — | — |
+| **Supervisor** | os do seu setor + os que abriu | sim | do seu setor | consulta | — |
+| **Administrador** | todos | todos os setores | todos os setores | consulta e publica | sim |
+
+As telas dependem só do nível de acesso; marcar **Atende chamados** define quem recebe e atende
+os chamados do setor.
 
 ## Tecnologia
 
@@ -114,7 +119,7 @@ Navegador  →  Nginx  →  Gunicorn + Flask (Python)  →  PostgreSQL
 - Senhas guardadas com hash e bloqueio após tentativas erradas seguidas
 - Proteção CSRF em todos os formulários e política de conteúdo restritiva (CSP)
 - Backup diário do banco e dos anexos, guardado por 14 dias
-- 78 testes automáticos cobrindo regras, permissões e telas
+- 83 testes automáticos cobrindo regras, permissões e telas
 
 Instalação e operação: [deploy/INSTALACAO-UBUNTU.md](../deploy/INSTALACAO-UBUNTU.md) e
 [deploy/OPERACAO.md](../deploy/OPERACAO.md).

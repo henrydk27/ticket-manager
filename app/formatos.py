@@ -36,6 +36,17 @@ def duracao(v) -> str:
     return f"{m} min"
 
 
+def horas(v) -> str:
+    """Horas (float) como "26 h 30 min", "3 h" ou "45 min" (sem converter em dias)."""
+    if v is None:
+        return "—"
+    minutos = max(0, round(float(v) * 60))
+    h, m = divmod(minutos, 60)
+    if h:
+        return f"{h} h {m} min" if m else f"{h} h"
+    return f"{m} min"
+
+
 _CLASSE_STATUS = {
     "Aberto": "aberto",
     "Em andamento": "andamento",
@@ -55,5 +66,5 @@ def prioridade(v) -> Markup:
 
 
 def registrar(app) -> None:
-    for nome in ("data", "data_hora", "tamanho", "duracao", "status", "prioridade"):
+    for nome in ("data", "data_hora", "tamanho", "duracao", "horas", "status", "prioridade"):
         app.jinja_env.filters[nome] = globals()[nome]

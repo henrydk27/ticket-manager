@@ -8,7 +8,7 @@ import os
 import re
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app import servicos
 from app.modelos import Anexo, Chamado, Comentario, Usuario
@@ -152,15 +152,51 @@ def test_tirar_atendimento_ou_desativar_libera_chamados(s, contas):
     assert chamado(s, "Tomada queimada na recepção").responsavel_id is None
 
 
-def test_permissoes_das_areas(client, contas):
-    entrar(client, "ana", "ana12345")                 # usuário comum
-    for url in ("/painel", "/relatorio", "/usuarios"):
-        assert client.get(url).status_code == 403, url
+# tela: (usuário comum, supervisor, administrador)
+TELAS = {
+    "/chamados": (200, 200, 200),
+    "/painel": (200, 200, 200),
+    "/relatorio": (403, 200, 200),
+    "/documentos/": (403, 200, 200),
+    "/inventario/": (403, 403, 200),
+    "/usuarios": (403, 403, 200),
+}
+
+
+def test_telas_por_nivel_de_acesso(client, s, contas):
+    """As telas dependem só do nível; "Atende chamados" não muda nada aqui."""
+    marta = usuario(s, "marta")                       # atende a Manutenção, nível usuário
+    for login, senha, nivel in (("ana", "ana12345", 0), ("marta", "marta123", 0)):
+        entrar(client, login, senha)
+        for url, esperado in TELAS.items():
+            assert client.get(url).status_code == esperado[nivel], (login, url)
+        menu = client.get("/chamados").get_data(as_text=True)
+        assert ">Painel<" in menu and ">Relatório<" not in menu and ">Documentos<" not in menu
+        sair(client)
+
+    servicos.atualizar_usuario(s, marta, "Manutenção", False, "supervisor")    # supervisor que não atende
+    entrar(client, "marta", "marta123")
+    for url, esperado in TELAS.items():
+        assert client.get(url).status_code == esperado[1], ("supervisor", url)
+    menu = client.get("/chamados").get_data(as_text=True)
+    assert ">Relatório<" in menu and ">Documentos<" in menu and ">Inventário<" not in menu
     sair(client)
-    entrar(client, "marta", "marta123")               # atende a Manutenção
-    assert client.get("/painel").status_code == 200
-    assert client.get("/relatorio").status_code == 200
-    assert client.get("/usuarios").status_code == 403
+
+    entrar(client, "admin", "admin123")
+    for url, esperado in TELAS.items():
+        assert client.get(url).status_code == esperado[2], ("admin", url)
+
+
+def test_supervisor_ve_os_chamados_do_setor_sem_atender(client, s, contas):
+    servicos.atualizar_usuario(s, usuario(s, "carlos"), "T.I", False, "supervisor")
+    entrar(client, "carlos", "carlos123")
+    html = client.get("/chamados").get_data(as_text=True)
+    assert "Impressora do fiscal não imprime" in html and "Dúvida sobre saldo de férias" not in html
+    c = chamado(s, "Impressora do fiscal não imprime")
+    assert client.get(f"/chamados/{c.id}").status_code == 200
+    # ver não é atender: sem "Atende chamados" não muda status nem some na lista de funcionários
+    token = csrf(client, f"/chamados/{c.id}")
+    assert client.post(f"/chamados/{c.id}/status", data={"csrf": token, "status": "Fechado"}).status_code == 403
 
 
 # ─── abrir chamado: setor e funcionário ─────────────────────────────────────
@@ -364,6 +400,7 @@ def test_so_admin_apaga(client, s, app, contas):
 # ─── painel e relatório ─────────────────────────────────────────────────────
 
 def test_painel_relatorio_por_setor(client, s, contas):
+    servicos.atualizar_usuario(s, usuario(s, "marta"), "Manutenção", True, "supervisor")
     entrar(client, "marta", "marta123")
     assert client.get("/painel").status_code == 200
     r = client.get("/relatorio/excel?de=2000-01-01&ate=2100-01-01&setor=T.I")   # setor ignorado: não é admin
@@ -698,3 +735,44 @@ def test_seletor_de_cor_na_pagina(client):
     assert "cores.css?v=" in html and "data-abrir-paleta" in html and "data-intensidade-cor" in html
     for chave, *_ in temas.opcoes():
         assert f'data-cor="{chave}"' in html
+
+
+# ─── tempo em horário de expediente ─────────────────────────────────────────
+
+def test_segundos_expediente():
+    from datetime import datetime as dt
+    h = lambda inicio, fim: servicos.segundos_expediente(inicio, fim) / 3600
+    # segunda 2026-10-12
+    assert h(dt(2026, 10, 12, 9), dt(2026, 10, 12, 11, 30)) == 2.5          # dentro do expediente
+    assert h(dt(2026, 10, 12, 17), dt(2026, 10, 13, 8)) == 2                # 17h-18h + 7h-8h (noite não conta)
+    assert h(dt(2026, 10, 12, 5), dt(2026, 10, 12, 20)) == 11               # antes e depois não contam
+    assert h(dt(2026, 10, 16, 17), dt(2026, 10, 19, 8)) == 2                # sexta 17h → segunda 8h: fim de semana não conta
+    assert h(dt(2026, 10, 17, 10), dt(2026, 10, 18, 15)) == 0               # aberto e fechado no fim de semana
+    assert h(dt(2026, 10, 12, 7), dt(2026, 10, 16, 18)) == 55               # semana inteira: 5 × 11 h
+    assert h(dt(2026, 10, 12, 10), dt(2026, 10, 12, 9)) == 0
+
+
+def test_painel_tempo_medio_em_expediente(client, s, contas):
+    from datetime import datetime as dt
+    c = chamado(s, "Trocar teclado")
+    c.aberto_em, c.fechado_em = dt(2026, 10, 16, 17), dt(2026, 10, 19, 8)    # sexta 17h → segunda 8h
+    for outro in s.scalars(select(Chamado).where(Chamado.status == "Fechado", Chamado.id != c.id)):
+        outro.fechado_em = dt(2000, 1, 1)                                      # fora do período
+    s.commit()
+    d = servicos.painel(s, 365, usuario(s, "admin"))
+    assert d["resumo"]["fechados"] == 1 and d["resumo"]["tempo_medio"] == 2
+    entrar(client, "admin", "admin123")
+    html = client.get("/painel?dias=365").get_data(as_text=True)
+    assert "em horário de expediente" in html
+
+
+def test_painel_do_usuario_comum_mostra_os_chamados_que_ele_abriu(s, contas):
+    ana = usuario(s, "ana")
+    abertos_ana = s.scalar(select(func.count(Chamado.id)).where(Chamado.solicitante_id == ana.id,
+                                                                Chamado.status != "Fechado"))
+    assert servicos.painel(s, 30, ana)["resumo"]["abertos"] == abertos_ana
+
+
+def test_setor_administracao():
+    from app.modelos import SETORES
+    assert SETORES[0] == "Administração" and SETORES == sorted(SETORES, key=lambda x: x.lower().replace("á", "a"))

@@ -306,7 +306,7 @@ def _visiveis(usuario: Usuario):
     """Condição SQL dos chamados que o usuário pode ver (None = todos)."""
     if usuario.is_admin:
         return None
-    if usuario.is_atendente:
+    if usuario.ve_setor:
         return or_(Chamado.solicitante_id == usuario.id, Chamado.setor_destino == usuario.setor)
     return Chamado.solicitante_id == usuario.id
 
@@ -316,6 +316,38 @@ def _escopo_atendimento(usuario: Usuario, setor: str | None = None) -> list:
     if usuario.is_admin:
         return [Chamado.setor_destino == setor] if setor else []
     return [Chamado.setor_destino == usuario.setor]
+
+
+def _escopo_painel(usuario: Usuario, setor: str | None = None) -> list:
+    """Painel e relatório: admin vê todos (ou o setor escolhido); quem atende e o supervisor, os
+    chamados enviados ao próprio setor; os demais, os chamados que abriram."""
+    if usuario.ve_setor:
+        return _escopo_atendimento(usuario, setor)
+    return [Chamado.solicitante_id == usuario.id]
+
+
+# ─── HORÁRIO DE EXPEDIENTE ──────────────────────────────────────────────────
+
+# O tempo até encerrar conta só o expediente: de segunda a sexta, das 7h às 18h
+EXPEDIENTE_INICIO, EXPEDIENTE_FIM = 7, 18
+DIAS_EXPEDIENTE = {0, 1, 2, 3, 4}          # segunda = 0 … domingo = 6
+
+
+def segundos_expediente(inicio: datetime, fim: datetime) -> float:
+    """Tempo entre dois momentos contando só o horário de expediente."""
+    if fim <= inicio:
+        return 0.0
+    total = 0.0
+    dia = inicio.date()
+    while dia <= fim.date():
+        if dia.weekday() in DIAS_EXPEDIENTE:
+            abre = datetime.combine(dia, datetime.min.time()).replace(hour=EXPEDIENTE_INICIO)
+            fecha = abre.replace(hour=EXPEDIENTE_FIM)
+            ini, fi = max(inicio, abre), min(fim, fecha)
+            if fi > ini:
+                total += (fi - ini).total_seconds()
+        dia += timedelta(days=1)
+    return total
 
 
 # ─── LISTAGEM DE CHAMADOS ───────────────────────────────────────────────────
@@ -536,9 +568,10 @@ def avaliar(s: Session, c: Chamado, usuario: Usuario, avaliacao: str) -> bool:
 # ─── PAINEL ─────────────────────────────────────────────────────────────────
 
 def painel(s: Session, dias: int, usuario: Usuario, setor: str | None = None) -> dict:
-    """Indicadores do setor que o usuário atende (admin: todos, ou o setor escolhido)."""
+    """Indicadores do setor do usuário (admin: todos, ou o setor escolhido; usuário comum que não
+    atende: os chamados que ele abriu)."""
     limite = agora() - timedelta(days=dias)
-    escopo = _escopo_atendimento(usuario, setor)
+    escopo = _escopo_painel(usuario, setor)
     abertos = list(s.scalars(select(Chamado).where(*escopo, Chamado.status != STATUS_FECHADO)).unique())
     fechados = list(s.execute(select(Chamado.aberto_em, Chamado.fechado_em, Chamado.avaliacao)
                               .where(*escopo, Chamado.status == STATUS_FECHADO,
@@ -556,7 +589,8 @@ def painel(s: Session, dias: int, usuario: Usuario, setor: str | None = None) ->
     def contar(valores):
         return Counter(valores).most_common()
 
-    tempos = [(f - a).total_seconds() / 86400 for a, f, _ in fechados if a and f]
+    # em horas de expediente (seg. a sex., 7h às 18h)
+    tempos = [segundos_expediente(a, f) / 3600 for a, f, _ in fechados if a and f]
     return {
         "resumo": {
             "abertos": len(abertos),
@@ -581,7 +615,7 @@ def painel(s: Session, dias: int, usuario: Usuario, setor: str | None = None) ->
 def chamados_por_periodo(s: Session, inicio: date, fim: date, usuario: Usuario,
                          setor: str | None = None) -> list[Chamado]:
     return list(s.scalars(select(Chamado).where(
-        *_escopo_atendimento(usuario, setor),
+        *_escopo_painel(usuario, setor),
         Chamado.aberto_em >= datetime.combine(inicio, datetime.min.time()),
         Chamado.aberto_em < datetime.combine(fim + timedelta(days=1), datetime.min.time()),
     ).order_by(Chamado.aberto_em)).unique())

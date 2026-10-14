@@ -8,7 +8,7 @@ from flask import (Blueprint, abort, flash, g, make_response, redirect, render_t
 from .. import exportacao, servicos
 from ..banco import db
 from ..modelos import SETORES, Usuario
-from ..seguranca import admin_obrigatorio, atendente_obrigatorio
+from ..seguranca import admin_obrigatorio, login_obrigatorio, supervisor_obrigatorio
 
 bp = Blueprint("admin", __name__)
 
@@ -22,7 +22,7 @@ def _setor_do_filtro() -> str | None:
 
 
 @bp.route("/painel")
-@atendente_obrigatorio
+@login_obrigatorio
 def painel():
     try:
         dias = int(request.args.get("dias", 30))
@@ -139,7 +139,7 @@ def _periodo() -> tuple[date, date] | None:
 
 
 @bp.route("/relatorio")
-@atendente_obrigatorio
+@supervisor_obrigatorio
 def relatorio():
     hoje = date.today()
     return render_template("admin/relatorio.html", setor=_setor_do_filtro(),
@@ -148,7 +148,7 @@ def relatorio():
 
 
 @bp.route("/relatorio/<formato>")
-@atendente_obrigatorio
+@supervisor_obrigatorio
 def relatorio_arquivo(formato: str):
     if formato not in ("excel", "pdf"):
         abort(404)

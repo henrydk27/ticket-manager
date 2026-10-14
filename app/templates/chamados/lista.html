@@ -13,7 +13,7 @@
 
 {% block conteudo %}
 <div class="cabecalho">
-  <h1>{{ 'Chamados' if usuario.is_atendente else 'Meus chamados' }}</h1>
+  <h1>{{ 'Chamados' if usuario.ve_setor else 'Meus chamados' }}</h1>
   <span class="suave">{{ total }} encontrado{{ 's' if total != 1 }}</span>
 </div>
 
@@ -27,10 +27,10 @@
 <form class="filtros" method="get" action="{{ url_for('chamados.lista') }}">
   <input type="search" name="q" value="{{ f.texto }}" placeholder="Buscar por nº, título ou descrição"
          aria-label="Buscar" class="filtro-busca">
-  {% if usuario.is_atendente %}
+  {% if usuario.ve_setor %}
   <select name="visao" aria-label="Mostrar" data-enviar-ao-mudar>
     {% for chave, rotulo in VISOES.items() %}
-    {% if chave != 'setor' or usuario.atende %}
+    {% if chave != 'setor' or usuario.atende or usuario.is_supervisor %}
     <option value="{{ chave }}" {{ 'selected' if f.visao == chave }}>{{ rotulo }}</option>
     {% endif %}
     {% endfor %}

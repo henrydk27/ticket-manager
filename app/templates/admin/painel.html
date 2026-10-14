@@ -28,7 +28,7 @@
 
 {% block conteudo %}
 {# Filtro de setor repassado aos links para a lista #}
-{% set escopo = {'setor': setor} if setor else ({} if usuario.is_admin else {'visao': 'setor'}) %}
+{% set escopo = {'setor': setor} if setor else ({} if usuario.is_admin else ({'visao': 'setor'} if usuario.ve_setor else {'visao': 'meus'})) %}
 <div class="cabecalho">
   <h1>Painel</h1>
   <form method="get" class="seletor-periodo">
@@ -38,8 +38,10 @@
       <option value="">Todos</option>
       {% for s in setores %}<option {{ 'selected' if s == setor }}>{{ s }}</option>{% endfor %}
     </select>
-    {% else %}
+    {% elif usuario.ve_setor %}
     <span class="suave">Setor {{ usuario.setor }}</span>
+    {% else %}
+    <span class="suave">Chamados que você abriu</span>
     {% endif %}
     <label for="dias" class="suave">Período</label>
     <select id="dias" name="dias" data-enviar-ao-mudar>
@@ -68,8 +70,9 @@
     <span class="indicador-valor">{{ r.fechados }}</span>
   </div>
   <div class="indicador">
-    <span class="indicador-rotulo">Tempo médio até encerrar</span>
-    <span class="indicador-valor">{{ r.tempo_medio|duracao }}</span>
+    <span class="indicador-rotulo" title="Conta só o expediente: segunda a sexta, das 7h às 18h">Tempo médio até encerrar</span>
+    <span class="indicador-valor">{{ r.tempo_medio|horas }}</span>
+    <span class="indicador-dica">em horário de expediente</span>
   </div>
 </div>
 

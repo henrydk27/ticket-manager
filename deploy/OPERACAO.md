@@ -34,6 +34,7 @@ escolha da pessoa.
 | Mudou de setor | **Usuários** → troque o **Setor** → **Salvar alterações** (a pessoa não consegue mudar sozinha) |
 | Esqueceu a senha | A pessoa clica em **Solicitar nova senha** no login e o CPD recebe um e-mail (o menu **Usuários** mostra um contador). Confirme com ela → **Usuários** → **Liberar nova senha**. Ela entra digitando **só o usuário** e cria a senha nova (prazo de 7 dias; vencido, libere de novo) |
 | Saiu da empresa | **Usuários** → **Desativar** (o acesso é cortado na hora; os chamados dela continuam no histórico) |
+| Supervisor de um setor | **Usuários** → confira o **Setor** → perfil **Supervisor** → **Salvar alterações** (vê os chamados do setor, Relatório e Documentos) |
 | Outro administrador | **Usuários** → perfil **Administrador** → **Salvar alterações** (vê todos os chamados; o sistema sempre mantém pelo menos um) |
 | Apagar um chamado | Só o administrador: abra o chamado → **Apagar chamado** (permanente) |
 
@@ -46,11 +47,17 @@ Um setor só aparece na tela de novo chamado quando tem pelo menos uma pessoa ma
 
 ### Quem vê o quê
 
-| | Chamados | Painel e relatório | Inventário | Documentos | Usuários |
+| | Chamados | Painel | Relatório | Documentos | Inventário e Usuários |
 |---|---|---|---|---|---|
-| **Usuário** | só os que ele abriu | — | — | consulta | — |
-| **Quem atende chamados** | os do seu setor + os que ele abriu | do seu setor | — | consulta | — |
-| **Administrador** | todos | todos os setores (com filtro) | sim | consulta e cadastra | sim |
+| **Usuário** | os que abriu (+ os do setor, se atende) | sim | — | — | — |
+| **Supervisor** | os do seu setor + os que abriu | sim | do seu setor | consulta | — |
+| **Administrador** | todos | todos os setores (com filtro) | todos os setores | consulta e publica | sim |
+
+As **telas** dependem só do nível de acesso. **Atende chamados** é independente: define quem
+aparece na lista de funcionários ao abrir um chamado e quem atende (assume, muda status,
+encaminha) os chamados do próprio setor. O supervisor vê os chamados do setor mesmo sem atender.
+No **Painel**, quem atende e o supervisor veem o setor; o usuário que não atende vê os chamados
+que abriu.
 
 Para impedir que qualquer pessoa crie conta, defina `cadastro_aberto = false` no
 `config.ini` (veja [Mudar a configuração](#mudar-a-configuração)).
@@ -75,7 +82,8 @@ Depois de salvar, o sistema volta para a lista. A coluna Patrimônio ordena pelo
 
 ## Documentos
 
-Menu **Documentos**, visível para **todos**: termos, regras, procedimentos e formulários internos.
+Menu **Documentos**, visível para **supervisores e administradores**: termos, regras, procedimentos
+e formulários internos.
 
 | Situação | O que fazer |
 |---|---|
