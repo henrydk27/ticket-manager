@@ -4,6 +4,8 @@ Sistema de chamados e inventário de TI acessado pelo navegador, para **qualquer
 empresa: T.I, Manutenção, RH, Compras... Feito em Python (Flask) com banco **PostgreSQL**, para
 rodar num servidor **Ubuntu**. Refeito do zero a partir das funções da versão Lazarus.
 
+Apresentação com prints de todas as telas: [docs/APRESENTACAO.md](docs/APRESENTACAO.md).
+
 ## Chamados
 
 - Ao abrir um chamado, a pessoa escolhe **para qual setor** é o pedido e, em seguida, o
