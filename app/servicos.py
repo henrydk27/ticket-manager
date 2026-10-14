@@ -79,11 +79,10 @@ def _senha_inutilizavel() -> str:
     return generate_password_hash(secrets.token_urlsafe(32))
 
 
-def cadastrar_pelo_admin(s: Session, nome: str, login: str, email: str, setor: str, atende: bool,
-                         papel: str) -> Usuario:
-    """Conta criada pelo admin (ex.: para atribuir equipamentos). Sem senha: a pessoa cria a
-    própria no primeiro acesso. O e-mail é opcional aqui; se faltar, é pedido depois do login."""
-    nome, email = (nome or "").strip(), (email or "").strip().lower()
+def _dados_conta_admin(s: Session, nome: str, login: str, email: str, setor: str, papel: str,
+                       atual: Usuario | None = None) -> tuple[str, str, str | None]:
+    """Valida o que o admin digitou no cadastro/edição. Devolve (nome, login, e-mail)."""
+    nome, email = " ".join((nome or "").split()), (email or "").strip().lower()
     if not nome or len(nome) > 100:
         raise ErroValidacao("Informe o nome.")
     if email and (len(email) > 150 or not EMAIL_VALIDO.match(email)):
@@ -95,13 +94,40 @@ def cadastrar_pelo_admin(s: Session, nome: str, login: str, email: str, setor: s
     login = normalizar_login(login)
     if not LOGIN_VALIDO.match(login):
         raise ErroValidacao("Usuário: de 3 a 50 caracteres, só letras minúsculas, números, ponto, hífen ou _.")
-    if s.scalar(select(Usuario.id).where(Usuario.login == login)):
+    outro = s.scalar(select(Usuario.id).where(Usuario.login == login))
+    if outro and (atual is None or outro != atual.id):
         raise ErroValidacao("Esse nome de usuário já está em uso.")
-    u = Usuario(nome=nome, login=login, email=email or None, setor=setor, atende=atende, papel=papel,
+    return nome, login, email or None
+
+
+def cadastrar_pelo_admin(s: Session, nome: str, login: str, email: str, setor: str, atende: bool,
+                         papel: str) -> Usuario:
+    """Conta criada pelo admin (ex.: para atribuir equipamentos). Sem senha: a pessoa cria a
+    própria no primeiro acesso. O e-mail é opcional aqui; se faltar, é pedido depois do login."""
+    nome, login, email = _dados_conta_admin(s, nome, login, email, setor, papel)
+    u = Usuario(nome=nome, login=login, email=email, setor=setor, atende=atende, papel=papel,
                 senha_hash=_senha_inutilizavel(), senha_liberada_em=agora())
     s.add(u)
     s.commit()
     return u
+
+
+def editar_usuario(s: Session, alvo: Usuario, ator: Usuario, nome: str, login: str, email: str,
+                   setor: str, atende: bool, papel: str) -> None:
+    """Admin corrige os dados de uma conta (ex.: quem se cadastrou com nome ou setor errado).
+
+    A senha não muda. Ninguém muda o próprio perfil, e o sistema mantém pelo menos um admin.
+    O e-mail pode ficar vazio: nesse caso a pessoa é levada a preenchê-lo no próximo acesso.
+    """
+    if alvo.id == ator.id:
+        papel = alvo.papel
+    nome, login, email = _dados_conta_admin(s, nome, login, email, setor, papel, atual=alvo)
+    if alvo.is_admin and alvo.ativo and papel != PAPEL_ADMIN and _admins_ativos(s) <= 1:
+        raise ErroValidacao("O sistema precisa de pelo menos um administrador ativo.")
+    alvo.nome, alvo.login, alvo.email = nome, login, email
+    alvo.setor, alvo.atende, alvo.papel = setor, atende, papel
+    _liberar_chamados(s, alvo)
+    s.commit()
 
 
 def liberar_nova_senha(s: Session, alvo: Usuario) -> None:

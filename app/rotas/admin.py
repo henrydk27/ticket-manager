@@ -70,7 +70,29 @@ def usuario_novo():
             flash(f"Conta de {u.nome} criada. No primeiro acesso, a pessoa digita só o usuário "
                   f"\u201c{u.login}\u201d e clica em Entrar para criar a própria senha (prazo de 7 dias).", "ok")
             return redirect(url_for("admin.usuarios", _anchor=f"u{u.id}"))
-    return render_template("admin/usuario_novo.html", form=f)
+    return render_template("admin/usuario.html", conta=None, form=f)
+
+
+@bp.route("/usuarios/<int:usuario_id>/editar", methods=["GET", "POST"])
+@admin_obrigatorio
+def usuario_editar(usuario_id: int):
+    """Corrige nome, usuário, e-mail, setor, perfil e "atende chamados" de uma conta."""
+    u = _alvo(usuario_id)
+    if request.method == "POST":
+        f = request.form
+        try:
+            servicos.editar_usuario(db(), u, g.usuario, f.get("nome", ""), f.get("login", ""),
+                                    f.get("email", ""), f.get("setor", ""), f.get("atende") == "1",
+                                    f.get("papel", ""))
+        except servicos.ErroValidacao as e:
+            db().rollback()
+            flash(str(e), "erro")
+            return render_template("admin/usuario.html", conta=u, form=f)
+        flash(f"Dados de {u.nome} salvos.", "ok")
+        return redirect(url_for("admin.usuarios", _anchor=f"u{u.id}"))
+    form = {"nome": u.nome, "login": u.login, "email": u.email or "", "setor": u.setor,
+            "papel": u.papel, "atende": "1" if u.atende else ""}
+    return render_template("admin/usuario.html", conta=u, form=form)
 
 
 @bp.route("/usuarios", methods=["POST"])

@@ -38,7 +38,7 @@
   <tbody>
     {% for u, total in usuarios %}
     <tr id="u{{ u.id }}" class="{{ 'linha-inativa' if not u.ativo }}">
-      <td><strong>{{ u.nome }}</strong>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}
+      <td><a href="{{ url_for('admin.usuario_editar', usuario_id=u.id) }}"><strong>{{ u.nome }}</strong></a>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}
         {% if u.ativo and u.senha_solicitada_em %} <span class="badge badge-andamento" title="Pedido em {{ u.senha_solicitada_em|data_hora }}">pediu nova senha</span>{% endif %}
         {% if u.ativo and u.pode_criar_senha %} <span class="badge badge-aberto" title="Liberada em {{ u.senha_liberada_em|data_hora }}">{{ 'aguardando primeiro acesso' if not u.ultimo_acesso else 'nova senha liberada' }}</span>
         {% elif u.ativo and u.prazo_senha_vencido %} <span class="badge badge-fechado">prazo da senha vencido</span>{% endif %}
@@ -65,8 +65,9 @@
       </td>
       <td class="col-data">{{ u.ultimo_acesso|data_hora or '—' }}</td>
       <td>
-        {% if u.id != usuario.id %}
         <div class="acoes-linha">
+          <a class="botao botao-pequeno" href="{{ url_for('admin.usuario_editar', usuario_id=u.id) }}">Editar</a>
+          {% if u.id != usuario.id %}
           <form method="post" action="{{ url_for('admin.usuario_senha', usuario_id=u.id) }}"
                 data-confirmar="Liberar uma nova senha para {{ u.nome }}? A senha atual deixa de funcionar e, no próximo acesso, a pessoa digita só o usuário para criar outra.">
             <input type="hidden" name="csrf" value="{{ csrf_token() }}">
@@ -78,8 +79,8 @@
             <input type="hidden" name="ativo" value="{{ '0' if u.ativo else '1' }}">
             <button class="botao botao-pequeno {{ 'botao-perigo' if u.ativo }}" type="submit">{{ 'Desativar' if u.ativo else 'Reativar' }}</button>
           </form>
+          {% endif %}
         </div>
-        {% endif %}
       </td>
     </tr>
     {% endfor %}

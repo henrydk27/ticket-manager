@@ -32,6 +32,7 @@ escolha da pessoa.
 | Alguém vai atender chamados do setor | **Usuários** → confira o **Setor** → marque **Atende chamados** → **Salvar alterações** |
 | Alguém deixou de atender | Desmarque **Atende chamados** → **Salvar alterações**; os chamados em aberto com ela ficam sem responsável |
 | Mudou de setor | **Usuários** → troque o **Setor** → **Salvar alterações** (a pessoa não consegue mudar sozinha) |
+| Cadastro com dado errado | **Usuários** → clique no nome ou em **Editar** → corrija nome, usuário, e-mail, setor ou perfil → **Salvar alterações** (a senha não muda; se trocar o usuário, avise a pessoa) |
 | Esqueceu a senha | A pessoa clica em **Solicitar nova senha** no login e o CPD recebe um e-mail (o menu **Usuários** mostra um contador). Confirme com ela → **Usuários** → **Liberar nova senha**. Ela entra digitando **só o usuário** e cria a senha nova (prazo de 7 dias; vencido, libere de novo) |
 | Saiu da empresa | **Usuários** → **Desativar** (o acesso é cortado na hora; os chamados dela continuam no histórico) |
 | Supervisor de um setor | **Usuários** → confira o **Setor** → perfil **Supervisor** → **Salvar alterações** (vê os chamados do setor, Relatório e Documentos) |

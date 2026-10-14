@@ -122,3 +122,45 @@ def test_conta_desativada_nao_cria_senha(client, s, contas):
     sair(client)
     assert entrar_so_com_usuario(client, "joao.silva").status_code == 200
     assert s.scalar(select(Usuario.senha_liberada_em).where(Usuario.login == "joao.silva")) is not None
+
+
+# ─── edição de usuário pelo admin ───────────────────────────────────────────
+
+def editar(client, u, **campos):
+    dados = {"csrf": csrf(client, f"/usuarios/{u.id}/editar"), "nome": u.nome, "login": u.login,
+             "email": u.email or "", "setor": u.setor, "papel": u.papel, "atende": "1" if u.atende else ""}
+    dados.update(campos)
+    return client.post(f"/usuarios/{u.id}/editar", data=dados, follow_redirects=True)
+
+
+def test_admin_edita_dados_de_quem_se_cadastrou_errado(client, s, contas):
+    entrar(client, "admin", "admin123")
+    bruno = usuario(s, "bruno")
+    assert f"/usuarios/{bruno.id}/editar" in client.get("/usuarios").get_data(as_text=True)
+    html = client.get(f"/usuarios/{bruno.id}/editar").get_data(as_text=True)
+    assert 'value="Bruno Lima"' in html and "Salvar alterações" in html
+
+    html = editar(client, bruno, nome="  Bruno  Lima Souza ", login="Bruno.Souza", email="BRUNO.SOUZA@empresa.com.br",
+                  setor="Compras", papel="supervisor", atende="1").get_data(as_text=True)
+    assert "Dados de Bruno Lima Souza salvos." in html
+    b = usuario(s, "bruno.souza")
+    assert (b.nome, b.email, b.setor, b.papel, b.atende) == (
+        "Bruno Lima Souza", "bruno.souza@empresa.com.br", "Compras", "supervisor", True)
+    sair(client)
+    assert entrar(client, "bruno.souza", "bruno123").status_code == 302      # a senha continua a mesma
+    assert client.get("/usuarios/1/editar").status_code == 403               # só admin edita
+    sair(client)
+
+    entrar(client, "admin", "admin123")
+    b = usuario(s, "bruno.souza")
+    assert "já está em uso" in editar(client, b, login="ana").get_data(as_text=True)
+    assert "E-mail inválido" in editar(client, b, email="sem-arroba").get_data(as_text=True)
+    assert usuario(s, "bruno.souza").email == "bruno.souza@empresa.com.br"   # nada foi gravado
+
+
+def test_admin_nao_muda_o_proprio_perfil_pela_edicao(client, s, contas):
+    entrar(client, "admin", "admin123")
+    admin = usuario(s, "admin")
+    editar(client, admin, nome="Administrador TI", papel="usuario")
+    admin = usuario(s, "admin")
+    assert admin.nome == "Administrador TI" and admin.is_admin

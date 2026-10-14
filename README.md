@@ -32,8 +32,8 @@ que abriu.
 Quem **atende chamados** do setor (qualquer nível) assume, muda status (Aberto, Em andamento,
 Aguardando usuário, Fechado), reabre e encaminha para outra pessoa ou outro setor. Todos abrem
 chamados com anexos, comentam, avaliam os encerrados e alteram nome, e-mail e senha em Minha conta.
-Só o administrador define setor, nível e quem atende, cadastra e desativa contas, libera nova
-senha e **apaga** chamados e equipamentos.
+Só o administrador define setor, nível e quem atende, cadastra, **edita** (nome, usuário, e-mail)
+e desativa contas, libera nova senha e **apaga** chamados e equipamentos.
 
 - Quem atende e abre um pedido para **outro** setor acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
