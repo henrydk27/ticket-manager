@@ -74,8 +74,14 @@ def novo():
         else:
             flash(f"Equipamento {eq.patrimonio} cadastrado.", "ok")
             return redirect(url_for("inventario.lista"))
-    dados = request.form if request.method == "POST" else {"situacao": "Em estoque", "tipo": request.args.get("tipo", "")}
-    return render_template("inventario/equipamento.html", eq=None, dados=dados, **_contexto_form())
+    origem = None
+    if request.method == "POST":
+        dados = request.form
+    elif (clonar := request.args.get("clonar", "")).isdigit() and (origem := inventario.obter(db(), int(clonar))):
+        dados = inventario.dados_para_clonar(origem)
+    else:
+        dados = {"situacao": "Em estoque", "tipo": request.args.get("tipo", "")}
+    return render_template("inventario/equipamento.html", eq=None, dados=dados, origem=origem, **_contexto_form())
 
 
 @bp.route("/<int:equipamento_id>", methods=["GET", "POST"])

@@ -16,7 +16,21 @@
     {% if eq %}<p class="suave numero">{{ eq.tipo }} · atualizado em {{ eq.atualizado_em|data_hora }}</p>{% endif %}
     <h1>{{ ('Patrimônio ' ~ eq.patrimonio) if eq else 'Novo equipamento' }}</h1>
   </div>
+  {% if eq %}
+  <div class="acoes-cabecalho">
+    <a class="botao" href="{{ url_for('inventario.novo', clonar=eq.id) }}"
+       title="Novo equipamento com o mesmo tipo, modelo e configuração">Clonar</a>
+  </div>
+  {% endif %}
 </div>
+
+{% if origem %}
+<div class="aviso aviso-info">
+  Cópia do patrimônio <a href="{{ url_for('inventario.equipamento', equipamento_id=origem.id) }}">{{ origem.patrimonio }}</a>:
+  tipo, modelo, configuração e setor já vieram preenchidos. Informe o <strong>nº de patrimônio</strong>,
+  o nº de série e os dados de rede deste equipamento.
+</div>
+{% endif %}
 
 <div class="detalhe-grade">
   <section class="detalhe-principal">

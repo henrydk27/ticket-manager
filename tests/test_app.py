@@ -39,15 +39,16 @@ def sair(client):
 
 
 def salvar_usuarios(client, s, linhas: dict):
-    """Envia a tela de Usuários: {login: (setor, atende, papel)}."""
-    dados = {"csrf": csrf(client, "/usuarios"), "ids": []}
+    """Salva pela tela de edição de cada conta: {login: (setor, atende, papel)}."""
+    r = None
     for login, (setor, atende, papel) in linhas.items():
         u = usuario(s, login)
-        dados["ids"].append(u.id)
-        dados[f"setor_{u.id}"], dados[f"papel_{u.id}"] = setor, papel
+        dados = {"csrf": csrf(client, f"/usuarios/{u.id}/editar"), "nome": u.nome, "login": u.login,
+                 "email": u.email or "", "setor": setor, "papel": papel}
         if atende:
-            dados[f"atende_{u.id}"] = "1"
-    return client.post("/usuarios", data=dados, follow_redirects=True)
+            dados["atende"] = "1"
+        r = client.post(f"/usuarios/{u.id}/editar", data=dados, follow_redirects=True)
+    return r
 
 
 def salvar_usuario(client, s, login, setor, atende, papel="usuario"):
@@ -607,41 +608,43 @@ def test_config_email_servidor_interno(tmp_path, monkeypatch):
 
 # ─── ajustes de interface ───────────────────────────────────────────────────
 
-def test_salvar_geral_varios_usuarios_de_uma_vez(client, s, contas):
+def test_lista_de_usuarios_so_tem_o_botao_editar(client, s, contas):
     entrar(client, "admin", "admin123")
-    html = salvar_usuarios(client, s, {
-        "bruno": ("Manutenção", True, "usuario"),
-        "ana": ("Fiscal", False, "admin"),
-        "carlos": ("T.I", True, "usuario"),          # sem mudança
-    }).get_data(as_text=True)
-    assert "Alterações salvas (2): Ana Souza, Bruno Lima." in html
-    assert usuario(s, "bruno").setor == "Manutenção" and usuario(s, "bruno").atende
-    assert usuario(s, "ana").is_admin
+    html = client.get("/usuarios").get_data(as_text=True)
+    bruno = usuario(s, "bruno")
+    assert f'href="/usuarios/{bruno.id}/editar"' in html
+    assert "<select" not in html and "Liberar nova senha</button>" not in html and "Desativar</button>" not in html
+    html = client.get(f"/usuarios/{bruno.id}/editar").get_data(as_text=True)
+    assert "Liberar nova senha" in html and "Desativar conta" in html and "Apagar usuário" not in html
 
 
-def test_salvar_geral_tudo_ou_nada(client, s, contas):
-    entrar(client, "admin", "admin123")
-    html = salvar_usuarios(client, s, {
-        "bruno": ("Manutenção", True, "usuario"),
-        "ana": ("Setor que não existe", False, "usuario"),
-    }).get_data(as_text=True)
-    assert "Nada foi salvo" in html
-    assert usuario(s, "bruno").setor == "Vendas"      # a linha válida também não foi gravada
-
-
-def test_salvar_geral_troca_de_admin_no_mesmo_envio(client, s, contas):
-    entrar(client, "admin", "admin123")
-    salvar_usuarios(client, s, {"carlos": ("T.I", True, "admin")})
-    sair(client)
-    entrar(client, "carlos", "carlos123")            # carlos promove ana e rebaixa admin juntos
-    salvar_usuarios(client, s, {"ana": ("Fiscal", False, "admin"), "admin": ("T.I", True, "usuario")})
-    assert usuario(s, "ana").is_admin and not usuario(s, "admin").is_admin
-
-
-def test_salvar_geral_nao_muda_o_proprio_perfil(client, s, contas):
+def test_edicao_nao_muda_o_proprio_perfil(client, s, contas):
     entrar(client, "admin", "admin123")
     salvar_usuarios(client, s, {"admin": ("T.I", True, "usuario")})
     assert usuario(s, "admin").is_admin
+    html = client.get(f"/usuarios/{usuario(s, 'admin').id}/editar").get_data(as_text=True)
+    assert "Desativar conta" not in html          # a própria conta não tem as ações de senha e conta
+
+
+def test_apagar_so_usuario_desativado_e_sem_historico(client, s, contas):
+    from tests.test_contas import cadastrar_pelo_admin
+    entrar(client, "admin", "admin123")
+    cadastrar_pelo_admin(client, nome="Cadastro Duplicado", login="duplicado")
+    dup = usuario(s, "duplicado")
+    token = csrf(client, f"/usuarios/{dup.id}/editar")
+    html = client.post(f"/usuarios/{dup.id}/apagar", data={"csrf": token}, follow_redirects=True).get_data(as_text=True)
+    assert "Desative a conta antes de apagar" in html and usuario(s, "duplicado") is not None
+
+    client.post(f"/usuarios/{dup.id}/ativo", data={"csrf": token, "ativo": "0"})
+    assert "Apagar usuário" in client.get(f"/usuarios/{dup.id}/editar").get_data(as_text=True)
+    html = client.post(f"/usuarios/{dup.id}/apagar", data={"csrf": token}, follow_redirects=True).get_data(as_text=True)
+    assert "Conta de Cadastro Duplicado apagada." in html and usuario(s, "duplicado") is None
+
+    # quem tem chamados no histórico não é apagado, mesmo desativado
+    bruno = usuario(s, "bruno")
+    client.post(f"/usuarios/{bruno.id}/ativo", data={"csrf": token, "ativo": "0"})
+    html = client.post(f"/usuarios/{bruno.id}/apagar", data={"csrf": token}, follow_redirects=True).get_data(as_text=True)
+    assert "tem chamados" in html and usuario(s, "bruno") is not None
 
 
 def test_tempo_medio_em_dias_horas_e_minutos():

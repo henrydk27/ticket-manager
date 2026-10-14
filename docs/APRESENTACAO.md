@@ -59,7 +59,8 @@ fechado na segunda às 8h levou 2 horas. O relatório do período sai em **Excel
 
 Equipamentos cadastrados com o **número de patrimônio** que já está na etiqueta, com configuração
 do computador e dados de rede (hostname, IP, MAC). Cada um fica com um usuário, um setor ou em
-estoque, e toda troca vai para o histórico, com data e quem fez. A lista exporta para Excel.
+estoque, e toda troca vai para o histórico, com data e quem fez. Para vários equipamentos do
+mesmo lote, **Clonar** copia tipo, modelo e configuração. A lista exporta para Excel.
 
 ![Inventário](prints/06-inventario.png)
 
@@ -74,12 +75,15 @@ administradores consultam e baixam; o administrador publica e troca as versões.
 
 ### Contas e acesso
 
-O administrador define o setor de cada pessoa, quem atende chamados e o nível de acesso
-(Usuário, Supervisor ou Administrador), e salva tudo de uma vez. Ele também pode cadastrar uma conta: a pessoa cria a própria senha no
-primeiro acesso. Quem esquece a senha clica em **Solicitar nova senha** no login, o CPD recebe
+O administrador cadastra e edita as contas numa tela só: nome, usuário, e-mail, setor, nível de
+acesso (Usuário, Supervisor ou Administrador) e quem atende chamados, além de liberar nova
+senha, desativar e apagar contas criadas por engano. Na conta cadastrada pelo administrador, a
+pessoa cria a própria senha no primeiro acesso. Quem esquece a senha clica em **Solicitar nova senha** no login, o CPD recebe
 um e-mail e libera uma nova.
 
 ![Usuários](prints/09-usuarios.png)
+
+![Editar usuário](prints/09b-usuario-editar.png)
 
 ### Modo escuro e temas de cor
 
@@ -119,7 +123,7 @@ Navegador  →  Nginx  →  Gunicorn + Flask (Python)  →  PostgreSQL
 - Senhas guardadas com hash e bloqueio após tentativas erradas seguidas
 - Proteção CSRF em todos os formulários e política de conteúdo restritiva (CSP)
 - Backup diário do banco e dos anexos, guardado por 14 dias
-- 83 testes automáticos cobrindo regras, permissões e telas
+- 85 testes automáticos cobrindo regras, permissões e telas
 
 Instalação e operação: [deploy/INSTALACAO-UBUNTU.md](../deploy/INSTALACAO-UBUNTU.md) e
 [deploy/OPERACAO.md](../deploy/OPERACAO.md).

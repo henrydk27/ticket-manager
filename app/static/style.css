@@ -340,11 +340,6 @@ a.usuario-nome { color: var(--texto); }
 }
 
 /* ─── Salvar geral (Usuários) ─────────────────────────────────────────── */
-.barra-salvar {
-  position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center;
-  gap: 12px; flex-wrap: wrap; margin-top: 12px; padding: 12px 16px;
-  background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); box-shadow: var(--sombra);
-}
 .tabela tbody tr.linha-alterada { background: var(--info-fundo); }
 .tabela tbody tr.linha-alterada td:first-child { box-shadow: inset 3px 0 0 var(--serie); }
 
@@ -362,7 +357,7 @@ a.usuario-nome { color: var(--texto); }
 .badge-sit-estoque { background: var(--st-aberto-f); color: var(--st-aberto-t); }
 .badge-sit-manutencao { background: var(--st-andamento-f); color: var(--st-andamento-t); }
 .badge-sit-descartado { background: var(--st-fechado-f); color: var(--st-fechado-t); }
-.formulario-equipamento { max-width: none; }
+.formulario-equipamento, .formulario-largo { max-width: none; }
 .grade-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0 16px; }
 .grade-campos label { margin-top: 10px; }
 .espaco-secao { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--borda); }

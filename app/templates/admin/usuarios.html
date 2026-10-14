@@ -15,81 +15,37 @@
 {% if pedidos %}
 <div class="aviso aviso-info">
   <strong>Pedido{{ 's' if pedidos|length > 1 }} de nova senha:</strong>
-  {% for u, _ in pedidos %}<a href="#u{{ u.id }}">{{ u.nome }}</a>{{ ', ' if not loop.last }}{% endfor %}.
-  Confirme com a pessoa e clique em <strong>Liberar nova senha</strong> na linha dela.
+  {% for u, _ in pedidos %}<a href="{{ url_for('admin.usuario_editar', usuario_id=u.id) }}">{{ u.nome }}</a>{{ ', ' if not loop.last }}{% endfor %}.
+  Confirme com a pessoa, abra o cadastro dela e clique em <strong>Liberar nova senha</strong>.
 </div>
 {% endif %}
 
 <p class="suave">O <strong>perfil</strong> define as telas: <strong>Usuário</strong> vê Chamados e Painel;
-  <strong>Supervisor</strong> também Relatório e Documentos, e os chamados do seu setor;
-  <strong>Administrador</strong> vê tudo e gerencia as contas. Marque <strong>Atende chamados</strong> para
-  quem recebe pedidos do seu setor: a pessoa aparece na lista ao abrir um chamado e atende os chamados dele.</p>
-
-{# Um formulário só para setor/atende/perfil de todas as linhas; os campos apontam para ele com form="..." #}
-<form id="form-usuarios" method="post" action="{{ url_for('admin.usuarios_salvar') }}" data-avisar-alteracoes>
-  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-</form>
+  <strong>Supervisor</strong> também Relatório, Documentos e os chamados do seu setor;
+  <strong>Administrador</strong> vê tudo. Para mudar dados, perfil, senha ou desativar uma conta, use <strong>Editar</strong>.</p>
 
 <div class="tabela-rolagem">
 <table class="tabela tabela-usuarios">
   <thead>
-    <tr><th>Nome</th><th>Setor</th><th>Atende chamados</th><th>Perfil</th><th>Último acesso</th><th>Conta</th></tr>
+    <tr><th>Nome</th><th>Setor</th><th>Atende chamados</th><th>Perfil</th><th>Último acesso</th><th></th></tr>
   </thead>
   <tbody>
     {% for u, total in usuarios %}
-    <tr id="u{{ u.id }}" class="{{ 'linha-inativa' if not u.ativo }}">
-      <td><a href="{{ url_for('admin.usuario_editar', usuario_id=u.id) }}"><strong>{{ u.nome }}</strong></a>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}
+    {% set link = url_for('admin.usuario_editar', usuario_id=u.id) %}
+    <tr id="u{{ u.id }}" data-href="{{ link }}" class="{{ 'linha-inativa' if not u.ativo }}">
+      <td><a href="{{ link }}"><strong>{{ u.nome }}</strong></a>{% if not u.ativo %} <span class="badge badge-fechado">desativada</span>{% endif %}
         {% if u.ativo and u.senha_solicitada_em %} <span class="badge badge-andamento" title="Pedido em {{ u.senha_solicitada_em|data_hora }}">pediu nova senha</span>{% endif %}
         {% if u.ativo and u.pode_criar_senha %} <span class="badge badge-aberto" title="Liberada em {{ u.senha_liberada_em|data_hora }}">{{ 'aguardando primeiro acesso' if not u.ultimo_acesso else 'nova senha liberada' }}</span>
         {% elif u.ativo and u.prazo_senha_vencido %} <span class="badge badge-fechado">prazo da senha vencido</span>{% endif %}
-        <div class="subtitulo">{{ u.login }} · {{ u.email or "sem e-mail" }} · {{ total }} pedido{{ "s" if total != 1 }}</div>
-        <input type="hidden" name="ids" value="{{ u.id }}" form="form-usuarios"></td>
-      <td>
-        <select name="setor_{{ u.id }}" form="form-usuarios" aria-label="Setor de {{ u.nome }}">
-          {% for s in SETORES %}<option {{ 'selected' if u.setor == s }}>{{ s }}</option>{% endfor %}
-        </select>
-      </td>
-      <td class="centro">
-        <input type="checkbox" name="atende_{{ u.id }}" value="1" form="form-usuarios" aria-label="{{ u.nome }} atende chamados"
-               {{ 'checked' if u.atende }}>
-      </td>
-      <td>
-        {% if u.id == usuario.id %}
-        {{ u.papel_nome }} <span class="suave">(você)</span>
-        <input type="hidden" name="papel_{{ u.id }}" value="{{ u.papel }}" form="form-usuarios">
-        {% else %}
-        <select name="papel_{{ u.id }}" form="form-usuarios" aria-label="Perfil de {{ u.nome }}">
-          {% for chave, nome in PAPEIS.items() %}<option value="{{ chave }}" {{ 'selected' if u.papel == chave }}>{{ nome }}</option>{% endfor %}
-        </select>
-        {% endif %}
-      </td>
+        <div class="subtitulo">{{ u.login }} · {{ u.email or "sem e-mail" }} · {{ total }} pedido{{ "s" if total != 1 }}</div></td>
+      <td>{{ u.setor }}</td>
+      <td>{{ 'Sim' if u.atende else '—' }}</td>
+      <td>{{ u.papel_nome }}{% if u.id == usuario.id %} <span class="suave">(você)</span>{% endif %}</td>
       <td class="col-data">{{ u.ultimo_acesso|data_hora or '—' }}</td>
-      <td>
-        <div class="acoes-linha">
-          <a class="botao botao-pequeno" href="{{ url_for('admin.usuario_editar', usuario_id=u.id) }}">Editar</a>
-          {% if u.id != usuario.id %}
-          <form method="post" action="{{ url_for('admin.usuario_senha', usuario_id=u.id) }}"
-                data-confirmar="Liberar uma nova senha para {{ u.nome }}? A senha atual deixa de funcionar e, no próximo acesso, a pessoa digita só o usuário para criar outra.">
-            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-            <button class="botao botao-pequeno {{ 'botao-primario' if u.senha_solicitada_em }}" type="submit">Liberar nova senha</button>
-          </form>
-          <form method="post" action="{{ url_for('admin.usuario_ativo', usuario_id=u.id) }}"
-                {% if u.ativo %}data-confirmar="Desativar a conta de {{ u.nome }}? A pessoa não consegue mais entrar."{% endif %}>
-            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-            <input type="hidden" name="ativo" value="{{ '0' if u.ativo else '1' }}">
-            <button class="botao botao-pequeno {{ 'botao-perigo' if u.ativo }}" type="submit">{{ 'Desativar' if u.ativo else 'Reativar' }}</button>
-          </form>
-          {% endif %}
-        </div>
-      </td>
+      <td class="col-acoes"><a class="botao botao-pequeno {{ 'botao-primario' if u.ativo and u.senha_solicitada_em }}" href="{{ link }}">Editar</a></td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
-</div>
-
-<div class="barra-salvar">
-  <span class="suave" data-contador-alteracoes>Altere setor, "Atende chamados" ou perfil e salve tudo de uma vez.</span>
-  <button class="botao botao-primario" type="submit" form="form-usuarios">Salvar alterações</button>
 </div>
 {% endblock %}

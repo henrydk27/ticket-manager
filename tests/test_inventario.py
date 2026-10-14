@@ -173,3 +173,20 @@ def test_varios_em_estoque_com_setor(client, s, contas):
     assert eq(s, "E-4").situacao == "Em uso"
     html = client.get("/inventario/novo").get_data(as_text=True)
     assert ">Compras</option>" in html and ">Ferramentaria</option>" in html
+
+
+def test_clonar_equipamento(client, s, contas):
+    entrar(client, "admin", "admin123")
+    cadastrar(client, usuario_id=uid(s, "ana"), setor="Fiscal")
+    origem = eq(s, "000123")
+    assert f"/inventario/novo?clonar={origem.id}" in client.get(f"/inventario/{origem.id}").get_data(as_text=True)
+    html = client.get(f"/inventario/novo?clonar={origem.id}").get_data(as_text=True)
+    assert "Cópia do patrimônio" in html
+    assert 'value="OptiPlex 3080"' in html and 'value="i5-10500"' in html and 'value="16 GB"' in html
+    assert 'value="000123"' not in html and 'value="ABC123"' not in html and 'value="FISCAL-01"' not in html
+    assert 'value="192.168.0.25"' not in html
+    cadastrar(client, patrimonio="000124", numero_serie="XYZ", hostname="FISCAL-02", ip="192.168.0.26",
+              mac="", usuario_id="", setor="Fiscal", situacao="Em estoque")
+    clone = eq(s, "000124")
+    assert clone.modelo == "OptiPlex 3080" and clone.situacao == "Em estoque" and clone.usuario_id is None
+    assert client.get("/inventario/novo?clonar=999").status_code == 200    # inexistente: formulário vazio

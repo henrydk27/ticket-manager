@@ -95,29 +95,6 @@ def usuario_editar(usuario_id: int):
     return render_template("admin/usuario.html", conta=u, form=form)
 
 
-@bp.route("/usuarios", methods=["POST"])
-@admin_obrigatorio
-def usuarios_salvar():
-    """Salva de uma vez as alterações de setor, "atende" e perfil de todas as linhas."""
-    f = request.form
-    mudancas = {}
-    for uid in f.getlist("ids"):
-        if uid.isdigit():
-            mudancas[int(uid)] = (f.get(f"setor_{uid}", ""), f.get(f"atende_{uid}") == "1",
-                                  f.get(f"papel_{uid}", ""))
-    try:
-        alterados = servicos.atualizar_usuarios(db(), mudancas, g.usuario)
-    except servicos.ErroValidacao as e:
-        flash(f"Nada foi salvo: {e}", "erro")
-    else:
-        if alterados:
-            nomes = ", ".join(sorted(u.nome for u in alterados))
-            flash(f"Alterações salvas ({len(alterados)}): {nomes}.", "ok")
-        else:
-            flash("Nenhuma alteração para salvar.", "info")
-    return redirect(url_for("admin.usuarios"))
-
-
 @bp.route("/usuarios/<int:usuario_id>/ativo", methods=["POST"])
 @admin_obrigatorio
 def usuario_ativo(usuario_id: int):
@@ -128,6 +105,20 @@ def usuario_ativo(usuario_id: int):
         flash(f"Conta de {u.nome} {'reativada' if ativar else 'desativada'}.", "ok")
     except servicos.ErroValidacao as e:
         flash(str(e), "erro")
+    return redirect(url_for("admin.usuario_editar", usuario_id=u.id))
+
+
+@bp.route("/usuarios/<int:usuario_id>/apagar", methods=["POST"])
+@admin_obrigatorio
+def usuario_apagar(usuario_id: int):
+    u = _alvo(usuario_id)
+    nome = u.nome
+    try:
+        servicos.apagar_usuario(db(), u, g.usuario)
+    except servicos.ErroValidacao as e:
+        flash(str(e), "erro")
+        return redirect(url_for("admin.usuario_editar", usuario_id=u.id))
+    flash(f"Conta de {nome} apagada.", "ok")
     return redirect(url_for("admin.usuarios"))
 
 
@@ -138,11 +129,11 @@ def usuario_senha(usuario_id: int):
     u = _alvo(usuario_id)
     if u.id == g.usuario.id:
         flash("Para trocar a sua senha, use Minha conta.", "erro")
-        return redirect(url_for("admin.usuarios"))
+        return redirect(url_for("admin.usuario_editar", usuario_id=u.id))
     servicos.liberar_nova_senha(db(), u)
     flash(f"Nova senha liberada para {u.nome}. No próximo acesso, a pessoa digita só o usuário "
           f"\u201c{u.login}\u201d e clica em Entrar para criar a senha (prazo de 7 dias).", "ok")
-    return redirect(url_for("admin.usuarios", _anchor=f"u{u.id}"))
+    return redirect(url_for("admin.usuario_editar", usuario_id=u.id))
 
 
 # ─── RELATÓRIO ──────────────────────────────────────────────────────────────

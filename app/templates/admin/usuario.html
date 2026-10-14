@@ -5,55 +5,117 @@
 <div class="cabecalho">
   <div>
     {% if conta %}<p class="suave numero">Conta criada em {{ conta.criado_em|data }} · último acesso {{ conta.ultimo_acesso|data_hora or 'nunca' }}</p>{% endif %}
-    <h1>{{ 'Editar usuário' if conta else 'Cadastrar usuário' }}</h1>
+    <h1>{{ conta.nome if conta else 'Cadastrar usuário' }}</h1>
+    {% if conta %}
+    <p>
+      {% if not conta.ativo %}<span class="badge badge-fechado">desativada</span>{% endif %}
+      {% if conta.ativo and conta.senha_solicitada_em %}<span class="badge badge-andamento">pediu nova senha em {{ conta.senha_solicitada_em|data_hora }}</span>{% endif %}
+      {% if conta.ativo and conta.pode_criar_senha %}<span class="badge badge-aberto">{{ 'aguardando primeiro acesso' if not conta.ultimo_acesso else 'nova senha liberada' }}</span>
+      {% elif conta.ativo and conta.prazo_senha_vencido %}<span class="badge badge-fechado">prazo da senha vencido</span>{% endif %}
+    </p>
+    {% endif %}
   </div>
 </div>
 
-<form class="cartao formulario formulario-estreito" method="post"
-      action="{{ url_for('admin.usuario_editar', usuario_id=conta.id) if conta else url_for('admin.usuario_novo') }}">
-  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-  {% if conta %}
-  <p class="suave">A senha não muda aqui. Se mudar o <strong>usuário</strong>, avise a pessoa: ela passa a
-    entrar com o novo. Para a senha, use "Liberar nova senha" na lista de usuários.</p>
-  {% else %}
-  <p class="suave">A conta é criada sem senha. No primeiro acesso, a pessoa digita só o usuário na
-    tela de login e cria a própria senha (prazo de 7 dias; depois disso, use "Liberar nova senha").</p>
+<div class="detalhe-grade">
+  <section class="detalhe-principal">
+    <form class="cartao formulario {{ 'formulario-largo' if conta and conta.id != usuario.id }}" method="post"
+          action="{{ url_for('admin.usuario_editar', usuario_id=conta.id) if conta else url_for('admin.usuario_novo') }}"
+          data-avisar-alteracoes>
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      {% if conta %}
+      <p class="suave">A senha não muda aqui. Se mudar o <strong>usuário</strong>, avise a pessoa: ela passa a
+        entrar com o novo.</p>
+      {% else %}
+      <p class="suave">A conta é criada sem senha. No primeiro acesso, a pessoa digita só o usuário na
+        tela de login e cria a própria senha (prazo de 7 dias; depois disso, use "Liberar nova senha").</p>
+      {% endif %}
+
+      <div class="grade-campos">
+        <div>
+          <label for="nome">Nome completo</label>
+          <input id="nome" name="nome" value="{{ form.nome or '' }}" maxlength="100" required {{ 'autofocus' if not conta }}>
+        </div>
+        <div>
+          <label for="login">Usuário</label>
+          <input id="login" name="login" value="{{ form.login or '' }}" maxlength="50" autocapitalize="none"
+                 pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]{2,49}" required>
+          <p class="dica">Usado para entrar. Ex.: joao.silva</p>
+        </div>
+        <div>
+          <label for="email">E-mail <span class="suave">(opcional)</span></label>
+          <input id="email" name="email" type="email" value="{{ form.email or '' }}" maxlength="150">
+          <p class="dica">Em branco, a pessoa informa no próximo acesso.</p>
+        </div>
+        <div>
+          <label for="setor">Setor</label>
+          <select id="setor" name="setor" required>
+            <option value="">Selecione</option>
+            {% for s in SETORES %}<option {{ 'selected' if form.setor == s }}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="papel">Perfil</label>
+          {% if conta and conta.id == usuario.id %}
+          <p>{{ conta.papel_nome }} <span class="suave">(você não muda o próprio perfil)</span></p>
+          <input type="hidden" name="papel" value="{{ conta.papel }}">
+          {% else %}
+          <select id="papel" name="papel">
+            {% for chave, nome in PAPEIS.items() %}<option value="{{ chave }}" {{ 'selected' if (form.papel or 'usuario') == chave }}>{{ nome }}</option>{% endfor %}
+          </select>
+          {% endif %}
+        </div>
+      </div>
+      <p class="dica">Usuário: Chamados e Painel. Supervisor: também Relatório, Documentos e os chamados do
+        setor. Administrador: tudo.</p>
+
+      <label class="opcao"><input type="checkbox" name="atende" value="1" {{ 'checked' if form.atende }}>
+        Atende chamados do setor</label>
+      <p class="dica">Aparece na lista de funcionários ao abrir um chamado para o setor e atende os chamados dele.</p>
+
+      <div class="acoes">
+        <a class="botao" href="{{ url_for('admin.usuarios') }}">Cancelar</a>
+        <button class="botao botao-primario" type="submit">{{ 'Salvar alterações' if conta else 'Cadastrar' }}</button>
+      </div>
+    </form>
+  </section>
+
+  {% if conta and conta.id != usuario.id %}
+  <aside class="detalhe-lateral acoes-conta">
+    <div class="cartao">
+      <h2 class="cartao-titulo">Senha</h2>
+      <p class="suave">A senha atual deixa de funcionar e, no próximo acesso, a pessoa digita só o usuário
+        para criar outra (prazo de 7 dias).</p>
+      <form method="post" action="{{ url_for('admin.usuario_senha', usuario_id=conta.id) }}"
+            data-confirmar="Liberar uma nova senha para {{ conta.nome }}? A senha atual deixa de funcionar.">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="botao botao-largo {{ 'botao-primario' if conta.senha_solicitada_em }}" type="submit">Liberar nova senha</button>
+      </form>
+    </div>
+
+    <div class="cartao">
+      <h2 class="cartao-titulo">Conta</h2>
+      {% if conta.ativo %}
+      <p class="suave">Desativada, a pessoa não entra mais; os chamados dela continuam no histórico.</p>
+      {% else %}
+      <p class="suave">Conta desativada. Reative para a pessoa voltar a entrar, ou apague se ela foi criada por engano.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('admin.usuario_ativo', usuario_id=conta.id) }}"
+            {% if conta.ativo %}data-confirmar="Desativar a conta de {{ conta.nome }}? A pessoa não consegue mais entrar."{% endif %}>
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="ativo" value="{{ '0' if conta.ativo else '1' }}">
+        <button class="botao botao-largo {{ 'botao-perigo' if conta.ativo }}" type="submit">{{ 'Desativar conta' if conta.ativo else 'Reativar conta' }}</button>
+      </form>
+      {% if not conta.ativo %}
+      <form method="post" action="{{ url_for('admin.usuario_apagar', usuario_id=conta.id) }}"
+            data-confirmar="Apagar de vez a conta de {{ conta.nome }}? Não dá para desfazer.">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="botao botao-perigo botao-largo" type="submit">Apagar usuário</button>
+      </form>
+      <p class="dica">Só dá para apagar quem não tem chamados, comentários nem equipamentos no histórico.</p>
+      {% endif %}
+    </div>
+  </aside>
   {% endif %}
-
-  <label for="nome">Nome completo</label>
-  <input id="nome" name="nome" value="{{ form.nome or '' }}" maxlength="100" required {{ 'autofocus' if not conta }}>
-
-  <label for="login">Usuário</label>
-  <input id="login" name="login" value="{{ form.login or '' }}" maxlength="50" autocapitalize="none"
-         pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]{2,49}" required>
-  <p class="dica">Usado para entrar. Ex.: joao.silva (letras, números, ponto, hífen).</p>
-
-  <label for="email">E-mail <span class="suave">(opcional)</span></label>
-  <input id="email" name="email" type="email" value="{{ form.email or '' }}" maxlength="150">
-  <p class="dica">Se ficar em branco, a pessoa informa o e-mail no próximo acesso.</p>
-
-  <label for="setor">Setor</label>
-  <select id="setor" name="setor" required>
-    <option value="">Selecione</option>
-    {% for s in SETORES %}<option {{ 'selected' if form.setor == s }}>{{ s }}</option>{% endfor %}
-  </select>
-
-  <label for="papel">Perfil</label>
-  {% if conta and conta.id == usuario.id %}
-  <p>{{ conta.papel_nome }} <span class="suave">(você não muda o próprio perfil)</span></p>
-  <input type="hidden" name="papel" value="{{ conta.papel }}">
-  {% else %}
-  <select id="papel" name="papel">
-    {% for chave, nome in PAPEIS.items() %}<option value="{{ chave }}" {{ 'selected' if (form.papel or 'usuario') == chave }}>{{ nome }}</option>{% endfor %}
-  </select>
-  {% endif %}
-
-  <label class="opcao"><input type="checkbox" name="atende" value="1" {{ 'checked' if form.atende }}>
-    Atende chamados do setor</label>
-
-  <div class="acoes">
-    <a class="botao" href="{{ url_for('admin.usuarios') }}">Cancelar</a>
-    <button class="botao botao-primario" type="submit">{{ 'Salvar alterações' if conta else 'Cadastrar' }}</button>
-  </div>
-</form>
+</div>
 {% endblock %}

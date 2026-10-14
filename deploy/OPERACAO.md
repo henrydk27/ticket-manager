@@ -29,19 +29,20 @@ escolha da pessoa.
 |---|---|
 | Pessoa nova | Ela mesma cria a conta em **Crie sua conta** na tela de login, ou o admin cadastra (abaixo) |
 | Cadastrar alguém que ainda não tem conta | **Usuários** → **+ Cadastrar usuário** → nome, usuário, setor (e-mail opcional). Avise a pessoa: no primeiro acesso ela digita **só o usuário**, clica em **Entrar** e cria a senha (prazo de 7 dias) |
-| Alguém vai atender chamados do setor | **Usuários** → confira o **Setor** → marque **Atende chamados** → **Salvar alterações** |
-| Alguém deixou de atender | Desmarque **Atende chamados** → **Salvar alterações**; os chamados em aberto com ela ficam sem responsável |
-| Mudou de setor | **Usuários** → troque o **Setor** → **Salvar alterações** (a pessoa não consegue mudar sozinha) |
-| Cadastro com dado errado | **Usuários** → clique no nome ou em **Editar** → corrija nome, usuário, e-mail, setor ou perfil → **Salvar alterações** (a senha não muda; se trocar o usuário, avise a pessoa) |
-| Esqueceu a senha | A pessoa clica em **Solicitar nova senha** no login e o CPD recebe um e-mail (o menu **Usuários** mostra um contador). Confirme com ela → **Usuários** → **Liberar nova senha**. Ela entra digitando **só o usuário** e cria a senha nova (prazo de 7 dias; vencido, libere de novo) |
-| Saiu da empresa | **Usuários** → **Desativar** (o acesso é cortado na hora; os chamados dela continuam no histórico) |
-| Supervisor de um setor | **Usuários** → confira o **Setor** → perfil **Supervisor** → **Salvar alterações** (vê os chamados do setor, Relatório e Documentos) |
-| Outro administrador | **Usuários** → perfil **Administrador** → **Salvar alterações** (vê todos os chamados; o sistema sempre mantém pelo menos um) |
+| Alguém vai atender chamados do setor | **Usuários** → **Editar** → confira o **Setor** → marque **Atende chamados** → **Salvar alterações** |
+| Alguém deixou de atender | **Editar** → desmarque **Atende chamados** → **Salvar alterações**; os chamados em aberto com ela ficam sem responsável |
+| Mudou de setor | **Usuários** → **Editar** → troque o **Setor** → **Salvar alterações** (a pessoa não consegue mudar sozinha) |
+| Cadastro com dado errado | **Usuários** → **Editar** → corrija nome, usuário, e-mail, setor ou perfil → **Salvar alterações** (a senha não muda; se trocar o usuário, avise a pessoa) |
+| Esqueceu a senha | A pessoa clica em **Solicitar nova senha** no login e o CPD recebe um e-mail (o menu **Usuários** mostra um contador). Confirme com ela → **Usuários** → **Editar** → **Liberar nova senha**. Ela entra digitando **só o usuário** e cria a senha nova (prazo de 7 dias; vencido, libere de novo) |
+| Saiu da empresa | **Usuários** → **Editar** → **Desativar conta** (o acesso é cortado na hora; os chamados dela continuam no histórico) |
+| Conta criada por engano ou duplicada | **Editar** → **Desativar conta** → **Apagar usuário**. Só funciona para quem não tem chamados, comentários, anexos nem equipamentos; quem tem continua desativado |
+| Supervisor de um setor | **Usuários** → **Editar** → confira o **Setor** → perfil **Supervisor** → **Salvar alterações** (vê os chamados do setor, Relatório e Documentos) |
+| Outro administrador | **Usuários** → **Editar** → perfil **Administrador** → **Salvar alterações** (vê todos os chamados; o sistema sempre mantém pelo menos um) |
 | Apagar um chamado | Só o administrador: abra o chamado → **Apagar chamado** (permanente) |
 
-Na tela **Usuários**, dá para mexer em várias linhas e salvar tudo de uma vez no botão
-**Salvar alterações**, no rodapé. As linhas alteradas ficam destacadas, e o navegador avisa se
-você tentar sair sem salvar. Se alguma linha tiver problema, nada é gravado.
+A tela **Usuários** é só a lista: tudo o que muda numa conta (dados, setor, perfil, atende
+chamados, senha, desativar e apagar) fica na tela que abre em **Editar**. O navegador avisa se
+você tentar sair dela sem salvar.
 
 Um setor só aparece na tela de novo chamado quando tem pelo menos uma pessoa marcada como
 **Atende chamados**.
@@ -73,6 +74,7 @@ Menu **Inventário**, visível só para **administradores**.
 | Entregar a alguém | Abra o equipamento → escolha o **Usuário** (o setor dele é preenchido) → **Salvar alterações** |
 | Deixar num setor, sem pessoa | Escolha só o **Setor** (ex.: impressora do Fiscal) |
 | Voltou para a T.I | **Usuário** = Ninguém, **Setor** = Nenhum, **Situação** = Em estoque |
+| Vários iguais (mesmo lote) | Abra um deles → **Clonar**: tipo, marca, modelo, configuração e setor vêm preenchidos; informe patrimônio, série e rede do novo |
 | Foi para conserto | **Situação** = Em manutenção |
 | Não serve mais | **Situação** = Descartado (sai da lista, mas continua em "Todas as situações" com o histórico) |
 | Planilha do inventário | **Exportar Excel** baixa a lista com os filtros aplicados |

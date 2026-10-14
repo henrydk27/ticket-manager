@@ -99,6 +99,18 @@ def obter(s: Session, equipamento_id: int) -> Equipamento | None:
     return s.get(Equipamento, equipamento_id)
 
 
+# Clonar: copia o que costuma ser igual em equipamentos do mesmo lote; o que identifica um
+# equipamento (patrimônio, série, rede, usuário) fica em branco
+CAMPOS_CLONADOS = ("tipo", "marca", "modelo", "processador", "memoria", "armazenamento",
+                   "sistema_operacional", "setor")
+
+
+def dados_para_clonar(eq: Equipamento) -> dict:
+    dados = {c: getattr(eq, c) or "" for c in CAMPOS_CLONADOS}
+    dados["situacao"] = SITUACAO_ESTOQUE        # equipamento novo do lote começa em estoque
+    return dados
+
+
 # ─── cadastro e edição ──────────────────────────────────────────────────────
 
 def _texto(dados: dict, campo: str, rotulo: str, maximo: int) -> str | None:

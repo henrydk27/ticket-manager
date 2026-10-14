@@ -17,7 +17,7 @@ from . import anexos as arquivos_disco
 from .anexos import Arquivo
 from .modelos import (AVALIACOES, PAPEIS, PAPEL_ADMIN, PAPEL_USUARIO, PRIORIDADES, SETORES, STATUS,
                       STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_FECHADO, Anexo, Chamado, Comentario,
-                      TentativaLogin, Usuario, agora)
+                      Equipamento, TentativaLogin, Usuario, agora)
 
 
 class ErroValidacao(ValueError):
@@ -238,34 +238,31 @@ def atualizar_usuario(s: Session, alvo: Usuario, setor: str, atende: bool, papel
     s.commit()
 
 
-def atualizar_usuarios(s: Session, mudancas: dict[int, tuple[str, bool, str]], ator: Usuario) -> list[Usuario]:
-    """Salva de uma vez setor, "atende" e perfil de várias contas: {id: (setor, atende, papel)}.
+def apagar_usuario(s: Session, alvo: Usuario, ator: Usuario) -> None:
+    """Apaga de vez uma conta desativada sem histórico (ex.: cadastro feito por engano).
 
-    Tudo ou nada: se algo for inválido, nada é gravado. A regra de ter pelo menos um admin
-    ativo vale para o resultado final (dá para promover um e rebaixar outro juntos).
-    Ninguém muda o próprio perfil. Devolve as contas que mudaram.
+    Quem tem chamados, comentários, anexos ou equipamentos continua desativado: apagar
+    tiraria o nome da pessoa do histórico.
     """
-    alterados = []
-    for uid, (setor, atende, papel) in mudancas.items():
-        u = s.get(Usuario, uid)
-        if u is None:
-            continue
-        if u.id == ator.id:
-            papel = u.papel
-        if setor not in SETORES or papel not in PAPEIS:
-            s.rollback()
-            raise ErroValidacao(f"Dados inválidos para {u.nome}.")
-        if (u.setor, u.atende, u.papel) != (setor, atende, papel):
-            u.setor, u.atende, u.papel = setor, atende, papel
-            alterados.append(u)
-    s.flush()
-    if _admins_ativos(s) < 1:
-        s.rollback()
-        raise ErroValidacao("O sistema precisa de pelo menos um administrador ativo.")
-    for u in alterados:
-        _liberar_chamados(s, u)
+    if alvo.id == ator.id:
+        raise ErroValidacao("Você não pode apagar a própria conta.")
+    if alvo.ativo:
+        raise ErroValidacao("Desative a conta antes de apagar.")
+    motivos = []
+    if s.scalar(select(func.count(Chamado.id)).where(or_(Chamado.solicitante_id == alvo.id,
+                                                       Chamado.responsavel_id == alvo.id))):
+        motivos.append("chamados")
+    if s.scalar(select(func.count(Comentario.id)).where(Comentario.autor_id == alvo.id)):
+        motivos.append("comentários")
+    if s.scalar(select(func.count(Anexo.id)).where(Anexo.autor_id == alvo.id)):
+        motivos.append("anexos")
+    if s.scalar(select(func.count(Equipamento.id)).where(Equipamento.usuario_id == alvo.id)):
+        motivos.append("equipamentos")
+    if motivos:
+        raise ErroValidacao(f"{alvo.nome} tem {', '.join(motivos)} no sistema e não pode ser apagado. "
+                            "A conta continua desativada (sem acesso).")
+    s.delete(alvo)
     s.commit()
-    return alterados
 
 
 def definir_ativo(s: Session, alvo: Usuario, ativo: bool) -> None:
