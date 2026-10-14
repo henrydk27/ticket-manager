@@ -18,7 +18,7 @@ empresa e atende **todos os setores**, não só a T.I.
 | Linguagem | Lazarus / Pascal | Python (Flask), HTML, CSS e JavaScript |
 | Banco de dados | Oracle | PostgreSQL, com migrações versionadas |
 | Quem recebe chamados | A T.I | Qualquer setor, direto para um funcionário |
-| Avisos | — | E-mail a cada chamado novo, resposta, encaminhamento e encerramento |
+| Avisos | Só na abertura do chamado | Chamado novo, resposta, mudança de status, encaminhamento e encerramento |
 | Além dos chamados | — | Painel, relatórios Excel/PDF, inventário de TI e documentos internos |
 
 ## Funcionalidades
