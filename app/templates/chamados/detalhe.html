@@ -49,12 +49,28 @@
       {% if c.comentarios %}
       <ol class="linha-tempo">
         {% for m in c.comentarios %}
-        <li class="{{ 'evento' if m.evento else ('meu' if m.autor_id == usuario.id) }}">
+        <li id="m{{ m.id }}" class="{{ 'evento' if m.evento else ('meu' if m.autor_id == usuario.id) }}">
           <div class="comentario-cabecalho">
             <strong>{{ m.autor.nome }}</strong>
             <span class="suave">{{ m.criado_em|data_hora }}</span>
+            {% if m.editado_em %}<span class="suave comentario-editado"
+              title="Editado em {{ m.editado_em|data_hora }}">· editado{% if m.editado_por %} por {{ m.editado_por.nome }}{% endif %} em {{ m.editado_em|data_hora }}</span>{% endif %}
           </div>
           <div class="texto-livre">{{ m.texto }}</div>
+          {% if usuario.is_admin and not m.evento %}
+          <details class="editar-comentario">
+            <summary>Editar</summary>
+            <form method="post" action="{{ url_for('chamados.editar_comentario', chamado_id=c.id, comentario_id=m.id) }}">
+              <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+              <label for="texto-m{{ m.id }}" class="oculto">Texto do comentário</label>
+              <textarea id="texto-m{{ m.id }}" name="texto" rows="3" maxlength="10000" required>{{ m.texto }}</textarea>
+              <div class="editar-comentario-acoes">
+                <span class="dica">Fica registrado que você editou.</span>
+                <button class="botao botao-pequeno botao-primario" type="submit">Salvar</button>
+              </div>
+            </form>
+          </details>
+          {% endif %}
           {% if m.anexos %}{{ lista_anexos(m.anexos) }}{% endif %}
         </li>
         {% endfor %}

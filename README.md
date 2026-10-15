@@ -40,6 +40,7 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 - A **primeira conta criada** no sistema vira administrador.
 - O setor de cada pessoa só é alterado pelo administrador (é ele que define o que ela vê).
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
+- O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
 - **Painel:** em aberto, sem responsável, abertos e encerrados no período, tempo médio até
   encerrar e gráficos por status, responsável, setor, prioridade, avaliações e mês. O tempo
   médio conta **só o expediente** (segunda a sexta, das 7h às 18h; ajuste em

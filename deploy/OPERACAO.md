@@ -39,6 +39,7 @@ escolha da pessoa.
 | Supervisor de um setor | **Usuários** → **Editar** → confira o **Setor** → perfil **Supervisor** → **Salvar alterações** (vê os chamados do setor, Relatório e Documentos) |
 | Outro administrador | **Usuários** → **Editar** → perfil **Administrador** → **Salvar alterações** (vê todos os chamados; o sistema sempre mantém pelo menos um) |
 | Apagar um chamado | Só o administrador: abra o chamado → **Apagar chamado** (permanente) |
+| Corrigir um comentário | Só o administrador: no histórico do chamado, **Editar** embaixo do comentário → **Salvar**. Fica escrito "editado por … em …". Registros automáticos (status, encaminhamento) não são editáveis |
 
 A tela **Usuários** é só a lista: tudo o que muda numa conta (dados, setor, perfil, atende
 chamados, senha, desativar e apagar) fica na tela que abre em **Editar**. O navegador avisa se

@@ -184,9 +184,13 @@ class Comentario(Base):
     texto: Mapped[str] = mapped_column(Text)
     evento: Mapped[bool] = mapped_column(Boolean, default=False)  # registro automático (status etc.)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    # Correção feita pelo administrador (o texto mostra "editado por ... em ...")
+    editado_em: Mapped[datetime | None] = mapped_column(DateTime)
+    editado_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
 
     chamado: Mapped[Chamado] = relationship(back_populates="comentarios")
-    autor: Mapped[Usuario] = relationship(lazy="joined")
+    autor: Mapped[Usuario] = relationship(lazy="joined", foreign_keys=[autor_id])
+    editado_por: Mapped[Usuario | None] = relationship(lazy="joined", foreign_keys=[editado_por_id])
     anexos: Mapped[list["Anexo"]] = relationship(back_populates="comentario", order_by="Anexo.id")
 
 

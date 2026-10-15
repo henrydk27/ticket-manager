@@ -8,7 +8,7 @@ from .. import anexos as arquivos_disco
 from .. import notificacoes, servicos
 from ..anexos import TIPOS_EXIBIVEIS, AnexoInvalido, ler_anexos
 from ..banco import db
-from ..modelos import SETORES
+from ..modelos import SETORES, Comentario
 from ..seguranca import admin_obrigatorio, login_obrigatorio
 
 bp = Blueprint("chamados", __name__)
@@ -103,6 +103,21 @@ def detalhe(chamado_id: int):
         anexos_chamado=[a for a in c.anexos if a.comentario_id is None],
         por_setor=servicos.atendentes_por_setor(db()) if trabalha else {},
     )
+
+
+@bp.route("/chamados/<int:chamado_id>/comentarios/<int:comentario_id>/editar", methods=["POST"])
+@admin_obrigatorio
+def editar_comentario(chamado_id: int, comentario_id: int):
+    c = _chamado_visivel(chamado_id)
+    m = db().get(Comentario, comentario_id)
+    if m is None or m.chamado_id != c.id:
+        abort(404)
+    try:
+        if servicos.editar_comentario(db(), m, g.usuario, request.form.get("texto", "")):
+            flash("Comentário editado.", "ok")
+    except servicos.ErroValidacao as e:
+        flash(str(e), "erro")
+    return _voltar(c, f"#m{m.id}")
 
 
 @bp.route("/chamados/<int:chamado_id>/comentar", methods=["POST"])

@@ -520,6 +520,28 @@ def comentar(s: Session, c: Chamado, autor: Usuario, texto: str, arquivos: list[
     return m
 
 
+TAMANHO_MAX_COMENTARIO = 10000
+
+
+def editar_comentario(s: Session, m: Comentario, ator: Usuario, texto: str) -> bool:
+    """Administrador corrige o texto de um comentário. Registros automáticos (status,
+    encaminhamento) não são editáveis. Devolve False se o texto não mudou."""
+    if not ator.is_admin:
+        raise ErroValidacao("Só o administrador edita comentários.")
+    if m.evento:
+        raise ErroValidacao("Registros automáticos do histórico não podem ser editados.")
+    texto = (texto or "").strip()
+    if not texto:
+        raise ErroValidacao("O comentário não pode ficar vazio.")
+    if len(texto) > TAMANHO_MAX_COMENTARIO:
+        raise ErroValidacao(f"O comentário pode ter no máximo {TAMANHO_MAX_COMENTARIO} caracteres.")
+    if texto == m.texto:
+        return False
+    m.texto, m.editado_em, m.editado_por_id = texto, agora(), ator.id
+    s.commit()
+    return True
+
+
 def alterar_status(s: Session, c: Chamado, novo: str, autor: Usuario) -> bool:
     if novo not in STATUS:
         raise ErroValidacao("Status inválido.")

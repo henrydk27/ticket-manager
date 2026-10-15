@@ -779,3 +779,44 @@ def test_painel_do_usuario_comum_mostra_os_chamados_que_ele_abriu(s, contas):
 def test_setor_administracao():
     from app.modelos import SETORES
     assert SETORES[0] == "Administração" and SETORES == sorted(SETORES, key=lambda x: x.lower().replace("á", "a"))
+
+
+# ─── editar comentário (só admin) ───────────────────────────────────────────
+
+def test_admin_edita_comentario_e_fica_registrado(client, s, contas):
+    c = chamado(s, "Impressora do fiscal não imprime")
+    m = next(x for x in c.comentarios if not x.evento)
+    url = f"/chamados/{c.id}/comentarios/{m.id}/editar"
+
+    entrar(client, "carlos", "carlos123")              # atende o chamado, mas não é admin
+    assert "editar-comentario" not in client.get(f"/chamados/{c.id}").get_data(as_text=True)
+    assert client.post(url, data={"csrf": csrf(client, f"/chamados/{c.id}"), "texto": "x"}).status_code == 403
+    sair(client)
+
+    entrar(client, "admin", "admin123")
+    html = client.get(f"/chamados/{c.id}").get_data(as_text=True)
+    assert 'class="editar-comentario"' in html
+    r = client.post(url, data={"csrf": csrf(client, f"/chamados/{c.id}"), "texto": "  Texto corrigido.  "})
+    assert r.location.endswith(f"#m{m.id}")
+    s.expire_all()
+    m = s.get(Comentario, m.id)
+    assert m.texto == "Texto corrigido." and m.editado_por.login == "admin" and m.editado_em
+    html = client.get(f"/chamados/{c.id}").get_data(as_text=True)
+    assert "editado por Administrador do Sistema" in html
+
+    html = client.post(url, data={"csrf": csrf(client, f"/chamados/{c.id}"), "texto": "   "},
+                       follow_redirects=True).get_data(as_text=True)
+    assert "não pode ficar vazio" in html and s.get(Comentario, m.id).texto == "Texto corrigido."
+
+
+def test_registro_automatico_nao_e_editavel(client, s, contas):
+    entrar(client, "admin", "admin123")
+    c = chamado(s, "Impressora do fiscal não imprime")
+    servicos.alterar_status(s, c, "Aguardando usuário", usuario(s, "admin"))   # gera um registro automático
+    evento = next(x for x in chamado(s, "Impressora do fiscal não imprime").comentarios if x.evento)
+    r = client.post(f"/chamados/{c.id}/comentarios/{evento.id}/editar",
+                    data={"csrf": csrf(client, f"/chamados/{c.id}"), "texto": "outro"}, follow_redirects=True)
+    assert "não podem ser editados" in r.get_data(as_text=True)
+    outro = chamado(s, "Trocar teclado")                 # comentário de outro chamado: 404
+    assert client.post(f"/chamados/{outro.id}/comentarios/{evento.id}/editar",
+                       data={"csrf": csrf(client, f"/chamados/{c.id}"), "texto": "x"}).status_code == 404
