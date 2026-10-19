@@ -4,14 +4,13 @@
 <div class="cabecalho">
   <div>
     <h1>Usuários</h1>
-    <span class="suave">{{ usuarios|length }} conta{{ 's' if usuarios|length != 1 }}</span>
+    <span class="suave">{{ contagem.ativas + contagem.desativadas }} conta{{ 's' if contagem.ativas + contagem.desativadas != 1 }}</span>
   </div>
   <div class="acoes-cabecalho">
     <a class="botao botao-primario" href="{{ url_for('admin.usuario_novo') }}">+ Cadastrar usuário</a>
   </div>
 </div>
 
-{% set pedidos = usuarios|selectattr('0.senha_solicitada_em')|selectattr('0.ativo')|list %}
 {% if pedidos %}
 <div class="aviso aviso-info">
   <strong>Pedido{{ 's' if pedidos|length > 1 }} de nova senha:</strong>
@@ -24,6 +23,35 @@
   <strong>Supervisor</strong> também Relatório, Documentos e os chamados do seu setor;
   <strong>Administrador</strong> vê tudo. Para mudar dados, perfil, senha ou desativar uma conta, use <strong>Editar</strong>.</p>
 
+<div class="resumo-situacoes">
+  {% for chave, rotulo in SITUACOES_CONTA.items() %}
+  <a class="resumo-situacao{{ ' ativa' if f.situacao == chave }}" href="{{ url_for('admin.usuarios', situacao=chave) }}">
+    <span class="resumo-numero">{{ contagem[chave] }}</span> {{ rotulo }}
+  </a>
+  {% endfor %}
+</div>
+
+<form class="filtros" method="get" action="{{ url_for('admin.usuarios') }}">
+  <input type="search" name="q" value="{{ f.texto }}" class="filtro-busca" aria-label="Buscar"
+         placeholder="Buscar por nome, usuário ou e-mail">
+  <select name="setor" aria-label="Setor" data-enviar-ao-mudar>
+    <option value="">Todos os setores</option>
+    {% for s in SETORES %}<option {{ 'selected' if f.setor == s }}>{{ s }}</option>{% endfor %}
+  </select>
+  <select name="papel" aria-label="Perfil" data-enviar-ao-mudar>
+    <option value="">Todos os perfis</option>
+    {% for chave, nome in PAPEIS.items() %}<option value="{{ chave }}" {{ 'selected' if f.papel == chave }}>{{ nome }}</option>{% endfor %}
+  </select>
+  <select name="situacao" aria-label="Situação" data-enviar-ao-mudar>
+    <option value="">Todas as contas</option>
+    {% for chave, rotulo in SITUACOES_CONTA.items() %}<option value="{{ chave }}" {{ 'selected' if f.situacao == chave }}>{{ rotulo }}</option>{% endfor %}
+  </select>
+  <button class="botao botao-primario" type="submit">Buscar</button>
+  {% if filtrado %}<a class="botao" href="{{ url_for('admin.usuarios') }}">Limpar</a>{% endif %}
+</form>
+
+{% if usuarios %}
+{% if filtrado %}<p class="suave">{{ usuarios|length }} conta{{ 's' if usuarios|length != 1 }} encontrada{{ 's' if usuarios|length != 1 }}</p>{% endif %}
 <div class="tabela-rolagem">
 <table class="tabela tabela-usuarios">
   <thead>
@@ -48,4 +76,10 @@
   </tbody>
 </table>
 </div>
+{% else %}
+<div class="vazio">
+  <h2>Nenhuma conta com esses filtros</h2>
+  <p><a class="botao" href="{{ url_for('admin.usuarios') }}">Limpar filtros</a></p>
+</div>
+{% endif %}
 {% endblock %}

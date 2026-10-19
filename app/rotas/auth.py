@@ -134,6 +134,7 @@ def cadastro():
                     flash("Conta criada. Por ser a primeira, ela é a de administrador.", "ok")
                 else:
                     flash("Conta criada. Bem-vindo!", "ok")
+                    notificacoes.conta_criada(u)
                 _entrar(u)
                 return redirect(url_for("chamados.lista"))
 

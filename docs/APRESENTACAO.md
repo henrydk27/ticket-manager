@@ -43,7 +43,8 @@ ou outro setor. Todos que atendem um setor veem os chamados dele.
 
 O servidor de e-mail da empresa avisa automaticamente: o funcionário quando recebe um chamado,
 quem pediu quando há resposta ou mudança de status, e o novo responsável quando o chamado é
-encaminhado. Ninguém recebe aviso da própria ação.
+encaminhado. O CPD é avisado quando alguém cria uma conta ou pede nova senha. Ninguém recebe aviso
+da própria ação.
 
 ### Painel e relatórios
 

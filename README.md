@@ -65,7 +65,8 @@ cadastram, trocam o arquivo e apagam. Cada documento tem título, categoria, des
 
 ## Outros
 
-- **Avisos por e-mail** (chamado novo, encaminhado, respostas, status e encerramento), pelo
+- **Avisos por e-mail** (chamado novo, encaminhado, respostas, status e encerramento; e ao CPD,
+  contas novas e pedidos de nova senha), pelo
   servidor de e-mail da empresa via SMTP. Configuração em [deploy/OPERACAO.md](deploy/OPERACAO.md#avisos-por-e-mail).
 - **Modo claro/escuro e tema de cor:** botões no canto da tela. O tema pinta a tela inteira
   (fundo, cartões, bordas, botões e gráficos): Padrão (o visual original) ou uma de 8 cores

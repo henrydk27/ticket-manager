@@ -24,7 +24,7 @@ class ConfigEmail:
     url_site: str = ""            # endereço do sistema nos links (ex.: http://chamados.empresa.local)
     ca_arquivo: str = ""          # certificado da empresa (.crt/.pem) para servidor com certificado próprio
     verificar_certificado: bool = True  # False só em último caso (aceita qualquer certificado)
-    avisos_senha: str = ""        # quem recebe os pedidos de nova senha (vazio = o remetente)
+    avisos_cpd: str = ""          # recebe cadastros novos e pedidos de nova senha (vazio = o remetente)
 
     @property
     def ativo(self) -> bool:
@@ -81,7 +81,8 @@ def carregar_config() -> Config:
             url_site=e.get("url_site", "").strip().rstrip("/"),
             ca_arquivo=e.get("ca_arquivo", "").strip(),
             verificar_certificado=e.getboolean("verificar_certificado", fallback=True),
-            avisos_senha=e.get("avisos_senha", "").strip(),
+            # "avisos_senha" é o nome antigo da mesma opção
+            avisos_cpd=(e.get("avisos_cpd", "") or e.get("avisos_senha", "")).strip(),
         )
         if email.ca_arquivo and not os.path.exists(email.ca_arquivo):
             raise FileNotFoundError(f"Em [email], ca_arquivo não existe: {email.ca_arquivo}")

@@ -2,12 +2,12 @@
 
 from datetime import date, datetime, timedelta
 
-from flask import (Blueprint, abort, flash, g, make_response, redirect, render_template, request,
+from flask import (Blueprint, abort, flash, g, redirect, render_template, request,
                    send_file, url_for)
 
 from .. import exportacao, servicos
 from ..banco import db
-from ..modelos import SETORES, Usuario
+from ..modelos import PAPEIS, SETORES, Usuario
 from ..seguranca import admin_obrigatorio, login_obrigatorio, supervisor_obrigatorio
 
 bp = Blueprint("admin", __name__)
@@ -38,14 +38,21 @@ def painel():
 
 # ─── USUÁRIOS ───────────────────────────────────────────────────────────────
 
-def _pagina_usuarios():
-    return render_template("admin/usuarios.html", usuarios=servicos.listar_usuarios(db()))
-
-
 @bp.route("/usuarios")
 @admin_obrigatorio
 def usuarios():
-    return _pagina_usuarios()
+    a = request.args
+    f = servicos.FiltrosUsuarios(
+        texto=a.get("q", "").strip()[:100],
+        setor=a.get("setor", "") if a.get("setor") in SETORES else "",
+        papel=a.get("papel", "") if a.get("papel") in PAPEIS else "",
+        situacao=a.get("situacao", "") if a.get("situacao") in servicos.SITUACOES_CONTA else "",
+    )
+    filtrado = any((f.texto, f.setor, f.papel, f.situacao))
+    return render_template("admin/usuarios.html", usuarios=servicos.listar_usuarios(db(), f), f=f,
+                           filtrado=filtrado, contagem=servicos.contagem_de_contas(db()),
+                           SITUACOES_CONTA=servicos.SITUACOES_CONTA,
+                           pedidos=servicos.listar_usuarios(db(), servicos.FiltrosUsuarios(situacao="senha")))
 
 
 def _alvo(usuario_id: int) -> Usuario:

@@ -5,12 +5,13 @@ Regras: ninguém recebe aviso da própria ação, e só recebe quem tem e-mail e
 - encaminhado           → novo responsável
 - comentário            → solicitante e responsável
 - mudança de status     → solicitante (encerrado: com link para avaliar)
-- pedido de nova senha  → CPD (config avisos_senha; vazio = remetente)
+- pedido de nova senha  → CPD (config avisos_cpd; vazio = remetente)
+- conta nova (login)    → CPD
 """
 
 from flask import current_app, render_template, request, url_for
 
-from . import correio
+from . import correio, formatos
 from .modelos import STATUS_FECHADO, Chamado, Comentario, Usuario
 
 
@@ -73,19 +74,41 @@ def status_alterado(c: Chamado, autor: Usuario, anterior: str) -> None:
                 f"{autor.nome} mudou o status do chamado de \"{anterior}\" para \"{c.status}\".")
 
 
-def pedido_nova_senha(u: Usuario) -> None:
-    """Avisa o CPD que a pessoa pediu uma nova senha na tela de login."""
+def _avisar_cpd(assunto: str, titulo: str, u: Usuario, frase: str, linhas: list[tuple[str, str]],
+                instrucao: str) -> None:
     if not correio.ativo():
         return
     cfg = current_app.extensions["email"]
-    destino = cfg.avisos_senha or cfg.remetente
+    destino = cfg.avisos_cpd or cfg.remetente
     if not destino:
         return
-    dados = dict(u=u, ip=request.remote_addr, link=_link("admin.usuarios", _anchor=f"u{u.id}"),
-                 cid_marca=correio.CID_MARCA)
+    dados = dict(titulo=titulo, u=u, frase=frase, linhas=linhas, instrucao=instrucao, botao="Abrir cadastro",
+                 link=_link("admin.usuario_editar", usuario_id=u.id), cid_marca=correio.CID_MARCA)
     correio.enviar(correio.Mensagem(
         para=destino,
-        assunto=f"[Ticket Manager] Pedido de nova senha: {u.nome}",
-        texto=render_template("email/senha.txt", **dados),
-        html=render_template("email/senha.html", **dados),
+        assunto=f"[Ticket Manager] {assunto}: {u.nome}",
+        texto=render_template("email/cpd.txt", **dados),
+        html=render_template("email/cpd.html", **dados),
     ))
+
+
+def _dados_conta(u: Usuario, momento) -> list[tuple[str, str]]:
+    ip = request.remote_addr
+    return [("Usuário", u.login), ("Setor", u.setor), ("E-mail", u.email or "não cadastrado"),
+            ("Em", formatos.data_hora(momento) + (f" (de {ip})" if ip else ""))]
+
+
+def pedido_nova_senha(u: Usuario) -> None:
+    """Avisa o CPD que a pessoa pediu uma nova senha na tela de login."""
+    _avisar_cpd("Pedido de nova senha", "Pedido de nova senha", u,
+                "Esta pessoa pediu uma nova senha na tela de login.", _dados_conta(u, u.senha_solicitada_em),
+                "Confirme que o pedido é mesmo da pessoa. Depois, no cadastro dela, clique em "
+                "\"Liberar nova senha\": no próximo acesso ela digita só o usuário e cria a senha nova.")
+
+
+def conta_criada(u: Usuario) -> None:
+    """Avisa o CPD que alguém criou a própria conta na tela de login."""
+    _avisar_cpd("Nova conta", "Nova conta criada", u, "Esta pessoa criou uma conta pela tela de login.",
+                _dados_conta(u, u.criado_em),
+                "Confira se o nome e o setor estão certos e ajuste o perfil e \"Atende chamados\", se for o caso. "
+                "Se a conta não for de alguém da empresa, desative-a.")

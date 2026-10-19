@@ -207,10 +207,54 @@ def atualizar_perfil(s: Session, u: Usuario, nome: str, email: str) -> None:
     s.commit()
 
 
-def listar_usuarios(s: Session) -> list[tuple[Usuario, int]]:
+# Filtro "situação" da tela de usuários
+SITUACOES_CONTA = {"ativas": "Ativas", "desativadas": "Desativadas", "senha": "Pediram nova senha",
+                   "primeiro": "Aguardando primeiro acesso"}
+
+
+@dataclass
+class FiltrosUsuarios:
+    texto: str = ""
+    setor: str = ""
+    papel: str = ""
+    situacao: str = ""       # "" = todas, ou uma chave de SITUACOES_CONTA
+
+
+def listar_usuarios(s: Session, f: FiltrosUsuarios | None = None) -> list[tuple[Usuario, int]]:
+    """Contas com o total de chamados abertos por cada uma (busca por nome, usuário ou e-mail)."""
+    f = f or FiltrosUsuarios()
     total = (select(func.count(Chamado.id)).where(Chamado.solicitante_id == Usuario.id)
              .correlate(Usuario).scalar_subquery())
-    return list(s.execute(select(Usuario, total).order_by(Usuario.ativo.desc(), Usuario.nome)).all())
+    cond = []
+    if f.texto:
+        termo = f"%{_escapar_like(f.texto.strip())}%"
+        cond.append(or_(*(c.ilike(termo, escape="\\") for c in (Usuario.nome, Usuario.login, Usuario.email))))
+    if f.setor:
+        cond.append(Usuario.setor == f.setor)
+    if f.papel:
+        cond.append(Usuario.papel == f.papel)
+    if f.situacao == "ativas":
+        cond.append(Usuario.ativo)
+    elif f.situacao == "desativadas":
+        cond.append(~Usuario.ativo)
+    elif f.situacao == "senha":
+        cond += [Usuario.ativo, Usuario.senha_solicitada_em.is_not(None)]
+    elif f.situacao == "primeiro":
+        cond += [Usuario.ativo, Usuario.senha_liberada_em.is_not(None), Usuario.ultimo_acesso.is_(None)]
+    return list(s.execute(select(Usuario, total).where(*cond)
+                          .order_by(Usuario.ativo.desc(), func.lower(Usuario.nome))).all())
+
+
+def contagem_de_contas(s: Session) -> dict[str, int]:
+    """Números do topo da tela de usuários (mesmas chaves de SITUACOES_CONTA)."""
+    def contar(*cond):
+        return s.scalar(select(func.count(Usuario.id)).where(*cond)) or 0
+    return {
+        "ativas": contar(Usuario.ativo),
+        "desativadas": contar(~Usuario.ativo),
+        "senha": contar(Usuario.ativo, Usuario.senha_solicitada_em.is_not(None)),
+        "primeiro": contar(Usuario.ativo, Usuario.senha_liberada_em.is_not(None), Usuario.ultimo_acesso.is_(None)),
+    }
 
 
 def _admins_ativos(s: Session) -> int:

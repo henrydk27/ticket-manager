@@ -613,7 +613,8 @@ def test_lista_de_usuarios_so_tem_o_botao_editar(client, s, contas):
     html = client.get("/usuarios").get_data(as_text=True)
     bruno = usuario(s, "bruno")
     assert f'href="/usuarios/{bruno.id}/editar"' in html
-    assert "<select" not in html and "Liberar nova senha</button>" not in html and "Desativar</button>" not in html
+    assert 'name="setor_' not in html and 'name="papel_' not in html                # sem edição na própria lista
+    assert "Liberar nova senha</button>" not in html and "Desativar</button>" not in html
     html = client.get(f"/usuarios/{bruno.id}/editar").get_data(as_text=True)
     assert "Liberar nova senha" in html and "Desativar conta" in html and "Apagar usuário" not in html
 

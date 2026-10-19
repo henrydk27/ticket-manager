@@ -32,6 +32,7 @@ escolha da pessoa.
 | Alguém vai atender chamados do setor | **Usuários** → **Editar** → confira o **Setor** → marque **Atende chamados** → **Salvar alterações** |
 | Alguém deixou de atender | **Editar** → desmarque **Atende chamados** → **Salvar alterações**; os chamados em aberto com ela ficam sem responsável |
 | Mudou de setor | **Usuários** → **Editar** → troque o **Setor** → **Salvar alterações** (a pessoa não consegue mudar sozinha) |
+| Achar uma conta | **Usuários** → busque por nome, usuário ou e-mail, ou filtre por setor, perfil e situação (os números do topo também filtram) |
 | Cadastro com dado errado | **Usuários** → **Editar** → corrija nome, usuário, e-mail, setor ou perfil → **Salvar alterações** (a senha não muda; se trocar o usuário, avise a pessoa) |
 | Esqueceu a senha | A pessoa clica em **Solicitar nova senha** no login e o CPD recebe um e-mail (o menu **Usuários** mostra um contador). Confirme com ela → **Usuários** → **Editar** → **Liberar nova senha**. Ela entra digitando **só o usuário** e cria a senha nova (prazo de 7 dias; vencido, libere de novo) |
 | Saiu da empresa | **Usuários** → **Editar** → **Desativar conta** (o acesso é cortado na hora; os chamados dela continuam no histórico) |
@@ -167,7 +168,8 @@ O sistema manda e-mail quando:
 | Mudança de status | quem abriu |
 | Chamado encerrado | quem abriu (com link para avaliar) |
 
-| Pedido de nova senha (tela de login) | o CPD: `avisos_senha` do `config.ini` (em branco, o `remetente`) |
+| Conta nova criada na tela de login | o CPD: `avisos_cpd` do `config.ini` (em branco, o `remetente`) |
+| Pedido de nova senha (tela de login) | o CPD (mesmo endereço) |
 
 Ninguém recebe aviso da própria ação, e contas desativadas não recebem nada.
 O e-mail é obrigatório no cadastro; quem tinha conta sem e-mail (ou foi cadastrado pelo admin sem
@@ -194,7 +196,7 @@ e-mail) é levado a preencher no próximo acesso.
    remetente = chamados@suaempresa.com.br
    nome = Ticket Manager
    url_site = http://IP-OU-NOME-DO-SERVIDOR
-   avisos_senha = cpd@suaempresa.com.br   ; recebe os pedidos de nova senha (vazio = remetente)
+   avisos_cpd = cpd@suaempresa.com.br     ; recebe contas novas e pedidos de nova senha (vazio = remetente)
    ```
 
 3. Teste e reinicie:

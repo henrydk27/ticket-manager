@@ -1,0 +1,12 @@
+{{ titulo }} no Ticket Manager
+
+{{ u.nome }}: {{ frase }}
+
+{% for rotulo, valor in linhas %}{{ rotulo }}: {{ valor }}
+{% endfor %}
+{{ instrucao }}
+
+{{ botao }}: {{ link }}
+
+--
+Aviso automático do Ticket Manager.

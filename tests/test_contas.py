@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from sqlalchemy import select
 
+from app import servicos
 from app.modelos import Usuario, agora
 from tests.conftest import csrf, entrar
 from tests.test_app import sair, usuario
@@ -76,7 +77,7 @@ def test_prazo_para_criar_senha(client, s, contas):
 
 
 def test_solicitar_nova_senha_avisa_o_cpd_e_admin_libera(client, s, app, contas, emails):
-    app.extensions["email"].avisos_senha = "cpd@empresa.com.br"
+    app.extensions["email"].avisos_cpd = "cpd@empresa.com.br"
     assert "Solicitar nova senha" in client.get("/login").get_data(as_text=True)
 
     r = client.post("/solicitar-senha", data={"csrf": csrf(client, "/solicitar-senha"),
@@ -164,3 +165,58 @@ def test_admin_nao_muda_o_proprio_perfil_pela_edicao(client, s, contas):
     editar(client, admin, nome="Administrador TI", papel="usuario")
     admin = usuario(s, "admin")
     assert admin.nome == "Administrador TI" and admin.is_admin
+
+
+# ─── aviso ao CPD de conta nova e busca na tela de usuários ─────────────────
+
+def test_conta_criada_pelo_login_avisa_o_cpd(client, s, app, contas, emails):
+    from tests.test_app import cadastrar
+    app.extensions["email"].avisos_cpd = "cpd@empresa.com.br"
+    cadastrar(client)
+    assert len(emails) == 1 and emails[0].para == "cpd@empresa.com.br"
+    assert "Nova conta: Maria Teste" in emails[0].assunto
+    maria = usuario(s, "maria")
+    assert "RH" in emails[0].texto and f"/usuarios/{maria.id}/editar" in emails[0].texto
+    sair(client)
+
+    # cadastro feito pelo admin não gera aviso
+    entrar(client, "admin", "admin123")
+    cadastrar_pelo_admin(client)
+    assert len(emails) == 1
+
+
+def test_config_avisos_cpd_aceita_nome_antigo(tmp_path, monkeypatch):
+    from app.config import carregar_config
+    base = "[banco]\nurl = sqlite://\n[servidor]\nsecret_key = " + "x" * 40 + "\n[email]\nhost = mail\nremetente = a@b.com\n"
+    ini = tmp_path / "config.ini"
+    monkeypatch.setenv("TICKET_MANAGER_CONFIG", str(ini))
+    ini.write_text(base + "avisos_senha = cpd@b.com\n", encoding="utf-8")
+    assert carregar_config().email.avisos_cpd == "cpd@b.com"
+    ini.write_text(base + "avisos_cpd = ti@b.com\n", encoding="utf-8")
+    assert carregar_config().email.avisos_cpd == "ti@b.com"
+
+
+def test_busca_e_filtros_na_tela_de_usuarios(client, s, contas):
+    entrar(client, "admin", "admin123")
+    cadastrar_pelo_admin(client)                                # joao.silva, aguardando primeiro acesso
+    bruno = usuario(s, "bruno")
+    bruno.senha_solicitada_em = bruno.criado_em
+    s.commit()
+
+    def nomes(url):
+        html = client.get(url).get_data(as_text=True)
+        return {n for n in ("Ana Souza", "Bruno Lima", "Carlos Técnico", "Marta Manutenção", "João da Silva")
+                if f"<strong>{n}</strong>" in html}
+
+    assert nomes("/usuarios") == {"Ana Souza", "Bruno Lima", "Carlos Técnico", "Marta Manutenção", "João da Silva"}
+    assert nomes("/usuarios?q=souza") == {"Ana Souza"}
+    assert nomes("/usuarios?q=empresa.com.br&setor=T.I") == {"Carlos Técnico"}
+    assert nomes("/usuarios?situacao=senha") == {"Bruno Lima"}
+    assert nomes("/usuarios?situacao=primeiro") == {"João da Silva"}
+    servicos.atualizar_usuario(s, usuario(s, "marta"), "Manutenção", True, "supervisor")
+    assert nomes("/usuarios?papel=supervisor") == {"Marta Manutenção"}
+    client.post(f"/usuarios/{usuario(s, 'ana').id}/ativo", data={"csrf": csrf(client, "/usuarios"), "ativo": "0"})
+    assert nomes("/usuarios?situacao=desativadas") == {"Ana Souza"}
+    assert "Nenhuma conta com esses filtros" in client.get("/usuarios?q=ninguem").get_data(as_text=True)
+    html = client.get("/usuarios?setor=Inexistente").get_data(as_text=True)   # filtro inválido é ignorado
+    assert "<strong>Bruno Lima</strong>" in html
