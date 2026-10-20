@@ -1,0 +1,28 @@
+{# Preventivas já feitas no equipamento `eq` (ficha do equipamento e tela de registro) #}
+<ol class="lista-preventivas">
+  {% for p in eq.preventivas %}
+  <li>
+    <details>
+      <summary>
+        <strong>{{ p.data|data }}</strong> · {{ p.tecnico.nome if p.tecnico else '—' }}
+        {% set nprob = p.contar('Problema') %}
+        <span class="subtitulo">
+          {{ p.contar('OK') }} ok{% if p.contar('Corrigido') %}, {{ p.contar('Corrigido') }} corrigido{{ 's' if p.contar('Corrigido') > 1 }}{% endif %}{% if nprob %}, <span class="texto-problema">{{ nprob }} com problema</span>{% endif %}
+        </span>
+      </summary>
+      {% if p.itens %}
+      <ul class="itens-preventiva">
+        {% for item, resultado, nota in p.itens %}
+        <li><span class="badge badge-item-{{ {'OK': 'ok', 'Corrigido': 'corrigido', 'Problema': 'problema'}.get(resultado, 'na') }}">{{ resultado }}</span>
+          {{ item }}{% if nota %} <span class="suave">— {{ nota }}</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if p.pecas %}<p><strong>Peças:</strong> {{ p.pecas }}</p>{% endif %}
+      {% if p.observacoes %}<p class="texto-livre">{{ p.observacoes }}</p>{% endif %}
+      {% if p.anexo_arquivo %}<p>📎 <a href="{{ url_for('preventivas.anexo', preventiva_id=p.id) }}" target="_blank" rel="noopener">{{ p.anexo_nome }}</a></p>{% endif %}
+      {% if p.chamado_id %}<p>Chamado aberto: <a href="{{ url_for('chamados.detalhe', chamado_id=p.chamado_id) }}">#{{ p.chamado_id }}</a></p>{% endif %}
+    </details>
+  </li>
+  {% endfor %}
+</ol>

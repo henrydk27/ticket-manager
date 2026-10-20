@@ -90,6 +90,19 @@
       <p class="dica">Escolhendo um usuário, o setor dele é preenchido. Entregue a um usuário, o equipamento
         passa de "Em estoque" para "Em uso" (só com setor, pode continuar em estoque); descartado, deixa de estar com qualquer pessoa ou setor.</p>
 
+      <h2 class="cartao-titulo espaco-secao">Preventiva</h2>
+      <div class="grade-campos">
+        <div>
+          <label for="preventiva_meses">Revisão preventiva</label>
+          <select id="preventiva_meses" name="preventiva_meses">
+            <option value="">Padrão do tipo{% if dados.get('tipo') in PLANOS %}: {{ (PLANOS[dados.get('tipo')].meses ~ ' meses') if PLANOS[dados.get('tipo')].meses else 'não faz' }}{% endif %}</option>
+            {% for n in MESES_OPCOES %}<option value="{{ n }}" {{ 'selected' if dados.get('preventiva_meses') == n|string }}>A cada {{ n }} {{ 'mês' if n == 1 else 'meses' }}</option>{% endfor %}
+            <option value="0" {{ 'selected' if dados.get('preventiva_meses') == '0' }}>Não faz preventiva</option>
+          </select>
+        </div>
+      </div>
+      <p class="dica">Só equipamentos "Em uso" entram nas preventivas. O checklist de cada tipo fica em Preventivas → Planos.</p>
+
       <div data-campos-computador>
         <h2 class="cartao-titulo espaco-secao">Configuração</h2>
         <div class="grade-campos">
@@ -121,6 +134,19 @@
 
   {% if eq %}
   <aside class="detalhe-lateral">
+    <div class="cartao">
+      <h2 class="cartao-titulo">Preventiva</h2>
+      {% if prev.estado == 'sem_plano' %}
+      <p class="suave">{{ 'Sem preventiva para este equipamento.' if not prev.meses else 'Só equipamentos "Em uso" entram nas preventivas.' }}</p>
+      {% else %}
+      <p><span class="badge badge-prev-{{ prev.estado }}">{{ {'atrasada': 'Atrasada', 'vence': 'Vence em breve', 'em_dia': 'Em dia'}[prev.estado] }}</span>
+        próxima em <strong>{{ prev.proxima|data }}</strong></p>
+      <p class="suave">A cada {{ prev.meses }} {{ 'mês' if prev.meses == 1 else 'meses' }} · última: {{ prev.ultima.data|data if prev.ultima else 'nunca' }}</p>
+      {% endif %}
+      <a class="botao botao-largo" href="{{ url_for('preventivas.registrar', equipamento_id=eq.id, voltar=request.path) }}">Registrar preventiva</a>
+      {% if eq.preventivas %}{% include "preventivas/_historico.html" %}{% endif %}
+    </div>
+
     <div class="cartao">
       <h2 class="cartao-titulo">Histórico</h2>
       <ol class="historico-equipamento">

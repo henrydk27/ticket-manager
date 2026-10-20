@@ -5,7 +5,7 @@ from datetime import date
 
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
 
-from .. import exportacao, inventario
+from .. import exportacao, inventario, preventivas
 from ..banco import db
 from ..modelos import SETORES, SITUACOES, TIPOS_COMPUTADOR, TIPOS_EQUIPAMENTO
 from ..seguranca import admin_obrigatorio, inventario_obrigatorio
@@ -15,6 +15,7 @@ bp = Blueprint("inventario", __name__, url_prefix="/inventario")
 
 CAMPOS_FORM = ["patrimonio", "tipo", "situacao", "setor", "usuario_id", "marca", "modelo", "numero_serie",
                "processador", "memoria", "armazenamento", "sistema_operacional", "licenca_windows", "hostname", "ip", "mac",
+               "preventiva_meses",
                "observacoes"]
 
 
@@ -39,7 +40,8 @@ def _filtros() -> inventario.Filtros:
 
 def _contexto_form(**extra):
     return dict(TIPOS=TIPOS_EQUIPAMENTO, TIPOS_COMPUTADOR=sorted(TIPOS_COMPUTADOR), SITUACOES=SITUACOES,
-                usuarios=inventario.usuarios_para_atribuir(db()), **extra)
+                usuarios=inventario.usuarios_para_atribuir(db()), PLANOS=preventivas.planos(db()),
+                MESES_OPCOES=preventivas.MESES_OPCOES, **extra)
 
 
 @bp.route("/")
@@ -104,7 +106,9 @@ def equipamento(equipamento_id: int):
     if dados is None:
         dados = {c: getattr(eq, c) for c in CAMPOS_FORM if c != "usuario_id"} | {"usuario_id": eq.usuario_id}
         dados = {k: ("" if v is None else str(v)) for k, v in dados.items()}
-    return render_template("inventario/equipamento.html", eq=eq, dados=dados, **_contexto_form())
+    ctx = _contexto_form()
+    return render_template("inventario/equipamento.html", eq=eq, dados=dados,
+                           prev=preventivas.situacao(eq, ctx["PLANOS"]), ESTADOS=preventivas.ESTADOS, **ctx)
 
 
 @bp.route("/<int:equipamento_id>/apagar", methods=["POST"])

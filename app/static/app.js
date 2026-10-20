@@ -178,6 +178,19 @@ document.addEventListener("DOMContentLoaded", () => {
     formatar();
   });
 
+  // Checklist da preventiva: marca OK nos itens ainda sem resposta
+  document.querySelectorAll("[data-marcar-ok]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      const form = botao.closest("form");
+      const grupos = new Set(Array.from(form.querySelectorAll(".checklist input[type=radio]")).map((r) => r.name));
+      grupos.forEach((nome) => {
+        if (form.querySelector(`input[name="${nome}"]:checked`)) return;
+        const ok = form.querySelector(`input[name="${nome}"][value="OK"]`);
+        if (ok) { ok.checked = true; ok.dispatchEvent(new Event("change", { bubbles: true })); }
+      });
+    });
+  });
+
   // Envia o formulário ao mudar o select (ex.: período do painel)
   document.querySelectorAll("select[data-enviar-ao-mudar]").forEach((sel) => {
     sel.addEventListener("change", () => sel.form.submit());

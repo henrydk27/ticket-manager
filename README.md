@@ -58,6 +58,22 @@ licença entram sozinhos ao digitar). Cada equipamento fica com um **usuário** 
 fez. A lista tem busca, filtros e **exportação para Excel**; o patrimônio é ordenado pelo
 número (2, 99, 100...).
 
+## Revisão preventiva
+
+Menu **Preventivas** (administradores e quem atende a T.I):
+
+- **Plano por tipo**: de quantos em quantos meses (ex.: computadores a cada 6, impressoras a cada
+  3, nobreaks a cada 12) e o **checklist** de cada tipo, editáveis em **Planos e checklists**.
+  Cada equipamento pode ter a própria periodicidade (ou "não faz") na ficha.
+- Só equipamentos **Em uso** entram. A próxima preventiva é a data da última (ou do cadastro,
+  se nunca teve) mais o período; a lista mostra **Atrasadas**, **Vencem em 15 dias** e **Em dia**.
+- **Registrar preventiva**: cada item do checklist como OK, Corrigido, Problema ou Não se aplica,
+  com anotação, peças trocadas, observações e uma foto/arquivo. Vai para o histórico do equipamento
+  e recalcula a próxima data.
+- Item com **Problema** abre um **chamado para a T.I** automaticamente.
+- **Relatório** das preventivas do período em Excel e **e-mail semanal** ao CPD com as pendentes
+  (`python manage.py avisar-preventivas`, agendado no cron; veja deploy/OPERACAO.md).
+
 ## Documentos
 
 Termos, regras, procedimentos e formulários internos da empresa. Supervisores e
@@ -118,12 +134,13 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/anexos.py` | validação e gravação dos anexos em disco |
 | `app/inventario.py`, `app/rotas/inventario.py` | inventário de TI: equipamentos, atribuição e histórico |
 | `app/documentos.py`, `app/rotas/documentos.py` | documentos internos (termos, regras, procedimentos) |
+| `app/preventivas.py`, `app/rotas/preventivas.py` | revisão preventiva: planos, vencimentos, registro e chamado automático |
 | `app/notificacoes.py`, `app/correio.py` | quem recebe cada aviso e o envio por SMTP em segundo plano |
 | `app/rotas/` | páginas: `auth` (login/cadastro), `conta`, `chamados`, `admin` (painel, relatório, usuários), `inventario` |
 | `app/templates/`, `app/static/` | HTML, CSS e JavaScript (sem build, sem CDN); `tema.js` aplica claro/escuro e a cor |
 | `app/temas.py` | temas de cor (cor × intensidade × claro/escuro); gera `static/cores.css` (`python -m app.temas`) |
 | `migracoes/` | versões da estrutura do banco (Alembic) |
-| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email` |
+| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-preventivas` |
 | `wsgi.py` | ponto de entrada do Gunicorn |
 | `deploy/` | serviço systemd, Nginx, backup e guia de instalação |
 | `tests/` | testes, dados de exemplo e modo demonstração |

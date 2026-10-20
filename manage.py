@@ -4,6 +4,7 @@
     python manage.py criar-admin LOGIN      cria um administrador (pede nome, setor e senha)
     python manage.py tornar-admin LOGIN     promove uma conta existente a administrador
     python manage.py testar-email DESTINO   envia um e-mail de teste (confere a seção [email])
+    python manage.py avisar-preventivas     manda ao CPD o resumo das preventivas pendentes (agendar no cron)
 """
 
 import argparse
@@ -81,6 +82,29 @@ def testar_email(destino: str) -> None:
     print("Enviado. Confira a caixa de entrada (e o spam) de", destino)
 
 
+def avisar_preventivas() -> None:
+    from app import create_app, notificacoes, preventivas
+    from app.config import carregar_config
+    from app.correio import enviar_sincrono
+
+    cfg = carregar_config()
+    if not cfg.email.ativo:
+        sys.exit("E-mail desligado: preencha host e remetente na seção [email] do config.ini.")
+    app = create_app(cfg)
+    with app.test_request_context(base_url=cfg.email.url_site or "http://localhost"):
+        s = app.extensions["sessoes"]()
+        try:
+            pendentes = preventivas.pendentes(s)
+            msg = notificacoes.mensagem_preventivas(pendentes)
+            if msg is None:
+                print("Nenhuma preventiva pendente: nada enviado.")
+                return
+            enviar_sincrono(cfg.email, msg)
+            print(f"Enviado para {msg.para}: {len(pendentes)} preventiva(s) pendente(s).")
+        finally:
+            s.close()
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Administração do Ticket Manager")
     sub = p.add_subparsers(dest="comando", required=True)
@@ -88,11 +112,13 @@ def main() -> None:
     sub.add_parser("criar-admin", help="cria um administrador").add_argument("login")
     sub.add_parser("tornar-admin", help="promove uma conta a administrador").add_argument("login")
     sub.add_parser("testar-email", help="envia um e-mail de teste").add_argument("destino")
+    sub.add_parser("avisar-preventivas", help="resumo semanal das preventivas pendentes ao CPD")
     a = p.parse_args()
     {"migrar": lambda: migrar(),
      "criar-admin": lambda: criar_admin(a.login),
      "tornar-admin": lambda: tornar_admin(a.login),
-     "testar-email": lambda: testar_email(a.destino)}[a.comando]()
+     "testar-email": lambda: testar_email(a.destino),
+     "avisar-preventivas": lambda: avisar_preventivas()}[a.comando]()
 
 
 if __name__ == "__main__":

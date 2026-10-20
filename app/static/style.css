@@ -431,3 +431,31 @@ a.usuario-nome { color: var(--texto); }
 }
 .status-rapido:hover { border-color: currentColor; }
 .status-rapido option { background: var(--superficie); color: var(--texto); font-weight: 400; }
+
+/* ─── Preventivas ──────────────────────────────────────────────────────── */
+.badge-prev-atrasada { background: var(--erro-fundo); color: var(--erro-texto); }
+.badge-prev-vence { background: var(--st-andamento-f); color: var(--st-andamento-t); }
+.badge-prev-em_dia { background: var(--ok-fundo); color: var(--ok-texto); }
+.badge-item-ok { background: var(--ok-fundo); color: var(--ok-texto); }
+.badge-item-corrigido { background: var(--st-aberto-f); color: var(--st-aberto-t); }
+.badge-item-problema { background: var(--erro-fundo); color: var(--erro-texto); }
+.badge-item-na { background: var(--st-fechado-f); color: var(--st-fechado-t); }
+.texto-problema { color: var(--perigo); font-weight: 600; }
+.espaco-topo { margin-top: 28px; }
+.lista-preventivas { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; font-size: .9rem; }
+.lista-preventivas summary { cursor: pointer; }
+.lista-preventivas summary .subtitulo { display: block; margin-left: 1em; }
+.itens-preventiva { list-style: none; padding: 6px 0 0 1em; margin: 0; display: grid; gap: 4px; }
+.itens-preventiva .badge { min-width: 86px; text-align: center; }
+.checklist td:first-child { min-width: 220px; }
+.checklist td input[type="radio"] { width: 18px; height: 18px; }
+.checklist td input:not([type="radio"]) { width: 100%; min-width: 160px; }
+.planos-preventiva { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.plano { display: grid; gap: 8px; align-content: start; }
+.plano-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.plano-topo .cartao-titulo { margin: 0; }
+.plano-meses { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: normal; font-size: .9rem; white-space: nowrap; }
+.plano-meses input { width: 70px; }
+.plano textarea { width: 100%; font-size: .9rem; }
+.checklist-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.checklist-topo .cartao-titulo { margin: 0; }

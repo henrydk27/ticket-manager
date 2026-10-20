@@ -23,7 +23,7 @@ CAMPOS_TEXTO = {
     "hostname": ("Hostname", 100),
 }
 ROTULOS = {"patrimonio": "Patrimônio", "tipo": "Tipo", "ip": "IP", "mac": "MAC",
-           "licenca_windows": "Licença do Windows",
+           "licenca_windows": "Licença do Windows", "preventiva_meses": "Preventiva",
            "observacoes": "Observações", **{k: v[0] for k, v in CAMPOS_TEXTO.items()}}
 
 
@@ -109,7 +109,19 @@ CAMPOS_CLONADOS = ("tipo", "marca", "modelo", "processador", "memoria", "armazen
 def dados_para_clonar(eq: Equipamento) -> dict:
     dados = {c: getattr(eq, c) or "" for c in CAMPOS_CLONADOS}
     dados["situacao"] = SITUACAO_ESTOQUE        # equipamento novo do lote começa em estoque
+    dados["preventiva_meses"] = "" if eq.preventiva_meses is None else str(eq.preventiva_meses)
     return dados
+
+
+def _preventiva_meses(valor) -> int | None:
+    """"" = segue o plano do tipo; "0" = não faz preventiva; N = a cada N meses."""
+    from .preventivas import MESES_OPCOES
+    valor = str(valor or "").strip()
+    if not valor:
+        return None
+    if not valor.isdigit() or (int(valor) != 0 and int(valor) not in MESES_OPCOES):
+        raise ErroValidacao("Preventiva: escolha uma das opções da lista.")
+    return int(valor)
 
 
 # ─── cadastro e edição ──────────────────────────────────────────────────────
@@ -176,6 +188,7 @@ def _validar(s: Session, dados: dict, atual: Equipamento | None) -> dict:
     valores = {"patrimonio": patrimonio, "tipo": dados["tipo"], "situacao": dados["situacao"],
                "setor": setor, "usuario": usuario, "ip": _ip(dados.get("ip")), "mac": _mac(dados.get("mac")),
                "licenca_windows": _licenca(dados.get("licenca_windows")),
+               "preventiva_meses": _preventiva_meses(dados.get("preventiva_meses")),
                "observacoes": (dados.get("observacoes") or "").strip() or None}
     for campo, (rotulo, maximo) in CAMPOS_TEXTO.items():
         valores[campo] = _texto(dados, campo, rotulo, maximo)
@@ -233,8 +246,12 @@ def salvar(s: Session, atual: Equipamento | None, dados: dict, autor: Usuario) -
 
 
 def apagar(s: Session, eq: Equipamento) -> None:
+    from . import anexos as arquivos_disco
+    arquivos = [p.anexo_arquivo for p in eq.preventivas if p.anexo_arquivo]
     s.delete(eq)
     s.commit()
+    for nome in arquivos:              # fotos/arquivos das preventivas
+        arquivos_disco.remover(nome)
 
 
 def usuarios_para_atribuir(s: Session) -> list[Usuario]:

@@ -68,6 +68,19 @@ mesmo lote, **Clonar** copia tipo, modelo e configuração. A lista exporta para
 
 ![Ficha do equipamento](prints/07-equipamento.png)
 
+### Revisão preventiva
+
+Cada tipo de equipamento tem um plano (de quantos em quantos meses e um checklist), e a tela
+**Preventivas** mostra o que está atrasado, o que vence nos próximos 15 dias e o que está em dia.
+Na preventiva, o técnico marca cada item como OK, Corrigido, Problema ou Não se aplica, anota as
+peças trocadas e pode anexar uma foto. Item com **problema abre um chamado para a T.I**
+automaticamente, tudo fica no histórico do equipamento e o CPD recebe **toda semana um e-mail**
+com as preventivas pendentes. O relatório do período sai em Excel.
+
+![Preventivas](prints/15-preventivas.png)
+
+![Registrar preventiva](prints/16-preventiva-registrar.png)
+
 ### Documentos internos
 
 Termos, regras, procedimentos e formulários da empresa num lugar só. Supervisores e
@@ -125,7 +138,7 @@ Navegador  →  Nginx  →  Gunicorn + Flask (Python)  →  PostgreSQL
 - Senhas guardadas com hash e bloqueio após tentativas erradas seguidas
 - Proteção CSRF em todos os formulários e política de conteúdo restritiva (CSP)
 - Backup diário do banco e dos anexos, guardado por 14 dias
-- 85 testes automáticos cobrindo regras, permissões e telas
+- 100 testes automáticos cobrindo regras, permissões e telas
 
 Instalação e operação: [deploy/INSTALACAO-UBUNTU.md](../deploy/INSTALACAO-UBUNTU.md) e
 [deploy/OPERACAO.md](../deploy/OPERACAO.md).

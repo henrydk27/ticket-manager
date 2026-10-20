@@ -86,6 +86,46 @@ Cada cadastro, troca de usuário, setor ou situação e edição fica no **Hist�
 com data e quem fez. Só o administrador pode apagar um equipamento de vez (prefira "Descartado").
 Depois de salvar, o sistema volta para a lista. A coluna Patrimônio ordena pelo número (2, 99, 100...).
 
+## Revisão preventiva
+
+Menu **Preventivas**, para **administradores** e quem **atende a T.I**.
+
+| Situação | O que fazer |
+|---|---|
+| Ver o que está vencido | **Preventivas** → clique em **Atrasadas** ou **Vencem em 15 dias** (filtre por setor ou tipo) |
+| Fazer a preventiva | **Registrar** na linha do equipamento → marque cada item (ou **Marcar todos como OK** e ajuste o que não estava) → peças, observações e foto, se quiser → **Registrar preventiva** |
+| Encontrou um problema | Marque o item como **Problema** e escreva a anotação: o sistema abre um **chamado para a T.I** com os detalhes |
+| Mudar a periodicidade ou o checklist de um tipo | **Preventivas** → **Planos e checklists** (só administrador); 0 meses = o tipo não tem preventiva |
+| Um equipamento com período diferente | Ficha do equipamento → **Revisão preventiva** → escolha o período ou "Não faz preventiva" |
+| Relatório | **Preventivas** → **Relatório de preventivas feitas** → período → **Baixar Excel** |
+
+Só equipamentos **Em uso** entram nas preventivas. A primeira vence um período depois do cadastro;
+as seguintes, um período depois da última feita. Tudo fica no histórico do equipamento.
+
+### E-mail semanal das preventivas
+
+Agende o resumo semanal ao CPD no cron do usuário do serviço:
+
+```bash
+sudo crontab -u ticketapp -e
+```
+
+Adicione a linha abaixo e salve (toda segunda-feira às 7h):
+
+```
+0 7 * * 1 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-preventivas
+```
+
+Para testar na hora:
+
+```bash
+cd /opt/ticket-manager
+sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-preventivas
+```
+
+O e-mail vai para o `avisos_cpd` do `config.ini` (em branco, para o `remetente`) e só é enviado
+quando há preventivas atrasadas ou vencendo nos próximos 15 dias.
+
 ## Documentos
 
 Menu **Documentos**, visível para **supervisores e administradores**: termos, regras, procedimentos

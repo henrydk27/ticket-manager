@@ -1,9 +1,10 @@
 """Tabelas do sistema (SQLAlchemy). Mudanças de estrutura: ver migracoes/ (Alembic)."""
 
+import json
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
 # ─── valores fixos ──────────────────────────────────────────────────────────
@@ -37,6 +38,35 @@ TIPOS_COMPUTADOR = {"Desktop", "Notebook", "Servidor"}  # mostram os campos de c
 SITUACAO_USO, SITUACAO_ESTOQUE, SITUACAO_MANUTENCAO, SITUACAO_DESCARTADO = (
     "Em uso", "Em estoque", "Em manutenção", "Descartado")
 SITUACOES = [SITUACAO_USO, SITUACAO_ESTOQUE, SITUACAO_MANUTENCAO, SITUACAO_DESCARTADO]
+
+# Revisão preventiva dos ativos
+SETOR_TI = "T.I"                      # quem atende a T.I registra preventivas e recebe os chamados delas
+RESULTADO_OK, RESULTADO_CORRIGIDO, RESULTADO_PROBLEMA, RESULTADO_NA = (
+    "OK", "Corrigido", "Problema", "Não se aplica")
+RESULTADOS_ITEM = [RESULTADO_OK, RESULTADO_CORRIGIDO, RESULTADO_PROBLEMA, RESULTADO_NA]
+_ITENS_COMPUTADOR = [
+    "Limpeza interna e das saídas de ar", "Pasta térmica (trocar se necessário)", "Windows Update",
+    "Antivírus atualizado", "Saúde do disco (SMART) e espaço livre", "Temperatura e ventoinhas",
+    "Cabos, conectores e periféricos", "Backup dos dados do usuário",
+]
+# tipo: (a cada quantos meses, itens do checklist) — o admin ajusta em Preventivas → Planos
+PLANOS_PADRAO = {
+    "Desktop": (6, _ITENS_COMPUTADOR),
+    "Notebook": (6, _ITENS_COMPUTADOR + ["Bateria e carregador", "Teclado, tela e dobradiças"]),
+    "Servidor": (3, ["Limpeza interna e ventilação", "Atualizações do sistema", "Saúde dos discos / RAID",
+                     "Espaço livre", "Backup executado e testado", "Logs e serviços", "Temperatura"]),
+    "TV/Monitor": (12, ["Limpeza da tela e ventilação", "Cabos e conectores", "Imagem sem falhas"]),
+    "Impressora": (3, ["Limpeza interna", "Roletes de tração", "Toner / cilindro", "Contador de páginas anotado",
+                       "Teste de impressão"]),
+    "Celular": (12, ["Atualização do sistema", "Bateria", "Tela e carcaça", "Backup"]),
+    "Tablet": (12, ["Atualização do sistema", "Bateria", "Tela e carcaça", "Backup"]),
+    "Telefone IP": (12, ["Funcionamento e áudio", "Cabos", "Firmware"]),
+    "Nobreak": (12, ["Teste de bateria e autonomia", "Data da última troca de bateria", "Limpeza e ventilação",
+                     "Carga ligada dentro da capacidade"]),
+    "Switch/Roteador": (12, ["Limpeza e ventilação", "Cabos e portas", "Firmware", "Portas com erro"]),
+    "Periférico": (0, []),
+    "Outro": (0, []),
+}
 
 # Documentos internos (termos, regras...)
 CATEGORIAS_DOCUMENTO = ["Termos", "Regras e políticas", "Procedimentos", "Formulários", "Outros"]
@@ -133,6 +163,11 @@ class Usuario(Base):
     def cuida_inventario(self) -> bool:
         """Só administradores acessam o inventário."""
         return self.is_admin
+
+    @property
+    def faz_preventiva(self) -> bool:
+        """Registra preventivas: administradores e quem atende a T.I."""
+        return self.is_admin or (self.ativo and self.atende and self.setor == SETOR_TI)
 
 
 class Chamado(Base):
@@ -250,6 +285,8 @@ class Equipamento(Base):
     armazenamento: Mapped[str | None] = mapped_column(String(100))
     sistema_operacional: Mapped[str | None] = mapped_column(String(100))
     licenca_windows: Mapped[str | None] = mapped_column(String(29))  # XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
+    # Preventiva: None = usa o plano do tipo; 0 = não faz; N = a cada N meses
+    preventiva_meses: Mapped[int | None] = mapped_column(Integer)
     # rede
     hostname: Mapped[str | None] = mapped_column(String(100))
     ip: Mapped[str | None] = mapped_column(String(45))
@@ -262,6 +299,9 @@ class Equipamento(Base):
     historico: Mapped[list["MovimentoEquipamento"]] = relationship(
         back_populates="equipamento", cascade="all, delete-orphan", passive_deletes=True,
         order_by="MovimentoEquipamento.momento.desc(), MovimentoEquipamento.id.desc()")
+    preventivas: Mapped[list["Preventiva"]] = relationship(
+        back_populates="equipamento", cascade="all, delete-orphan", passive_deletes=True,
+        order_by="Preventiva.data.desc(), Preventiva.id.desc()")
 
     @validates("patrimonio")
     def _ao_gravar_patrimonio(self, _chave, valor):
@@ -310,3 +350,51 @@ class Documento(Base):
     atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, onupdate=agora)
 
     autor: Mapped[Usuario | None] = relationship(lazy="joined")
+
+
+class PlanoPreventiva(Base):
+    """Plano de preventiva de um tipo de equipamento (sem linha aqui, vale PLANOS_PADRAO)."""
+    __tablename__ = "planos_preventiva"
+
+    tipo: Mapped[str] = mapped_column(String(30), primary_key=True)
+    meses: Mapped[int] = mapped_column(Integer, default=0)     # 0 = esse tipo não tem preventiva
+    itens: Mapped[str] = mapped_column(Text, default="")       # um item do checklist por linha
+
+
+class Preventiva(Base):
+    """Revisão preventiva feita num equipamento, com o checklist preenchido."""
+    __tablename__ = "preventivas"
+    __table_args__ = (Index("ix_preventivas_equipamento", "equipamento_id"), Index("ix_preventivas_data", "data"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    equipamento_id: Mapped[int] = mapped_column(ForeignKey("equipamentos.id", ondelete="CASCADE"))
+    data: Mapped[date] = mapped_column(Date)
+    tecnico_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    resultados: Mapped[str] = mapped_column(Text, default="[]")   # JSON: [[item, resultado, nota], ...]
+    pecas: Mapped[str | None] = mapped_column(Text)
+    observacoes: Mapped[str | None] = mapped_column(Text)
+    chamado_id: Mapped[int | None] = mapped_column(ForeignKey("chamados.id", ondelete="SET NULL"))
+    # anexo opcional (ex.: foto), gravado na pasta dos anexos
+    anexo_nome: Mapped[str | None] = mapped_column(String(255))
+    anexo_arquivo: Mapped[str | None] = mapped_column(String(100), unique=True)
+    anexo_tipo: Mapped[str | None] = mapped_column(String(100))
+    anexo_tamanho: Mapped[int | None] = mapped_column(Integer)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+    equipamento: Mapped[Equipamento] = relationship(back_populates="preventivas")
+    tecnico: Mapped[Usuario | None] = relationship(lazy="joined")
+    chamado: Mapped[Chamado | None] = relationship()
+
+    @property
+    def itens(self) -> list[tuple[str, str, str]]:
+        try:
+            return [(i[0], i[1], i[2] if len(i) > 2 else "") for i in json.loads(self.resultados or "[]")]
+        except (ValueError, TypeError, IndexError):
+            return []
+
+    @property
+    def problemas(self) -> list[tuple[str, str, str]]:
+        return [i for i in self.itens if i[1] == RESULTADO_PROBLEMA]
+
+    def contar(self, resultado: str) -> int:
+        return sum(1 for i in self.itens if i[1] == resultado)

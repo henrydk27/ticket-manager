@@ -302,6 +302,9 @@ def apagar_usuario(s: Session, alvo: Usuario, ator: Usuario) -> None:
         motivos.append("anexos")
     if s.scalar(select(func.count(Equipamento.id)).where(Equipamento.usuario_id == alvo.id)):
         motivos.append("equipamentos")
+    from .modelos import Preventiva
+    if s.scalar(select(func.count(Preventiva.id)).where(Preventiva.tecnico_id == alvo.id)):
+        motivos.append("preventivas")
     if motivos:
         raise ErroValidacao(f"{alvo.nome} tem {', '.join(motivos)} no sistema e não pode ser apagado. "
                             "A conta continua desativada (sem acesso).")

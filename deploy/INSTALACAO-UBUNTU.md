@@ -152,6 +152,30 @@ Para restaurar um backup, veja [OPERACAO.md](OPERACAO.md#restaurar-um-backup).
 **Os backups ficam no mesmo disco do servidor.** Copie-os regularmente para outro lugar
 (outro computador, HD externo ou nuvem) — se o disco falhar, eles vão junto.
 
+## 9. Aviso semanal das preventivas (opcional)
+
+Para o CPD receber toda semana as preventivas atrasadas e vencendo:
+
+```bash
+sudo crontab -u ticketapp -e
+```
+
+Adicione a linha abaixo e salve (toda segunda-feira às 7h):
+
+```
+0 7 * * 1 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-preventivas
+```
+
+Para testar na hora:
+
+```bash
+cd /opt/ticket-manager
+sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-preventivas
+```
+
+O e-mail vai para o `avisos_cpd` do `config.ini` (em branco, para o `remetente`) e só é enviado
+quando há preventivas atrasadas ou vencendo nos próximos 15 dias.
+
 ## HTTPS (recomendado se houver acesso de fora da rede)
 
 Com um domínio apontando para o servidor:

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block titulo %}Preventiva {{ eq.patrimonio }}{% endblock %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ voltar or url_for('preventivas.lista') }}">‹ {{ 'Ficha do equipamento' if voltar.startswith('/inventario') else 'Preventivas' }}</a></p>
+<div class="cabecalho">
+  <div>
+    <p class="suave numero">{{ eq.tipo }} · {{ eq.descricao }}{% if eq.setor %} · {{ eq.setor }}{% endif %}{% if eq.usuario %} · {{ eq.usuario.nome }}{% endif %}</p>
+    <h1>Preventiva do patrimônio {{ eq.patrimonio }}</h1>
+  </div>
+  {% if usuario.cuida_inventario %}
+  <div class="acoes-cabecalho">
+    <a class="botao" href="{{ url_for('inventario.equipamento', equipamento_id=eq.id) }}">Ficha do equipamento</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="detalhe-grade">
+  <section class="detalhe-principal">
+    <form class="cartao formulario formulario-largo" method="post" enctype="multipart/form-data"
+          action="{{ url_for('preventivas.registrar', equipamento_id=eq.id) }}" data-avisar-alteracoes>
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="voltar" value="{{ voltar }}">
+
+      <div class="grade-campos">
+        <div>
+          <label for="data">Data da preventiva</label>
+          <input id="data" name="data" type="date" value="{{ form.data or hoje }}" max="{{ hoje }}" required>
+        </div>
+      </div>
+
+      {% if plano and plano.itens %}
+      <div class="checklist-topo espaco-secao">
+        <h2 class="cartao-titulo">Checklist</h2>
+        <button type="button" class="botao botao-pequeno" data-marcar-ok>Marcar todos como OK</button>
+      </div>
+      <p class="dica">Marque cada item. <strong>Problema</strong> abre um chamado para a T.I automaticamente;
+        <strong>Corrigido</strong> é o que já foi resolvido na hora.</p>
+      <div class="tabela-rolagem">
+      <table class="tabela checklist">
+        <thead><tr><th>Item</th>{% for r in RESULTADOS %}<th class="centro">{{ r }}</th>{% endfor %}<th>Anotação</th></tr></thead>
+        <tbody>
+          {% for item in plano.itens %}
+          {% set i = loop.index0 %}
+          {% set atual = form.get('r' ~ i, '') %}
+          <tr>
+            <td>{{ item }}</td>
+            {% for r in RESULTADOS %}
+            <td class="centro"><input type="radio" name="r{{ i }}" value="{{ r }}" aria-label="{{ item }}: {{ r }}"
+                 {{ 'checked' if atual == r }} required></td>
+            {% endfor %}
+            <td><input name="n{{ i }}" value="{{ form.get('n' ~ i, '') }}" maxlength="300" aria-label="Anotação: {{ item }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <p class="aviso aviso-info">Este tipo de equipamento não tem checklist{% if usuario.is_admin %}
+        (configure em <a href="{{ url_for('preventivas.planos') }}">Planos e checklists</a>){% endif %}.
+        Descreva o que foi feito nas observações.</p>
+      {% endif %}
+
+      <label for="pecas">Peças trocadas <span class="suave">(opcional)</span></label>
+      <input id="pecas" name="pecas" value="{{ form.pecas or '' }}" maxlength="2000" placeholder="Ex.: fonte 500 W, pasta térmica">
+
+      <label for="observacoes">Observações <span class="suave">{{ '(opcional)' if plano and plano.itens }}</span></label>
+      <textarea id="observacoes" name="observacoes" rows="3" maxlength="4000">{{ form.observacoes or '' }}</textarea>
+
+      <label for="anexo">Foto ou arquivo <span class="suave">(opcional)</span></label>
+      <input id="anexo" name="anexo" type="file" data-lista-arquivos>
+      <ul class="lista-arquivos" aria-live="polite"></ul>
+
+      <div class="acoes">
+        <a class="botao" href="{{ voltar or url_for('preventivas.lista') }}">Cancelar</a>
+        <button class="botao botao-primario" type="submit">Registrar preventiva</button>
+      </div>
+    </form>
+  </section>
+
+  <aside class="detalhe-lateral">
+    <div class="cartao">
+      <h2 class="cartao-titulo">Situação</h2>
+      {% if prev.estado == 'sem_plano' %}
+      <p class="suave">{{ 'Sem preventiva programada.' if not prev.meses else 'Só equipamentos "Em uso" entram nas preventivas.' }}</p>
+      {% else %}
+      <p><span class="badge badge-prev-{{ prev.estado }}">{{ {'atrasada': 'Atrasada', 'vence': 'Vence em breve', 'em_dia': 'Em dia'}[prev.estado] }}</span>
+        próxima em <strong>{{ prev.proxima|data }}</strong></p>
+      <p class="suave">A cada {{ prev.meses }} {{ 'mês' if prev.meses == 1 else 'meses' }}. Ao registrar, a próxima é recalculada.</p>
+      {% endif %}
+    </div>
+    {% if eq.preventivas %}
+    <div class="cartao">
+      <h2 class="cartao-titulo">Preventivas anteriores</h2>
+      {% include "preventivas/_historico.html" %}
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

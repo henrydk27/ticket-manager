@@ -7,6 +7,7 @@ Regras: ninguém recebe aviso da própria ação, e só recebe quem tem e-mail e
 - mudança de status     → solicitante (encerrado: com link para avaliar)
 - pedido de nova senha  → CPD (config avisos_cpd; vazio = remetente)
 - conta nova (login)    → CPD
+- preventivas pendentes → CPD (resumo semanal: python manage.py avisar-preventivas)
 """
 
 from flask import current_app, render_template, request, url_for
@@ -112,3 +113,24 @@ def conta_criada(u: Usuario) -> None:
                 _dados_conta(u, u.criado_em),
                 "Confira se o nome e o setor estão certos e ajuste o perfil e \"Atende chamados\", se for o caso. "
                 "Se a conta não for de alguém da empresa, desative-a.")
+
+
+def mensagem_preventivas(pendentes: list) -> "correio.Mensagem | None":
+    """Resumo das preventivas atrasadas e que vencem em breve (None = nada a avisar ou sem destino)."""
+    cfg = current_app.extensions["email"]
+    destino = cfg.avisos_cpd or cfg.remetente
+    if not pendentes or not destino:
+        return None
+    atrasadas = [x for x in pendentes if x.estado == "atrasada"]
+    proximas = [x for x in pendentes if x.estado != "atrasada"]
+    dados = dict(atrasadas=atrasadas, proximas=proximas, link=_link("preventivas.lista"),
+                 cid_marca=correio.CID_MARCA)
+    partes = []
+    if atrasadas:
+        partes.append(f"{len(atrasadas)} atrasada{'s' if len(atrasadas) > 1 else ''}")
+    if proximas:
+        partes.append(f"{len(proximas)} vencendo")
+    return correio.Mensagem(
+        para=destino, assunto="[Ticket Manager] Preventivas: " + " e ".join(partes),
+        texto=render_template("email/preventivas.txt", **dados),
+        html=render_template("email/preventivas.html", **dados))

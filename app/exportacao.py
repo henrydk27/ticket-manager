@@ -134,3 +134,43 @@ def gerar_excel_inventario(equipamentos: list) -> io.BytesIO:
     wb.save(buf)
     buf.seek(0)
     return buf
+
+
+# ─── preventivas ────────────────────────────────────────────────────────────
+
+COLUNAS_PREVENTIVAS = [
+    ("Data", lambda p: formatos.data(p.data), 12),
+    ("Patrimônio", lambda p: p.equipamento.patrimonio, 14),
+    ("Tipo", lambda p: p.equipamento.tipo, 14),
+    ("Equipamento", lambda p: p.equipamento.descricao, 24),
+    ("Setor", lambda p: p.equipamento.setor, 14),
+    ("Usuário", lambda p: p.equipamento.usuario.nome if p.equipamento.usuario else None, 20),
+    ("Técnico", lambda p: p.tecnico.nome if p.tecnico else None, 20),
+    ("OK", lambda p: p.contar("OK"), 6),
+    ("Corrigidos", lambda p: p.contar("Corrigido"), 10),
+    ("Problemas", lambda p: p.contar("Problema"), 10),
+    ("Itens com problema", lambda p: "; ".join(i + (f" ({n})" if n else "") for i, _r, n in p.problemas), 40),
+    ("Itens corrigidos", lambda p: "; ".join(i for i, r, _n in p.itens if r == "Corrigido"), 40),
+    ("Peças", lambda p: p.pecas, 24),
+    ("Observações", lambda p: p.observacoes, 40),
+    ("Chamado", lambda p: f"#{p.chamado_id}" if p.chamado_id else None, 10),
+]
+
+
+def gerar_excel_preventivas(lista: list) -> io.BytesIO:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Preventivas"
+    fundo, fonte = PatternFill("solid", fgColor=AZUL), Font(bold=True, color="FFFFFF")
+    for col, (titulo, _v, largura) in enumerate(COLUNAS_PREVENTIVAS, start=1):
+        cel = ws.cell(row=1, column=col, value=titulo)
+        cel.fill, cel.font = fundo, fonte
+        ws.column_dimensions[cel.column_letter].width = largura
+    for p in lista:
+        ws.append([(lambda v: "" if v is None else v)(valor(p)) for _t, valor, _l in COLUNAS_PREVENTIVAS])
+    ws.freeze_panes = "C2"
+    ws.auto_filter.ref = ws.dimensions
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf

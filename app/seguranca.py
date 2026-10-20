@@ -68,6 +68,17 @@ def inventario_obrigatorio(view):
     return wrapper
 
 
+def preventiva_obrigatorio(view):
+    """Administradores e quem atende a T.I (registro de preventivas)."""
+    @wraps(view)
+    @login_obrigatorio
+    def wrapper(*args, **kwargs):
+        if not g.usuario.faz_preventiva:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapper
+
+
 def supervisor_obrigatorio(view):
     """Supervisores e administradores (Relatório e Documentos)."""
     @wraps(view)

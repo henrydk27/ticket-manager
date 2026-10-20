@@ -32,6 +32,9 @@
       {% if usuario.cuida_inventario %}
       <a href="{{ url_for('inventario.lista') }}" class="{{ 'ativo' if ep.startswith('inventario.') }}">Inventário</a>
       {% endif %}
+      {% if usuario.faz_preventiva %}
+      <a href="{{ url_for('preventivas.lista') }}" class="{{ 'ativo' if ep.startswith('preventivas.') }}">Preventivas</a>
+      {% endif %}
       {% if usuario.is_admin %}
       <a href="{{ url_for('admin.usuarios') }}" class="{{ 'ativo' if ep.startswith('admin.usuario') }}">Usuários{% if pedidos_senha %} <span class="contador-menu" title="Pedidos de nova senha">{{ pedidos_senha }}</span>{% endif %}</a>
       {% endif %}
