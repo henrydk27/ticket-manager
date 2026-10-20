@@ -23,6 +23,7 @@ CAMPOS_TEXTO = {
     "hostname": ("Hostname", 100),
 }
 ROTULOS = {"patrimonio": "Patrimônio", "tipo": "Tipo", "ip": "IP", "mac": "MAC",
+           "licenca_windows": "Licença do Windows",
            "observacoes": "Observações", **{k: v[0] for k, v in CAMPOS_TEXTO.items()}}
 
 
@@ -130,6 +131,17 @@ def _ip(valor: str) -> str | None:
         raise ErroValidacao(f"IP inválido: {valor}") from None
 
 
+def _licenca(valor: str) -> str | None:
+    """Chave de produto do Windows: 25 letras/números, gravada como XXXXX-XXXXX-XXXXX-XXXXX-XXXXX."""
+    letras = re.sub(r"[^0-9A-Za-z]", "", valor or "").upper()
+    if not letras:
+        return None
+    if len(letras) != 25:
+        raise ErroValidacao("Licença do Windows: a chave tem 25 letras e números "
+                            "(ex.: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX). Em branco se for licença digital.")
+    return "-".join(letras[i:i + 5] for i in range(0, 25, 5))
+
+
 def _mac(valor: str) -> str | None:
     digitos = re.sub(r"[^0-9A-Fa-f]", "", valor or "")
     if not digitos:
@@ -163,6 +175,7 @@ def _validar(s: Session, dados: dict, atual: Equipamento | None) -> dict:
 
     valores = {"patrimonio": patrimonio, "tipo": dados["tipo"], "situacao": dados["situacao"],
                "setor": setor, "usuario": usuario, "ip": _ip(dados.get("ip")), "mac": _mac(dados.get("mac")),
+               "licenca_windows": _licenca(dados.get("licenca_windows")),
                "observacoes": (dados.get("observacoes") or "").strip() or None}
     for campo, (rotulo, maximo) in CAMPOS_TEXTO.items():
         valores[campo] = _texto(dados, campo, rotulo, maximo)

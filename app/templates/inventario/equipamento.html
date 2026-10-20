@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block titulo %}{{ ('Equipamento ' ~ eq.patrimonio) if eq else 'Novo equipamento' }}{% endblock %}
 
-{% macro campo(nome, rotulo, max=100, dica='', tipo='text') %}
+{% macro campo(nome, rotulo, max=100, dica='', tipo='text', mascara='') %}
   <div>
     <label for="{{ nome }}">{{ rotulo }}</label>
     <input id="{{ nome }}" name="{{ nome }}" type="{{ tipo }}" maxlength="{{ max }}" value="{{ dados.get(nome) or '' }}"
-           {% if dica %}placeholder="{{ dica }}"{% endif %}>
+           {% if dica %}placeholder="{{ dica }}"{% endif %}
+           {% if mascara %}data-mascara="{{ mascara }}" autocapitalize="characters" autocomplete="off" spellcheck="false"{% endif %}>
   </div>
 {% endmacro %}
 
@@ -96,14 +97,16 @@
           {{ campo('memoria', 'Memória', 50, 'Ex.: 16 GB') }}
           {{ campo('armazenamento', 'Armazenamento', 100, 'Ex.: SSD 512 GB') }}
           {{ campo('sistema_operacional', 'Sistema operacional', 100, 'Ex.: Windows 11 Pro') }}
+          {{ campo('licenca_windows', 'Licença do Windows', 29, 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX', mascara='licenca') }}
         </div>
+        <p class="dica">Licença: a chave de 25 caracteres (os traços entram sozinhos). Em branco se for licença digital.</p>
       </div>
 
       <h2 class="cartao-titulo espaco-secao">Rede</h2>
       <div class="grade-campos">
         {{ campo('hostname', 'Hostname', 100, 'Ex.: FISCAL-01') }}
         {{ campo('ip', 'IP', 45, 'Ex.: 192.168.0.25') }}
-        {{ campo('mac', 'MAC', 17, 'Ex.: AA:BB:CC:DD:EE:FF') }}
+        {{ campo('mac', 'MAC', 17, 'Ex.: AA:BB:CC:DD:EE:FF', mascara='mac') }}
       </div>
 
       <label for="observacoes">Observações</label>

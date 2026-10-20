@@ -108,6 +108,7 @@ COLUNAS_INVENTARIO = [
     ("Memória", lambda e: e.memoria, 10),
     ("Armazenamento", lambda e: e.armazenamento, 16),
     ("Sistema operacional", lambda e: e.sistema_operacional, 20),
+    ("Licença do Windows", lambda e: e.licenca_windows, 32),
     ("Hostname", lambda e: e.hostname, 16),
     ("IP", lambda e: e.ip, 15),
     ("MAC", lambda e: e.mac, 18),

@@ -60,7 +60,7 @@ fechado na segunda às 8h levou 2 horas. O relatório do período sai em **Excel
 ### Inventário de TI
 
 Equipamentos cadastrados com o **número de patrimônio** que já está na etiqueta, com configuração
-do computador e dados de rede (hostname, IP, MAC). Cada um fica com um usuário, um setor ou em
+do computador (inclusive a licença do Windows) e dados de rede (hostname, IP, MAC). Cada um fica com um usuário, um setor ou em
 estoque, e toda troca vai para o histórico, com data e quem fez. Para vários equipamentos do
 mesmo lote, **Clonar** copia tipo, modelo e configuração. A lista exporta para Excel.
 

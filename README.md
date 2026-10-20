@@ -52,7 +52,8 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 
 Só para administradores: equipamentos cadastrados com o **nº de
 patrimônio que já têm** (editável e único), tipo, marca/modelo, série, configuração do
-computador e rede (hostname, IP, MAC). Cada equipamento fica com um **usuário** e/ou um
+computador (com a **licença do Windows**) e rede (hostname, IP, MAC; os ":" do MAC e os "-" da
+licença entram sozinhos ao digitar). Cada equipamento fica com um **usuário** e/ou um
 **setor**, e toda troca de usuário, setor ou situação vai para o **histórico**, com data e quem
 fez. A lista tem busca, filtros e **exportação para Excel**; o patrimônio é ordenado pelo
 número (2, 99, 100...).

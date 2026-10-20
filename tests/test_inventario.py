@@ -31,7 +31,8 @@ def cadastrar(client, **campos):
 def editar(client, e, **campos):
     dados = {"csrf": csrf(client, f"/inventario/{e.id}")}
     for c in ("patrimonio", "tipo", "situacao", "setor", "marca", "modelo", "numero_serie", "processador",
-              "memoria", "armazenamento", "sistema_operacional", "hostname", "ip", "mac", "observacoes"):
+              "memoria", "armazenamento", "sistema_operacional", "licenca_windows", "hostname", "ip", "mac",
+              "observacoes"):
         dados[c] = getattr(e, c) or ""
     dados["usuario_id"] = e.usuario_id or ""
     dados.update(campos)
@@ -105,7 +106,7 @@ def test_salvar_sem_mudanca_nao_gera_historico(client, s, contas):
 def test_lista_filtros_e_busca(client, s, contas):
     entrar(client, "admin", "admin123")
     cadastrar(client, usuario_id=uid(s, "ana"))
-    cadastrar(client, patrimonio="000200", tipo="Monitor", marca="LG", modelo="24MK430", numero_serie="",
+    cadastrar(client, patrimonio="000200", tipo="TV/Monitor", marca="LG", modelo="24MK430", numero_serie="",
               hostname="", ip="", mac="", setor="Vendas")
     cadastrar(client, patrimonio="000300", tipo="Notebook", situacao="Descartado", hostname="VELHO", ip="", mac="")
     html = client.get("/inventario/").get_data(as_text=True)
@@ -115,7 +116,7 @@ def test_lista_filtros_e_busca(client, s, contas):
     assert "000123" in html and "000200" not in html
     html = client.get("/inventario/?q=ana").get_data(as_text=True)          # busca pelo nome do usuário
     assert "000123" in html and "000200" not in html
-    html = client.get("/inventario/?tipo=Monitor").get_data(as_text=True)
+    html = client.get("/inventario/?tipo=TV%2FMonitor").get_data(as_text=True)
     assert "000200" in html and "000123" not in html
     html = client.get("/inventario/?setor=Vendas").get_data(as_text=True)
     assert "000200" in html and "000123" not in html
@@ -127,14 +128,14 @@ def test_lista_filtros_e_busca(client, s, contas):
 def test_exportar_excel_com_filtros(client, s, contas):
     entrar(client, "admin", "admin123")
     cadastrar(client, usuario_id=uid(s, "ana"))
-    cadastrar(client, patrimonio="000200", tipo="Monitor", hostname="", ip="", mac="")
+    cadastrar(client, patrimonio="000200", tipo="TV/Monitor", hostname="", ip="", mac="")
     r = client.get("/inventario/exportar?tipo=Desktop")
     assert r.status_code == 200 and r.data[:2] == b"PK"
     ws = load_workbook(io.BytesIO(r.data)).active
     linhas = list(ws.iter_rows(values_only=True))
     assert linhas[0][:3] == ("Patrimônio", "Tipo", "Marca")
     assert [l[0] for l in linhas[1:]] == ["000123"]
-    assert linhas[1][7] == "Ana Souza" and linhas[1][14] == "AA:BB:CC:DD:EE:FF"
+    assert linhas[1][7] == "Ana Souza" and linhas[1][15] == "AA:BB:CC:DD:EE:FF"
 
 
 def test_so_admin_apaga_equipamento(client, s, contas):
@@ -190,3 +191,30 @@ def test_clonar_equipamento(client, s, contas):
     clone = eq(s, "000124")
     assert clone.modelo == "OptiPlex 3080" and clone.situacao == "Em estoque" and clone.usuario_id is None
     assert client.get("/inventario/novo?clonar=999").status_code == 200    # inexistente: formulário vazio
+
+
+
+def test_tv_monitor_e_licenca_do_windows(client, s, contas):
+    from app.modelos import TIPOS_EQUIPAMENTO
+    assert "TV/Monitor" in TIPOS_EQUIPAMENTO and "Monitor" not in TIPOS_EQUIPAMENTO
+    entrar(client, "admin", "admin123")
+    cadastrar(client, licenca_windows="abcde fghij-klmno pqrst uvw12")      # espaços e minúsculas: normaliza
+    e = eq(s, "000123")
+    assert e.licenca_windows == "ABCDE-FGHIJ-KLMNO-PQRST-UVW12"
+    html = client.get(f"/inventario/{e.id}").get_data(as_text=True)
+    assert 'value="ABCDE-FGHIJ-KLMNO-PQRST-UVW12"' in html and 'data-mascara="licenca"' in html
+    assert 'data-mascara="mac"' in html
+    assert "25 letras e números" in editar(client, e, licenca_windows="ABC-123").get_data(as_text=True)
+    editar(client, e, licenca_windows="")                                    # licença digital: em branco
+    assert eq(s, "000123").licenca_windows is None
+    assert "Licença do Windows" in eq(s, "000123").historico[0].descricao
+    # clonar não copia a licença (cada computador tem a sua)
+    editar(client, eq(s, "000123"), licenca_windows="ABCDE-FGHIJ-KLMNO-PQRST-UVW12")
+    html = client.get(f"/inventario/novo?clonar={e.id}").get_data(as_text=True)
+    assert "ABCDE-FGHIJ" not in html
+    # entra na planilha
+    r = client.get("/inventario/exportar")
+    ws = load_workbook(io.BytesIO(r.data)).active
+    cab = [c.value for c in ws[1]]
+    assert "Licença do Windows" in cab
+    assert ws.cell(row=2, column=cab.index("Licença do Windows") + 1).value == "ABCDE-FGHIJ-KLMNO-PQRST-UVW12"

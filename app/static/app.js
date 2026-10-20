@@ -160,6 +160,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Máscaras: MAC ganha ":" a cada 2 dígitos; licença do Windows, "-" a cada 5 caracteres
+  const MASCARAS = {
+    mac: { permitido: /[^0-9a-f]/gi, tamanho: 12, grupo: 2, separador: ":" },
+    licenca: { permitido: /[^0-9a-z]/gi, tamanho: 25, grupo: 5, separador: "-" },
+  };
+  document.querySelectorAll("input[data-mascara]").forEach((input) => {
+    const m = MASCARAS[input.dataset.mascara];
+    if (!m) return;
+    const formatar = () => {
+      const limpo = input.value.replace(m.permitido, "").toUpperCase().slice(0, m.tamanho);
+      const partes = limpo.match(new RegExp(`.{1,${m.grupo}}`, "g")) || [];
+      const novo = partes.join(m.separador);
+      if (novo !== input.value) input.value = novo;
+    };
+    input.addEventListener("input", formatar);
+    formatar();
+  });
+
   // Envia o formulário ao mudar o select (ex.: período do painel)
   document.querySelectorAll("select[data-enviar-ao-mudar]").forEach((sel) => {
     sel.addEventListener("change", () => sel.form.submit());

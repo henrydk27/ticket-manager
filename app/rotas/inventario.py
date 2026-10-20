@@ -14,7 +14,7 @@ from ..servicos import ErroValidacao
 bp = Blueprint("inventario", __name__, url_prefix="/inventario")
 
 CAMPOS_FORM = ["patrimonio", "tipo", "situacao", "setor", "usuario_id", "marca", "modelo", "numero_serie",
-               "processador", "memoria", "armazenamento", "sistema_operacional", "hostname", "ip", "mac",
+               "processador", "memoria", "armazenamento", "sistema_operacional", "licenca_windows", "hostname", "ip", "mac",
                "observacoes"]
 
 

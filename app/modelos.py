@@ -30,7 +30,7 @@ SETORES = [
 
 # Inventário
 TIPOS_EQUIPAMENTO = [
-    "Desktop", "Notebook", "Monitor", "Impressora", "Celular", "Tablet", "Telefone IP",
+    "Desktop", "Notebook", "TV/Monitor", "Impressora", "Celular", "Tablet", "Telefone IP",
     "Nobreak", "Switch/Roteador", "Servidor", "Periférico", "Outro",
 ]
 TIPOS_COMPUTADOR = {"Desktop", "Notebook", "Servidor"}  # mostram os campos de configuração
@@ -249,6 +249,7 @@ class Equipamento(Base):
     memoria: Mapped[str | None] = mapped_column(String(50))
     armazenamento: Mapped[str | None] = mapped_column(String(100))
     sistema_operacional: Mapped[str | None] = mapped_column(String(100))
+    licenca_windows: Mapped[str | None] = mapped_column(String(29))  # XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
     # rede
     hostname: Mapped[str | None] = mapped_column(String(100))
     ip: Mapped[str | None] = mapped_column(String(45))
