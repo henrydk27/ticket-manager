@@ -68,7 +68,7 @@
   <tbody>
     {% for c in chamados %}
     {% set link = url_for('chamados.detalhe', chamado_id=c.id) %}
-    <tr data-href="{{ link }}">
+    <tr id="c{{ c.id }}" data-href="{{ link }}">
       <td class="col-id"><a href="{{ link }}">#{{ c.id }}</a></td>
       <td class="col-titulo">
         <a href="{{ link }}">{{ c.titulo }}</a>
@@ -78,7 +78,22 @@
       </td>
       <td>{{ c.setor_destino }}
         <div class="subtitulo">{{ c.responsavel.nome if c.responsavel else 'sem responsável' }}</div></td>
-      <td>{{ c.status|status }}</td>
+      <td>
+        {% if usuario.trabalha_em(c) %}
+        {# Muda o status direto da lista (só em chamados que a pessoa atende) #}
+        <form method="post" action="{{ url_for('chamados.alterar_status', chamado_id=c.id) }}" class="status-rapido-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="voltar" value="{{ request.full_path }}">
+          <select name="status" class="status-rapido badge-{{ c.status|classe_status }}" data-enviar-ao-mudar
+                  aria-label="Status do chamado #{{ c.id }}" title="Mudar o status sem abrir o chamado">
+            {% for s in STATUS %}<option {{ 'selected' if c.status == s }}>{{ s }}</option>{% endfor %}
+          </select>
+          <noscript><button class="botao botao-pequeno" type="submit">OK</button></noscript>
+        </form>
+        {% else %}
+        {{ c.status|status }}
+        {% endif %}
+      </td>
       <td class="col-data">{{ c.aberto_em|data }}</td>
     </tr>
     {% endfor %}

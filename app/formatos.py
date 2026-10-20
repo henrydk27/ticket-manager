@@ -55,6 +55,10 @@ _CLASSE_STATUS = {
 }
 
 
+def classe_status(v) -> str:
+    return _CLASSE_STATUS.get(v or "", "outro")
+
+
 def status(v) -> Markup:
     classe = _CLASSE_STATUS.get(v or "", "outro")
     return Markup(f'<span class="badge badge-{classe}">{escape(v or "—")}</span>')
@@ -66,5 +70,5 @@ def prioridade(v) -> Markup:
 
 
 def registrar(app) -> None:
-    for nome in ("data", "data_hora", "tamanho", "duracao", "horas", "status", "prioridade"):
+    for nome in ("data", "data_hora", "tamanho", "duracao", "horas", "status", "classe_status", "prioridade"):
         app.jinja_env.filters[nome] = globals()[nome]

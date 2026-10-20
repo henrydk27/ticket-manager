@@ -39,6 +39,7 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 - Quem atende e abre um pedido para **outro** setor acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
 - O setor de cada pessoa só é alterado pelo administrador (é ele que define o que ela vê).
+- Quem atende pode **mudar o status direto na lista** de chamados, sem abrir o chamado.
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
 - **Painel:** em aberto, sem responsável, abertos e encerrados no período, tempo médio até

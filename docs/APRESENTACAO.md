@@ -35,7 +35,8 @@ avalia o atendimento quando o chamado é encerrado.
 
 Cada chamado tem conversa, anexos e o histórico de tudo o que aconteceu. Quem atende muda o
 status (Aberto, Em andamento, Aguardando usuário, Fechado) e pode encaminhar para outra pessoa
-ou outro setor. Todos que atendem um setor veem os chamados dele.
+ou outro setor; o status também muda direto na lista, sem abrir o chamado. Todos que atendem um
+setor veem os chamados dele.
 
 ![Detalhe do chamado](prints/03-chamado-detalhe.png)
 

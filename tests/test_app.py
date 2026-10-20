@@ -821,3 +821,33 @@ def test_registro_automatico_nao_e_editavel(client, s, contas):
     outro = chamado(s, "Trocar teclado")                 # comentário de outro chamado: 404
     assert client.post(f"/chamados/{outro.id}/comentarios/{evento.id}/editar",
                        data={"csrf": csrf(client, f"/chamados/{c.id}"), "texto": "x"}).status_code == 404
+
+
+# ─── mudar status direto na lista ───────────────────────────────────────────
+
+def test_mudar_status_direto_na_lista(client, s, contas, emails):
+    c = chamado(s, "Impressora do fiscal não imprime")            # T.I, aberto, responsável carlos
+    entrar(client, "carlos", "carlos123")
+    html = client.get("/chamados?status=abertos&pagina=1").get_data(as_text=True)
+    assert f'aria-label="Status do chamado #{c.id}"' in html
+    rh = chamado(s, "Dúvida sobre saldo de férias")                # RH: carlos não atende
+    assert f'aria-label="Status do chamado #{rh.id}"' not in html
+
+    voltar = "/chamados?status=abertos&pagina=1"
+    r = client.post(f"/chamados/{c.id}/status",
+                    data={"csrf": csrf(client, "/chamados"), "status": "Em andamento", "voltar": voltar})
+    assert r.location.endswith(f"{voltar}#c{c.id}")                # volta para a mesma lista, na linha
+    assert chamado(s, "Impressora do fiscal não imprime").status == "Em andamento"
+    assert any("Em andamento" in m.assunto for m in emails)         # mesmo aviso de quando muda pelo chamado
+    assert f"Chamado #{c.id}: status alterado para Em andamento." in client.get(r.location).get_data(as_text=True)
+
+    # destino de fora do sistema é ignorado
+    r = client.post(f"/chamados/{c.id}/status",
+                    data={"csrf": csrf(client, "/chamados"), "status": "Aberto", "voltar": "//outro.site/x"})
+    assert r.location.endswith(f"/chamados/#c{c.id}") or r.location.endswith(f"/chamados#c{c.id}")
+
+
+def test_quem_so_abriu_o_chamado_nao_muda_status_na_lista(client, s, contas):
+    entrar(client, "ana", "ana12345")
+    html = client.get("/chamados").get_data(as_text=True)
+    assert 'class="status-rapido' not in html and "badge-aberto" in html

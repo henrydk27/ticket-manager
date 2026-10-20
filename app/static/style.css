@@ -422,3 +422,12 @@ a.usuario-nome { color: var(--texto); }
 .editar-comentario summary:hover, .editar-comentario[open] summary { color: var(--primaria); }
 .editar-comentario textarea { width: 100%; margin-top: 6px; }
 .editar-comentario-acoes { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; }
+
+/* ─── Status direto na lista de chamados ───────────────────────────────── */
+.status-rapido-form { margin: 0; }
+.status-rapido {
+  border: 1px solid transparent; border-radius: 999px; font-size: .8rem; font-weight: 600;
+  padding: 3px 8px 3px 10px; cursor: pointer; width: auto; max-width: 100%;
+}
+.status-rapido:hover { border-color: currentColor; }
+.status-rapido option { background: var(--superficie); color: var(--texto); font-weight: 400; }

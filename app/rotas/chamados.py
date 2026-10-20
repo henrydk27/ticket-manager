@@ -52,6 +52,14 @@ def _voltar(c, ancora: str = ""):
     return redirect(url_for("chamados.detalhe", chamado_id=c.id) + ancora)
 
 
+def _voltar_para_lista(c):
+    """Mudança feita na lista: volta para a mesma lista (filtros e página), na linha do chamado."""
+    destino = request.form.get("voltar", "")
+    if destino.startswith("/chamados") and not destino.startswith("//") and "\\" not in destino:
+        return redirect(destino.split("#")[0] + f"#c{c.id}")
+    return redirect(url_for("chamados.lista") + f"#c{c.id}")
+
+
 @bp.route("/")
 @login_obrigatorio
 def inicio():
@@ -142,9 +150,11 @@ def alterar_status(chamado_id: int):
     try:
         if servicos.alterar_status(db(), c, request.form.get("status", ""), g.usuario):
             notificacoes.status_alterado(c, g.usuario, anterior)
-            flash(f"Status alterado para {c.status}.", "ok")
+            flash(f"Chamado #{c.id}: status alterado para {c.status}.", "ok")
     except servicos.ErroValidacao as e:
         flash(str(e), "erro")
+    if request.form.get("voltar"):
+        return _voltar_para_lista(c)
     return _voltar(c)
 
 

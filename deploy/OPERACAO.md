@@ -39,6 +39,7 @@ escolha da pessoa.
 | Conta criada por engano ou duplicada | **Editar** → **Desativar conta** → **Apagar usuário**. Só funciona para quem não tem chamados, comentários, anexos nem equipamentos; quem tem continua desativado |
 | Supervisor de um setor | **Usuários** → **Editar** → confira o **Setor** → perfil **Supervisor** → **Salvar alterações** (vê os chamados do setor, Relatório e Documentos) |
 | Outro administrador | **Usuários** → **Editar** → perfil **Administrador** → **Salvar alterações** (vê todos os chamados; o sistema sempre mantém pelo menos um) |
+| Mudar o status rápido | Na lista de **Chamados**, troque o status na própria linha (só nos chamados que você atende); salva na hora e manda o mesmo aviso por e-mail |
 | Apagar um chamado | Só o administrador: abra o chamado → **Apagar chamado** (permanente) |
 | Corrigir um comentário | Só o administrador: no histórico do chamado, **Editar** embaixo do comentário → **Salvar**. Fica escrito "editado por … em …". Registros automáticos (status, encaminhamento) não são editáveis |
 
