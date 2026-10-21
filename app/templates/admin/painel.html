@@ -1,34 +1,39 @@
 {% extends "base.html" %}
 {% block titulo %}Painel{% endblock %}
 
-{# Barras horizontais: uma série, rótulo e valor sempre visíveis em texto #}
-{% macro barras(titulo, itens, vazio='Nada no momento.', filtro=None, escopo={}) %}
-<div class="cartao grafico">
-  <h2 class="cartao-titulo">{{ titulo }}</h2>
-  {% if itens %}
-  {% set maximo = itens|map(attribute=1)|max %}
-  {% set soma = itens|map(attribute=1)|sum %}
-  <ul class="barras">
+{# Variação contra o período anterior; "melhor" diz se subir é bom ('maior'), ruim ('menor') ou neutro #}
+{% macro variacao(valor, melhor=None) -%}
+  {%- if valor is not none -%}
+  {%- set bom = (valor > 0 and melhor == 'maior') or (valor < 0 and melhor == 'menor') -%}
+  {%- set ruim = (valor < 0 and melhor == 'maior') or (valor > 0 and melhor == 'menor') -%}
+  <span class="variacao {{ 'variacao-boa' if bom else ('variacao-ruim' if ruim) }}">
+    {{ '▲' if valor > 0 else ('▼' if valor < 0 else '=') }} {{ '+' if valor > 0 }}{{ valor|round|int }}%
+    <span class="suave">vs período anterior</span></span>
+  {%- else -%}<span class="variacao suave">sem dados anteriores</span>{%- endif -%}
+{%- endmacro %}
+
+{# Barras horizontais em HTML: rótulo, barra e valor sempre em texto #}
+{% macro barras(itens, classe='g-serie-bg', vazio='Nada no momento.', links=None, classes=None) %}
+  {% set maximo = itens|map(attribute=1)|max if itens else 0 %}
+  {% if maximo %}
+  <ul class="hbarras">
     {% for rotulo, total in itens %}
-    <li title="{{ rotulo }}: {{ total }} ({{ (100 * total / soma)|round|int }}%)">
-      {% if filtro == 'status' %}{% set href = url_for('chamados.lista', status=rotulo, **escopo) %}
-      {% else %}{% set href = None %}{% endif %}
-      {% if href %}<a class="barra-rotulo" href="{{ href }}">{{ rotulo }}</a>
-      {% else %}<span class="barra-rotulo">{{ rotulo }}</span>{% endif %}
-      <span class="barra-trilho"><span class="barra" style="width: {{ (100 * total / maximo)|round(1) }}%"></span></span>
-      <span class="barra-valor">{{ total }}</span>
+    <li title="{{ rotulo }}: {{ total }}">
+      {% if links and links[loop.index0] %}<a class="hbarra-rotulo" href="{{ links[loop.index0] }}">{{ rotulo }}</a>
+      {% else %}<span class="hbarra-rotulo">{{ rotulo }}</span>{% endif %}
+      <span class="hbarra-trilho">{% if total %}<span class="hbarra {{ classes[loop.index0] if classes else classe }}" style="width: {{ (100 * total / maximo)|round(1) }}%"></span>{% endif %}</span>
+      <span class="hbarra-valor">{{ total }}</span>
     </li>
     {% endfor %}
   </ul>
-  {% else %}
-  <p class="suave">{{ vazio }}</p>
-  {% endif %}
-</div>
+  {% else %}<p class="suave">{{ vazio }}</p>{% endif %}
 {% endmacro %}
 
 {% block conteudo %}
 {# Filtro de setor repassado aos links para a lista #}
 {% set escopo = {'setor': setor} if setor else ({} if usuario.is_admin else ({'visao': 'setor'} if usuario.ve_setor else {'visao': 'meus'})) %}
+{% set r = d.resumo %}
+{% set serie = d.serie %}
 <div class="cabecalho">
   <h1>Painel</h1>
   <form method="get" class="seletor-periodo">
@@ -51,59 +56,154 @@
   </form>
 </div>
 
-{% set r = d.resumo %}
+<div class="painel">
 <div class="indicadores">
   <a class="indicador" href="{{ url_for('chamados.lista', status='abertos', **escopo) }}">
     <span class="indicador-rotulo">Em aberto agora</span>
     <span class="indicador-valor">{{ r.abertos }}</span>
+    {{ graficos.spark(serie|map(attribute='em_aberto')|list) }}
   </a>
   <a class="indicador {{ 'indicador-alerta' if r.sem_responsavel }}" href="{{ url_for('chamados.lista', status='abertos', responsavel='nenhum', **escopo) }}">
     <span class="indicador-rotulo">Sem responsável</span>
     <span class="indicador-valor">{{ r.sem_responsavel }}</span>
+    <span class="variacao suave">{{ 'precisam de alguém' if r.sem_responsavel else 'nenhum parado' }}</span>
   </a>
   <div class="indicador">
     <span class="indicador-rotulo">Abertos no período</span>
     <span class="indicador-valor">{{ r.novos }}</span>
+    {{ variacao(r.novos_var) }}
+    {{ graficos.spark(serie|map(attribute='abertos')|list) }}
   </div>
   <div class="indicador">
     <span class="indicador-rotulo">Encerrados no período</span>
     <span class="indicador-valor">{{ r.fechados }}</span>
+    {{ variacao(r.fechados_var, 'maior') }}
+    {{ graficos.spark(serie|map(attribute='encerrados')|list) }}
   </div>
   <div class="indicador">
     <span class="indicador-rotulo" title="Conta só o expediente: segunda a sexta, das 7h às 18h">Tempo médio até encerrar</span>
     <span class="indicador-valor">{{ r.tempo_medio|horas }}</span>
+    {{ variacao(r.tempo_var, 'menor') }}
     <span class="indicador-dica">em horário de expediente</span>
+    {{ graficos.spark(serie|map(attribute='tempo')|list) }}
+  </div>
+  <div class="indicador">
+    <span class="indicador-rotulo">Satisfação</span>
+    <span class="indicador-valor">{{ (r.satisfacao|round|int ~ '%') if r.satisfacao is not none else '—' }}</span>
+    <span class="variacao suave">{{ (r.avaliacoes ~ ' avaliaç' ~ ('ões' if r.avaliacoes != 1 else 'ão') ~ ', "Bom"') if r.avaliacoes else 'nenhuma avaliação no período' }}</span>
+    {{ graficos.spark(serie|map(attribute='satisfacao')|list) }}
   </div>
 </div>
 
-<div class="graficos">
-  {% if usuario.is_admin and not setor %}{{ barras('Em aberto por setor', d.por_setor_destino) }}{% endif %}
-  {{ barras('Em aberto por status', d.por_status, filtro='status', escopo=escopo) }}
-  {{ barras('Em aberto por responsável', d.por_responsavel) }}
-  {{ barras('Em aberto por setor de quem pediu', d.por_setor) }}
-  {{ barras('Em aberto por prioridade', d.por_prioridade) }}
-  {{ barras('Avaliações dos encerrados no período', d.avaliacoes, 'Nenhum chamado encerrado no período.') }}
+<div class="cartao grafico">
+  <h2 class="cartao-titulo">Abertos x encerrados por {{ d.agrupamento }}</h2>
+  <p class="suave grafico-sub">A fila está crescendo ou diminuindo?</p>
+  <div class="legenda"><span><i class="g-s1-bg"></i>Abertos</span><span><i class="g-s2-bg"></i>Encerrados</span></div>
+  {% if serie|map(attribute='abertos')|sum or serie|map(attribute='encerrados')|sum %}
+  {{ graficos.linhas(serie|map(attribute='rotulo')|list, [('Abertos', 'g-s1', serie|map(attribute='abertos')|list), ('Encerrados', 'g-s2', serie|map(attribute='encerrados')|list)]) }}
+  {% else %}<p class="suave">Nenhum chamado no período.</p>{% endif %}
+</div>
+
+<div class="graficos-2">
+  <div class="cartao grafico">
+    <h2 class="cartao-titulo">Em aberto por status</h2>
+    {% if r.abertos %}
+    {% set classes_status = {'Aberto': 'g-st-aberto', 'Em andamento': 'g-st-andamento', 'Aguardando usuário': 'g-st-aguardando'} %}
+    <div class="rosca-area">
+      {% set itens_rosca = [] %}
+      {% for st, n in d.por_status %}{% set _ = itens_rosca.append((st, n, classes_status[st])) %}{% endfor %}
+      {{ graficos.rosca(itens_rosca) }}
+      <ul class="legenda-lista">
+        {% for st, n in d.por_status %}
+        <li><i class="{{ classes_status[st] }}-bg"></i><a href="{{ url_for('chamados.lista', status=st, **escopo) }}">{{ st }}</a> <span class="suave">{{ n }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% else %}<p class="suave">Nenhum chamado em aberto.</p>{% endif %}
+  </div>
 
   <div class="cartao grafico">
-    <h2 class="cartao-titulo">Chamados abertos por mês</h2>
-    {% set maximo = d.por_mes|map(attribute=1)|max %}
-    {% if maximo %}
-    <div class="colunas" role="img" aria-label="Chamados abertos por mês">
-      {% for mes, total in d.por_mes %}
-      <div class="coluna" title="{{ mes }}: {{ total }} chamado(s)">
-        <span class="coluna-valor">{{ total }}</span>
-        <span class="coluna-trilho">{% if total %}<span class="coluna-barra" style="height: {{ (100 * total / maximo)|round(1) }}%"></span>{% endif %}</span>
-        <span class="coluna-rotulo">{{ mes }}</span>
-      </div>
-      {% endfor %}
-    </div>
-    <table class="oculto">
-      <caption>Chamados abertos por mês</caption>
-      {% for mes, total in d.por_mes %}<tr><th>{{ mes }}</th><td>{{ total }}</td></tr>{% endfor %}
-    </table>
-    {% else %}
-    <p class="suave">Nenhum chamado nos últimos 6 meses.</p>
-    {% endif %}
+    <h2 class="cartao-titulo">Há quanto tempo estão em aberto</h2>
+    <p class="suave grafico-sub">Em horas de expediente</p>
+    {{ barras(d.idade, vazio='Nenhum chamado em aberto.', classes=['g-seq-2', 'g-seq-3', 'g-seq-4', 'g-perigo-bg']) }}
   </div>
+</div>
+
+<div class="cartao grafico">
+  <h2 class="cartao-titulo">Em aberto por {{ 'setor' if d.por_destino else 'setor de quem pediu' }} e prioridade</h2>
+  <p class="suave grafico-sub">Onde está a fila e quanto dela é urgente</p>
+  {% if d.setor_prioridade %}
+  {% set classes_prio = ['g-perigo-bg', 'g-s1-bg', 'g-neutro-bg'] %}
+  <div class="legenda">{% for p in PRIORIDADES %}<span><i class="{{ classes_prio[loop.index0] }}"></i>{{ p }}</span>{% endfor %}</div>
+  {% set maximo = d.setor_prioridade|map(attribute=1)|map('sum')|max %}
+  <ul class="hbarras">
+    {% for nome, valores in d.setor_prioridade %}
+    {% set total = valores|sum %}
+    <li title="{{ nome }}: {% for p in PRIORIDADES %}{{ p }} {{ valores[loop.index0] }}{{ ', ' if not loop.last }}{% endfor %}">
+      {% if d.por_destino %}<a class="hbarra-rotulo" href="{{ url_for('chamados.lista', status='abertos', setor=nome) }}">{{ nome }}</a>
+      {% else %}<span class="hbarra-rotulo">{{ nome }}</span>{% endif %}
+      <span class="hbarra-trilho hbarra-empilhada">
+        {% for v in valores %}{% if v %}<span class="hbarra {{ classes_prio[loop.index0] }}" style="width: {{ (100 * v / maximo)|round(1) }}%" title="{{ PRIORIDADES[loop.index0] }}: {{ v }}"></span>{% endif %}{% endfor %}
+      </span>
+      <span class="hbarra-valor">{{ total }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="suave">Nenhum chamado em aberto.</p>{% endif %}
+</div>
+
+<div class="graficos-2">
+  <div class="cartao grafico">
+    <h2 class="cartao-titulo">Quando os chamados chegam</h2>
+    <p class="suave grafico-sub">Abertos no período, por dia da semana e hora (expediente)</p>
+    {% set mx = d.calor.dias|map(attribute=1)|map('max')|max if d.calor.dias else 0 %}
+    {% if mx %}
+    <div class="calor" style="--colunas: {{ d.calor.horas|length }}" role="table" aria-label="Chamados por dia e hora">
+      {% for dia, valores in d.calor.dias %}
+      <span class="calor-dia" role="rowheader">{{ dia }}</span>
+      {% for v in valores %}
+      {% set nivel = 0 if not v else (1 + (3 * v / mx)|round(0, 'ceil')|int) %}
+      <span class="calor-celula calor-{{ [nivel, 4]|min }}" role="cell" title="{{ dia }} {{ d.calor.horas[loop.index0] }}h: {{ v }} chamado{{ 's' if v != 1 }}"></span>
+      {% endfor %}
+      {% endfor %}
+      <span></span>
+      {% for h in d.calor.horas %}<span class="calor-hora">{{ h ~ 'h' if loop.index0 % 2 == 0 else '' }}</span>{% endfor %}
+    </div>
+    <div class="legenda calor-legenda"><span>menos</span>{% for n in range(5) %}<i class="calor-celula calor-{{ n }}"></i>{% endfor %}<span>mais</span>
+      {% if d.calor.fora %}<span class="suave">· {{ d.calor.fora }} fora do expediente</span>{% endif %}</div>
+    {% else %}<p class="suave">Nenhum chamado aberto no período.</p>{% endif %}
+  </div>
+
+  <div class="cartao grafico">
+    <h2 class="cartao-titulo">Avaliação do atendimento</h2>
+    <p class="suave grafico-sub">Encerrados no período{% if d.sem_avaliacao %} · {{ d.sem_avaliacao }} sem avaliação{% endif %}</p>
+    {% set total_aval = d.avaliacoes|map(attribute=1)|sum %}
+    {% if total_aval %}
+    {% set classes_aval = ['g-bom', 'g-regular', 'g-ruim'] %}
+    <div class="barra100" role="img" aria-label="{% for a, n in d.avaliacoes %}{{ a }} {{ n }}{{ ', ' if not loop.last }}{% endfor %}">
+      {% for a, n in d.avaliacoes %}{% if n %}<span class="{{ classes_aval[loop.index0] }}" style="width: {{ (100 * n / total_aval)|round(1) }}%" title="{{ a }}: {{ n }}"></span>{% endif %}{% endfor %}
+    </div>
+    <div class="legenda">{% for a, n in d.avaliacoes %}<span><i class="{{ classes_aval[loop.index0] }}"></i>{{ a }} {{ n }} ({{ (100 * n / total_aval)|round|int }}%)</span>{% endfor %}</div>
+    {% else %}<p class="suave">Nenhuma avaliação no período.</p>{% endif %}
+
+    <h2 class="cartao-titulo espaco-secao">Por responsável</h2>
+    {% if d.responsaveis %}
+    <div class="legenda"><span><i class="g-s1-bg"></i>Em aberto</span><span><i class="g-s2-bg"></i>Encerrados no período</span></div>
+    {% set mxr = [d.responsaveis|map(attribute='em_aberto')|max, d.responsaveis|map(attribute='encerrados')|max]|max %}
+    <ul class="hbarras hbarras-duplas">
+      {% for x in d.responsaveis %}
+      <li title="{{ x.nome }}: {{ x.em_aberto }} em aberto, {{ x.encerrados }} encerrados{% if x.tempo is not none %}, tempo médio {{ x.tempo|horas }}{% endif %}">
+        <span class="hbarra-rotulo">{{ x.nome }}{% if x.tempo is not none %}<span class="subtitulo">média {{ x.tempo|horas }}</span>{% endif %}</span>
+        <span class="hbarra-par">
+          <span class="hbarra-trilho"><span class="hbarra g-s1-bg" style="width: {{ (100 * x.em_aberto / mxr)|round(1) if mxr else 0 }}%"></span></span>
+          <span class="hbarra-trilho"><span class="hbarra g-s2-bg" style="width: {{ (100 * x.encerrados / mxr)|round(1) if mxr else 0 }}%"></span></span>
+        </span>
+        <span class="hbarra-valor">{{ x.em_aberto }}<br>{{ x.encerrados }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="suave">Nenhum chamado com responsável no período.</p>{% endif %}
+  </div>
+</div>
 </div>
 {% endblock %}

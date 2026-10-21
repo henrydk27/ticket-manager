@@ -49,11 +49,13 @@ da própria ação.
 
 ### Painel e relatórios
 
-Chamados em aberto, sem responsável, abertos e encerrados no período e tempo médio até encerrar,
-com gráficos por setor, status, responsável, prioridade, avaliação e mês. O tempo médio conta só
-o **horário de expediente** (segunda a sexta, das 7h às 18h): um chamado aberto na sexta às 17h e
-fechado na segunda às 8h levou 2 horas. O relatório do período sai em **Excel** ou **PDF**
-(supervisores e administradores).
+Indicadores com comparação ao período anterior e linha de tendência (em aberto, abertos,
+encerrados, tempo médio e satisfação) e gráficos para a gestão: abertos x encerrados por semana,
+status, **há quanto tempo os chamados estão em aberto**, fila por setor e prioridade, **horários de
+pico** (dia da semana x hora) e desempenho por responsável. O tempo médio conta só o **horário de
+expediente** (segunda a sexta, das 7h às 18h): um chamado aberto na sexta às 17h e fechado na
+segunda às 8h levou 2 horas. O relatório do período sai em **Excel** ou **PDF**, e o PDF começa
+com o mesmo resumo e gráficos (supervisores e administradores).
 
 ![Painel](prints/05-painel.png)
 

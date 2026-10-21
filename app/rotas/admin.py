@@ -189,5 +189,9 @@ def relatorio_arquivo(formato: str):
         return send_file(exportacao.gerar_excel(chamados), as_attachment=True,
                          download_name=nome + ".xlsx",
                          mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    return send_file(exportacao.gerar_pdf(chamados, ini, fim), as_attachment=True,
+    inicio_dt = datetime.combine(ini, datetime.min.time())
+    d = servicos.indicadores(db(), inicio_dt, inicio_dt + timedelta(days=(fim - ini).days + 1), g.usuario, setor)
+    escopo = (f"Setor {setor}" if setor else "Todos os setores") if g.usuario.is_admin else (
+        f"Setor {g.usuario.setor}" if g.usuario.ve_setor else "Chamados que você abriu")
+    return send_file(exportacao.gerar_pdf(chamados, ini, fim, d, escopo), as_attachment=True,
                      download_name=nome + ".pdf", mimetype="application/pdf")

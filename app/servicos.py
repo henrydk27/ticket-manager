@@ -659,47 +659,146 @@ def avaliar(s: Session, c: Chamado, usuario: Usuario, avaliacao: str) -> bool:
 
 # ─── PAINEL ─────────────────────────────────────────────────────────────────
 
-def painel(s: Session, dias: int, usuario: Usuario, setor: str | None = None) -> dict:
-    """Indicadores do setor do usuário (admin: todos, ou o setor escolhido; usuário comum que não
-    atende: os chamados que ele abriu)."""
-    limite = agora() - timedelta(days=dias)
+HORAS_DIA_UTIL = EXPEDIENTE_FIM - EXPEDIENTE_INICIO      # 11 h
+# Faixas de "há quanto tempo está em aberto" (horas de expediente)
+FAIXAS_IDADE = [("Até 4 h", 4), ("4 h a 1 dia", HORAS_DIA_UTIL), ("1 a 3 dias", 3 * HORAS_DIA_UTIL),
+                ("Mais de 3 dias", None)]
+DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+
+
+def _baldes(inicio: datetime, fim: datetime) -> list[tuple[str, datetime, datetime]]:
+    """Fatias da série: semanas (até ~3 meses) ou meses. (rótulo, começo, fim exclusivo)."""
+    baldes = []
+    if (fim - inicio).days <= 95:      # mesma regra de "agrupamento" em indicadores()
+        cur = datetime.combine((inicio - timedelta(days=inicio.weekday())).date(), datetime.min.time())
+        while cur < fim:
+            prox = cur + timedelta(days=7)
+            baldes.append((f"{max(cur, inicio):%d/%m}", max(cur, inicio), min(prox, fim)))
+            cur = prox
+    else:
+        cur = datetime(inicio.year, inicio.month, 1)
+        while cur < fim:
+            prox = datetime(cur.year + (cur.month == 12), cur.month % 12 + 1, 1)
+            baldes.append((f"{cur:%m/%Y}", max(cur, inicio), min(prox, fim)))
+            cur = prox
+    return baldes
+
+
+def _medias(fechados: list[Chamado]) -> tuple[float | None, float | None, int]:
+    """(tempo médio em horas de expediente, % de "Bom" entre os avaliados, nº de avaliações)."""
+    tempos = [segundos_expediente(c.aberto_em, c.fechado_em) / 3600 for c in fechados if c.aberto_em and c.fechado_em]
+    avaliados = [c.avaliacao for c in fechados if c.avaliacao]
+    tempo = sum(tempos) / len(tempos) if tempos else None
+    satisf = 100 * avaliados.count(AVALIACOES[0]) / len(avaliados) if avaliados else None
+    return tempo, satisf, len(avaliados)
+
+
+def indicadores(s: Session, inicio: datetime, fim: datetime, usuario: Usuario, setor: str | None = None) -> dict:
+    """Tudo o que o painel e o PDF do relatório mostram, para o período [inicio, fim).
+
+    Escopo: admin vê todos (ou o setor escolhido); quem atende e o supervisor, o próprio setor;
+    o usuário que não atende, os chamados que abriu. Tempos em horas de expediente.
+    """
     escopo = _escopo_painel(usuario, setor)
-    abertos = list(s.scalars(select(Chamado).where(*escopo, Chamado.status != STATUS_FECHADO)).unique())
-    fechados = list(s.execute(select(Chamado.aberto_em, Chamado.fechado_em, Chamado.avaliacao)
-                              .where(*escopo, Chamado.status == STATUS_FECHADO,
-                                     Chamado.fechado_em >= limite)).all())
-    novos = s.scalar(select(func.count(Chamado.id)).where(*escopo, Chamado.aberto_em >= limite)) or 0
+    duracao = fim - inicio
+    ini_ant = inicio - duracao
+    todos = list(s.scalars(select(Chamado).where(*escopo, or_(Chamado.status != STATUS_FECHADO,
+                                                                Chamado.fechado_em >= ini_ant))).unique())
+    abertos = [c for c in todos if c.status != STATUS_FECHADO]
+    novos = [c for c in todos if inicio <= c.aberto_em < fim]
+    fechados = [c for c in todos if c.status == STATUS_FECHADO and c.fechado_em and inicio <= c.fechado_em < fim]
+    novos_ant = s.scalar(select(func.count(Chamado.id)).where(
+        *escopo, Chamado.aberto_em >= ini_ant, Chamado.aberto_em < inicio)) or 0
+    fechados_ant = [c for c in todos if c.status == STATUS_FECHADO and c.fechado_em
+                    and ini_ant <= c.fechado_em < inicio]
+    tempo, satisf, n_aval = _medias(fechados)
+    tempo_ant, satisf_ant, _ = _medias(fechados_ant)
 
-    # Últimos 6 meses, incluindo os que não tiveram chamados
-    hoje = date.today()
-    meses_ref = [divmod(hoje.year * 12 + hoje.month - 1 - i, 12) for i in range(5, -1, -1)]
-    inicio_meses = datetime(meses_ref[0][0], meses_ref[0][1] + 1, 1)
-    por_mes = Counter(d.strftime("%m/%Y") for d in s.scalars(
-        select(Chamado.aberto_em).where(*escopo, Chamado.aberto_em >= inicio_meses)))
-    meses = [(r, por_mes.get(r, 0)) for r in (f"{m + 1:02d}/{a}" for a, m in meses_ref)]
+    # série: abertos x encerrados, e o que estava em aberto no fim de cada fatia
+    serie = []
+    for rotulo, a, b in _baldes(inicio, fim):
+        fech_b = [c for c in fechados if a <= c.fechado_em < b]
+        t_b, sat_b, _ = _medias(fech_b)
+        serie.append({
+            "rotulo": rotulo,
+            "abertos": sum(1 for c in novos if a <= c.aberto_em < b),
+            "encerrados": len(fech_b),
+            "em_aberto": sum(1 for c in todos if c.aberto_em < b and (c.status != STATUS_FECHADO
+                                                                       or (c.fechado_em and c.fechado_em >= b))),
+            "tempo": t_b, "satisfacao": sat_b,
+        })
 
-    def contar(valores):
-        return Counter(valores).most_common()
+    # idade dos que estão em aberto agora
+    agora_ = agora()
+    idades = [0] * len(FAIXAS_IDADE)
+    for c in abertos:
+        h = segundos_expediente(c.aberto_em, agora_) / 3600
+        idades[next(i for i, (_r, lim) in enumerate(FAIXAS_IDADE) if lim is None or h <= lim)] += 1
 
-    # em horas de expediente (seg. a sex., 7h às 18h)
-    tempos = [segundos_expediente(a, f) / 3600 for a, f, _ in fechados if a and f]
+    # em aberto por setor (destino para quem vê vários setores; de quem pediu para os demais) e prioridade
+    por_destino = usuario.is_admin and not setor
+    grupos: dict[str, Counter] = defaultdict(Counter)
+    for c in abertos:
+        grupos[c.setor_destino if por_destino else c.setor][c.prioridade] += 1
+    setor_prioridade = sorted(((nome, [cont.get(p, 0) for p in PRIORIDADES]) for nome, cont in grupos.items()),
+                              key=lambda x: (-sum(x[1]), x[0]))
+
+    # mapa de calor: chamados abertos no período por dia da semana x hora do expediente
+    horas = list(range(EXPEDIENTE_INICIO, EXPEDIENTE_FIM))
+    calor = [[0] * len(horas) for _ in DIAS_SEMANA]
+    fora = 0
+    for c in novos:
+        h = c.aberto_em.hour
+        if EXPEDIENTE_INICIO <= h < EXPEDIENTE_FIM:
+            calor[c.aberto_em.weekday()][h - EXPEDIENTE_INICIO] += 1
+        else:
+            fora += 1
+    dias_calor = [i for i in range(7) if i < 5 or any(calor[i])]     # sábado/domingo só se houver
+
+    # por responsável: em aberto agora e encerrados no período
+    resp: dict[str, dict] = defaultdict(lambda: {"em_aberto": 0, "encerrados": 0, "tempos": []})
+    for c in abertos:
+        if c.responsavel:
+            resp[c.responsavel.nome]["em_aberto"] += 1
+    for c in fechados:
+        if c.responsavel:
+            r = resp[c.responsavel.nome]
+            r["encerrados"] += 1
+            r["tempos"].append(segundos_expediente(c.aberto_em, c.fechado_em) / 3600)
+    responsaveis = sorted(
+        ({"nome": n, "em_aberto": r["em_aberto"], "encerrados": r["encerrados"],
+          "tempo": sum(r["tempos"]) / len(r["tempos"]) if r["tempos"] else None} for n, r in resp.items()),
+        key=lambda x: (-(x["em_aberto"] + x["encerrados"]), x["nome"]))[:8]
+
+    def variacao(atual, anterior):
+        if atual is None or anterior in (None, 0):
+            return None
+        return 100 * (atual - anterior) / anterior
+
     return {
         "resumo": {
             "abertos": len(abertos),
             "sem_responsavel": sum(1 for c in abertos if c.responsavel_id is None),
-            "novos": novos,
-            "fechados": len(fechados),
-            "tempo_medio": sum(tempos) / len(tempos) if tempos else None,
+            "novos": len(novos), "novos_var": variacao(len(novos), novos_ant),
+            "fechados": len(fechados), "fechados_var": variacao(len(fechados), len(fechados_ant)),
+            "tempo_medio": tempo, "tempo_var": variacao(tempo, tempo_ant),
+            "satisfacao": satisf, "satisfacao_ant": satisf_ant, "avaliacoes": n_aval,
         },
-        "por_setor_destino": contar(c.setor_destino for c in abertos),
-        "por_status": contar(c.status for c in abertos),
-        "por_responsavel": contar(c.responsavel.nome if c.responsavel else "Sem responsável" for c in abertos),
-        "por_setor": contar(c.setor for c in abertos),  # setor de quem pediu
-        "por_prioridade": sorted(contar(c.prioridade for c in abertos),
-                                 key=lambda x: PRIORIDADES.index(x[0]) if x[0] in PRIORIDADES else 99),
-        "avaliacoes": contar(av or "Sem avaliação" for _, _, av in fechados),
-        "por_mes": meses,
+        "serie": serie, "agrupamento": "semana" if duracao.days <= 95 else "mês",
+        "por_status": [(st, sum(1 for c in abertos if c.status == st)) for st in STATUS if st != STATUS_FECHADO],
+        "idade": [(r, n) for (r, _l), n in zip(FAIXAS_IDADE, idades)],
+        "setor_prioridade": setor_prioridade, "por_destino": por_destino,
+        "calor": {"horas": horas, "dias": [(DIAS_SEMANA[i], calor[i]) for i in dias_calor], "fora": fora},
+        "avaliacoes": [(a, sum(1 for c in fechados if c.avaliacao == a)) for a in AVALIACOES],
+        "sem_avaliacao": sum(1 for c in fechados if not c.avaliacao),
+        "responsaveis": responsaveis,
     }
+
+
+def painel(s: Session, dias: int, usuario: Usuario, setor: str | None = None) -> dict:
+    """Indicadores dos últimos `dias` até agora (ver indicadores)."""
+    fim = agora() + timedelta(seconds=1)
+    return indicadores(s, fim - timedelta(days=dias), fim, usuario, setor)
 
 
 # ─── RELATÓRIO ──────────────────────────────────────────────────────────────

@@ -42,11 +42,15 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 - Quem atende pode **mudar o status direto na lista** de chamados, sem abrir o chamado.
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
-- **Painel:** em aberto, sem responsável, abertos e encerrados no período, tempo médio até
-  encerrar e gráficos por status, responsável, setor, prioridade, avaliações e mês. O tempo
+- **Painel:** indicadores (em aberto, sem responsável, abertos, encerrados, tempo médio e
+  satisfação) com comparação ao período anterior e linha de tendência; gráficos de abertos x
+  encerrados por semana ou mês, status, há quanto tempo estão em aberto, setor x prioridade,
+  horários de pico (dia x hora), avaliações e desempenho por responsável. Os gráficos são SVG
+  gerados no servidor (`app/graficos.py`), sem biblioteca externa. O tempo
   médio conta **só o expediente** (segunda a sexta, das 7h às 18h; ajuste em
   `EXPEDIENTE_INICIO`, `EXPEDIENTE_FIM` e `DIAS_EXPEDIENTE` em `app/servicos.py`).
-  **Relatório** do período em Excel ou PDF.
+  **Relatório** do período em Excel ou PDF; o PDF começa com o resumo e os mesmos gráficos
+  (`app/graficos_pdf.py`).
 
 ## Inventário de TI
 

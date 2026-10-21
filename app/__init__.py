@@ -6,7 +6,7 @@ from datetime import timedelta
 from flask import Flask, g, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import banco, correio, formatos, seguranca, servicos, temas
+from . import banco, correio, formatos, graficos, seguranca, servicos, temas
 from .config import Config, carregar_config
 from .modelos import AVALIACOES, PAPEIS, PRIORIDADES, SETORES, STATUS
 
@@ -37,7 +37,7 @@ def create_app(cfg: Config | None = None) -> Flask:
     app.jinja_env.globals.update(csrf_token=seguranca.csrf_token, STATUS=STATUS, SETORES=SETORES,
                                  PRIORIDADES=PRIORIDADES, AVALIACOES=AVALIACOES, PAPEIS=PAPEIS,
                                  CORES=temas.opcoes(),
-                                 INTENSIDADES=list(temas.INTENSIDADES.values()))
+                                 INTENSIDADES=list(temas.INTENSIDADES.values()), graficos=graficos)
 
     @app.url_defaults
     def _versao_dos_estaticos(endpoint, valores):

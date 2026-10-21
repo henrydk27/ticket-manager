@@ -851,3 +851,48 @@ def test_quem_so_abriu_o_chamado_nao_muda_status_na_lista(client, s, contas):
     entrar(client, "ana", "ana12345")
     html = client.get("/chamados").get_data(as_text=True)
     assert 'class="status-rapido' not in html and "badge-aberto" in html
+
+
+# ─── painel com gráficos ────────────────────────────────────────────────────
+
+def test_indicadores_do_painel(client, s, contas):
+    from datetime import datetime as dt, timedelta as td
+    admin = usuario(s, "admin")
+    agora_ = dt.now().replace(microsecond=0)
+    # dois encerrados neste período e um no anterior, para a comparação
+    cs = s.scalars(select(Chamado).order_by(Chamado.id)).all()
+    for c, (abre, fecha) in zip(cs[:3], [(3, 2), (5, 4), (45, 40)]):
+        c.status, c.aberto_em, c.fechado_em = "Fechado", agora_ - td(days=abre), agora_ - td(days=fecha)
+    for c in cs[3:]:
+        if c.status == "Fechado":
+            c.fechado_em = dt(2000, 1, 1)
+    s.commit()
+    d = servicos.painel(s, 30, admin)
+    r = d["resumo"]
+    assert r["fechados"] == 2 and r["fechados_var"] == 100.0          # 2 agora x 1 no período anterior
+    assert d["agrupamento"] == "semana" and len(d["serie"]) in (5, 6)
+    assert sum(b["encerrados"] for b in d["serie"]) == 2
+    assert [rot for rot, _n in d["idade"]] == ["Até 4 h", "4 h a 1 dia", "1 a 3 dias", "Mais de 3 dias"]
+    assert sum(n for _r, n in d["idade"]) == r["abertos"] == sum(n for _s, n in d["por_status"])
+    assert sum(sum(v) for _n, v in d["setor_prioridade"]) == r["abertos"] and d["por_destino"]
+    assert [dia for dia, _v in d["calor"]["dias"]][:5] == ["Seg", "Ter", "Qua", "Qui", "Sex"]
+    assert servicos.painel(s, 365, admin)["agrupamento"] == "mês"
+
+    entrar(client, "admin", "admin123")
+    html = client.get("/painel?dias=90").get_data(as_text=True)
+    for trecho in ("Abertos x encerrados por semana", "Em aberto por status", "Há quanto tempo estão em aberto",
+                   "Quando os chamados chegam", "Avaliação do atendimento", "Por responsável", 'class="spark"',
+                   '<svg class="grafico-svg"', '<svg class="rosca"'):
+        assert trecho in html, trecho
+
+
+def test_pdf_do_relatorio_com_graficos(client, s, contas):
+    from app import exportacao, graficos_pdf
+    from datetime import date as d_, datetime as dt
+    from reportlab.lib.styles import getSampleStyleSheet
+    d = servicos.indicadores(s, dt(2000, 1, 1), dt(2100, 1, 1), usuario(s, "admin"))
+    partes = graficos_pdf.resumo(d, getSampleStyleSheet(), 270)
+    assert len(partes) >= 6
+    com = exportacao.gerar_pdf([], d_(2026, 1, 1), d_(2026, 1, 31), d, "Todos os setores").getvalue()
+    sem = exportacao.gerar_pdf([], d_(2026, 1, 1), d_(2026, 1, 31)).getvalue()
+    assert com[:4] == b"%PDF" and len(com) > len(sem) + 3000

@@ -10,7 +10,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from . import formatos
 
@@ -51,7 +51,10 @@ def gerar_excel(chamados: list) -> io.BytesIO:
     return buf
 
 
-def gerar_pdf(chamados: list, inicio: date, fim: date) -> io.BytesIO:
+def gerar_pdf(chamados: list, inicio: date, fim: date, indicadores: dict | None = None,
+              escopo: str = "") -> io.BytesIO:
+    """Lista dos chamados do período; com `indicadores` (servicos.indicadores), começa pelas
+    páginas de resumo com os gráficos do painel."""
     buf = io.BytesIO()
     pagina = landscape(A4)
     doc = SimpleDocTemplate(buf, pagesize=pagina, leftMargin=10 * mm, rightMargin=10 * mm,
@@ -82,13 +85,18 @@ def gerar_pdf(chamados: list, inicio: date, fim: date) -> io.BytesIO:
         canvas.drawRightString(pagina[0] - 10 * mm, 7 * mm, f"Página {doc_.page}")
         canvas.restoreState()
 
-    doc.build([
+    cabecalho = [
         Paragraph("Relatório de Chamados", estilos["Title"]),
-        Paragraph(f"Período: {inicio:%d/%m/%Y} a {fim:%d/%m/%Y} — {len(chamados)} chamado(s)",
-                  estilos["Normal"]),
+        Paragraph(f"Período: {inicio:%d/%m/%Y} a {fim:%d/%m/%Y} — {len(chamados)} chamado(s)"
+                  + (f" — {escape(escopo)}" if escopo else ""), estilos["Normal"]),
         Spacer(1, 6 * mm),
-        tabela,
-    ], onFirstPage=rodape, onLaterPages=rodape)
+    ]
+    resumo = []
+    if indicadores is not None:
+        from . import graficos_pdf
+        resumo = graficos_pdf.resumo(indicadores, estilos, pagina[0] - 20 * mm) + [
+            PageBreak(), Paragraph("Chamados do período", estilos["Heading2"]), Spacer(1, 3 * mm)]
+    doc.build(cabecalho + resumo + [tabela], onFirstPage=rodape, onLaterPages=rodape)
     buf.seek(0)
     return buf
 
