@@ -17,16 +17,16 @@ from . import formatos
 # (cabeçalho, valor, largura Excel em caracteres, largura PDF em mm)
 COLUNAS = [
     ("Nº", lambda c: c.id, 8, 13),
-    ("Título", lambda c: c.titulo, 40, 74),
+    ("Título", lambda c: c.titulo, 40, 64),
     ("Para o setor", lambda c: c.setor_destino, 16, 24),
     ("Status", lambda c: c.status, 18, 24),
-    ("Prioridade", lambda c: c.prioridade, 11, 17),
-    ("Setor de origem", lambda c: c.setor, 16, 22),
+    ("Prioridade", lambda c: c.prioridade, 11, 19),
+    ("Setor de origem", lambda c: c.setor, 16, 24),
     ("Solicitante", lambda c: c.solicitante.nome, 22, 25),
     ("Responsável", lambda c: c.responsavel.nome if c.responsavel else "", 22, 25),
     ("Abertura", lambda c: formatos.data(c.aberto_em), 12, 19),
-    ("Fechamento", lambda c: formatos.data(c.fechado_em), 12, 19),
-    ("Avaliação", lambda c: c.avaliacao or "", 11, 15),
+    ("Fechamento", lambda c: formatos.data(c.fechado_em), 12, 21),
+    ("Avaliação", lambda c: c.avaliacao or "", 11, 19),
 ]
 AZUL = "1F3A5F"
 
@@ -61,8 +61,11 @@ def gerar_pdf(chamados: list, inicio: date, fim: date, indicadores: dict | None 
                             topMargin=12 * mm, bottomMargin=12 * mm, title="Relatório de Chamados")
     estilos = getSampleStyleSheet()
     celula = estilos["BodyText"].clone("celula", fontSize=8, leading=10)
+    # cabeçalho em parágrafo: quebra a linha em vez de cortar o texto
+    titulo_col = estilos["BodyText"].clone("titulo_col", fontSize=8, leading=9.5, fontName="Helvetica-Bold",
+                                           textColor=colors.white)
 
-    dados = [[t for t, *_ in COLUNAS]]
+    dados = [[Paragraph(escape(t), titulo_col) for t, *_ in COLUNAS]]
     for c in chamados:
         dados.append([Paragraph(escape(str(valor(c))), celula) for _t, valor, _l, _p in COLUNAS])
 
@@ -71,11 +74,10 @@ def gerar_pdf(chamados: list, inicio: date, fim: date, indicadores: dict | None 
     tabela.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#" + AZUL)),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 9),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F3F5F8")]),
         ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#C8CDD5")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
     ]))
 
     def rodape(canvas, doc_):
