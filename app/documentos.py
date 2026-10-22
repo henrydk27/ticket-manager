@@ -1,4 +1,4 @@
-"""Documentos internos da empresa: termos, regras, procedimentos e formulários.
+"""Documentos internos da empresa: termos, regras, procedimentos, formulários e contratos.
 
 Supervisores e administradores consultam; só administradores cadastram, trocam o arquivo e apagam.
 O arquivo fica na mesma pasta dos anexos (entra no backup junto).

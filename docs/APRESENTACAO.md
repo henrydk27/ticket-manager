@@ -85,7 +85,7 @@ com as preventivas pendentes. O relatório do período sai em Excel.
 
 ### Documentos internos
 
-Termos, regras, procedimentos e formulários da empresa num lugar só. Supervisores e
+Termos, regras, procedimentos, formulários e contratos da empresa num lugar só. Supervisores e
 administradores consultam e baixam; o administrador publica e troca as versões.
 
 ![Documentos](prints/08-documentos.png)

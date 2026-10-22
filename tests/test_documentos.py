@@ -89,3 +89,13 @@ def test_ordenar_patrimonio_pelo_numero(client, s, contas):
     assert posicoes == sorted(posicoes)
     html = client.get("/inventario/?ordenar=patrimonio&direcao=desc").get_data(as_text=True)
     assert html.index("<strong>1000<") < html.index("<strong>2<")
+
+
+def test_categoria_contratos(client, s, contas):
+    entrar(client, "admin", "admin123")
+    assert ">Contratos</option>" in client.get("/documentos/novo").get_data(as_text=True)
+    enviar(client, titulo="Contrato de manutenção do ar-condicionado", categoria="Contratos",
+           arquivo=("contrato.pdf", b"%PDF-1.4 contrato"))
+    assert doc(s, "Contrato de manutenção do ar-condicionado").categoria == "Contratos"
+    html = client.get("/documentos/?categoria=Contratos").get_data(as_text=True)
+    assert "Contrato de manutenção do ar-condicionado" in html

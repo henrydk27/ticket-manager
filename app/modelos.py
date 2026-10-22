@@ -69,7 +69,7 @@ PLANOS_PADRAO = {
 }
 
 # Documentos internos (termos, regras...)
-CATEGORIAS_DOCUMENTO = ["Termos", "Regras e políticas", "Procedimentos", "Formulários", "Outros"]
+CATEGORIAS_DOCUMENTO = ["Termos", "Contratos", "Regras e políticas", "Procedimentos", "Formulários", "Outros"]
 
 
 # Quanto tempo a pessoa tem para criar a senha depois que o admin cadastra ou libera
