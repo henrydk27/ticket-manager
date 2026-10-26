@@ -99,3 +99,27 @@ def test_categoria_contratos(client, s, contas):
     assert doc(s, "Contrato de manutenção do ar-condicionado").categoria == "Contratos"
     html = client.get("/documentos/?categoria=Contratos").get_data(as_text=True)
     assert "Contrato de manutenção do ar-condicionado" in html
+
+
+
+def test_vencimento_dos_contratos(client, s, contas):
+    from datetime import date, timedelta
+    entrar(client, "admin", "admin123")
+    html = client.get("/documentos/novo").get_data(as_text=True)
+    assert 'name="vencimento"' in html and "data-so-contratos" in html
+    hoje = date.today()
+    enviar(client, titulo="Contrato do link de internet", categoria="Contratos",
+           vencimento=(hoje + timedelta(days=10)).isoformat())
+    enviar(client, titulo="Contrato antigo", categoria="Contratos", vencimento=(hoje - timedelta(days=1)).isoformat())
+    enviar(client, titulo="Contrato longo", categoria="Contratos", vencimento=(hoje + timedelta(days=400)).isoformat())
+    enviar(client, titulo="Termo com data", categoria="Termos", vencimento=hoje.isoformat())   # ignorada fora de contratos
+    assert doc(s, "Contrato do link de internet").situacao_vencimento == "vence"
+    assert doc(s, "Contrato antigo").situacao_vencimento == "vencido"
+    assert doc(s, "Contrato longo").situacao_vencimento == "vigente"
+    assert doc(s, "Termo com data").vencimento is None
+    html = client.get("/documentos/?categoria=Contratos").get_data(as_text=True)
+    assert "(10 dias)" in html and "Vencido em" in html
+    d = doc(s, "Contrato do link de internet")
+    assert f'value="{(hoje + timedelta(days=10)).isoformat()}"' in client.get(f"/documentos/{d.id}/editar").get_data(as_text=True)
+    assert "Data de vencimento inválida" in enviar(client, titulo="X", categoria="Contratos",
+                                                   vencimento="31/02/2026").get_data(as_text=True)

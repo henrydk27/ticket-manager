@@ -23,10 +23,15 @@
         </div>
         <div>
           <label for="categoria">Categoria</label>
-          <select id="categoria" name="categoria" required>
+          <select id="categoria" name="categoria" required data-categoria-documento>
             <option value="">Selecione</option>
             {% for c in CATEGORIAS %}<option {{ 'selected' if dados.get('categoria') == c }}>{{ c }}</option>{% endfor %}
           </select>
+        </div>
+        <div data-so-contratos>
+          <label for="vencimento">Vencimento do contrato <span class="suave">(opcional)</span></label>
+          <input id="vencimento" name="vencimento" type="date" value="{{ dados.get('vencimento') or '' }}">
+          <p class="dica">Em branco se for por prazo indeterminado. A lista avisa 30 dias antes de vencer.</p>
         </div>
       </div>
       <label for="descricao">Descrição <span class="suave">(opcional)</span></label>

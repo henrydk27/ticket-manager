@@ -82,7 +82,7 @@ Menu **Preventivas** (administradores e quem atende a T.I):
 
 Termos, regras, procedimentos, formulários e contratos internos da empresa. Supervisores e
 administradores consultam, abrem (PDF e imagens no navegador) e baixam; só administradores
-cadastram, trocam o arquivo e apagam. Cada documento tem título, categoria, descrição opcional e um arquivo
+cadastram, trocam o arquivo e apagam. Contratos podem ter **data de vencimento**: a lista avisa quando faltam 30 dias e quando venceu. Cada documento tem título, categoria, descrição opcional e um arquivo
 (PDF, Word, Excel, PowerPoint, texto ou imagem), guardado na mesma pasta dos anexos.
 
 ## Outros

@@ -191,6 +191,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Documentos: o vencimento só aparece para a categoria Contratos
+  document.querySelectorAll("select[data-categoria-documento]").forEach((sel) => {
+    const bloco = sel.form.querySelector("[data-so-contratos]");
+    const atualizar = () => { if (bloco) bloco.hidden = sel.value !== "Contratos"; };
+    sel.addEventListener("change", atualizar);
+    atualizar();
+  });
+
   // Envia o formulário ao mudar o select (ex.: período do painel)
   document.querySelectorAll("select[data-enviar-ao-mudar]").forEach((sel) => {
     sel.addEventListener("change", () => sel.form.submit());

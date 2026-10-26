@@ -69,7 +69,9 @@ PLANOS_PADRAO = {
 }
 
 # Documentos internos (termos, regras...)
-CATEGORIAS_DOCUMENTO = ["Termos", "Contratos", "Regras e políticas", "Procedimentos", "Formulários", "Outros"]
+CATEGORIA_CONTRATOS = "Contratos"
+CATEGORIAS_DOCUMENTO = ["Termos", CATEGORIA_CONTRATOS, "Regras e políticas", "Procedimentos", "Formulários", "Outros"]
+AVISO_VENCIMENTO_DIAS = 30              # contrato "vence em breve" nos últimos 30 dias
 
 
 # Quanto tempo a pessoa tem para criar a senha depois que o admin cadastra ou libera
@@ -341,6 +343,7 @@ class Documento(Base):
     titulo: Mapped[str] = mapped_column(String(150))
     categoria: Mapped[str] = mapped_column(String(40))
     descricao: Mapped[str | None] = mapped_column(Text)
+    vencimento: Mapped[date | None] = mapped_column(Date)  # só para contratos
     nome: Mapped[str] = mapped_column(String(255))       # nome original do arquivo
     tipo: Mapped[str] = mapped_column(String(100))
     tamanho: Mapped[int] = mapped_column(Integer)
@@ -350,6 +353,18 @@ class Documento(Base):
     atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, onupdate=agora)
 
     autor: Mapped[Usuario | None] = relationship(lazy="joined")
+
+    @property
+    def dias_para_vencer(self) -> int | None:
+        return (self.vencimento - date.today()).days if self.vencimento else None
+
+    @property
+    def situacao_vencimento(self) -> str | None:
+        """"vencido", "vence" (nos próximos 30 dias), "vigente" ou None (sem data)."""
+        dias = self.dias_para_vencer
+        if dias is None:
+            return None
+        return "vencido" if dias < 0 else ("vence" if dias <= AVISO_VENCIMENTO_DIAS else "vigente")
 
 
 class PlanoPreventiva(Base):

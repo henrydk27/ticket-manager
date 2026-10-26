@@ -45,7 +45,16 @@
     <tr>
       <td class="col-titulo"><a href="{{ link }}" target="_blank" rel="noopener"><strong>{{ d.titulo }}</strong></a>
         {% if d.descricao %}<div class="subtitulo">{{ d.descricao }}</div>{% endif %}</td>
-      <td>{{ d.categoria }}</td>
+      <td>{{ d.categoria }}
+        {% if d.vencimento %}
+        {% set sv = d.situacao_vencimento %}
+        <div class="subtitulo">
+          {% if sv == 'vencido' %}<span class="badge badge-prev-atrasada">Vencido em {{ d.vencimento|data }}</span>
+          {% elif sv == 'vence' %}<span class="badge badge-prev-vence">Vence em {{ d.vencimento|data }}{{ ' (hoje)' if d.dias_para_vencer == 0 else (' (' ~ d.dias_para_vencer ~ ' dia' ~ ('s' if d.dias_para_vencer != 1 else '') ~ ')') }}</span>
+          {% else %}Vence em {{ d.vencimento|data }}{% endif %}
+        </div>
+        {% endif %}
+      </td>
       <td><span class="suave">{{ d.nome }} · {{ d.tamanho|tamanho }}</span></td>
       <td>{{ d.atualizado_em|data }}</td>
       <td class="col-acoes">

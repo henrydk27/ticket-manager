@@ -4,12 +4,14 @@ Supervisores e administradores consultam; só administradores cadastram, trocam 
 O arquivo fica na mesma pasta dos anexos (entra no backup junto).
 """
 
+from datetime import date
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from . import anexos as arquivos_disco
 from .anexos import AnexoInvalido, Arquivo
-from .modelos import CATEGORIAS_DOCUMENTO, Documento, Usuario
+from .modelos import CATEGORIA_CONTRATOS, CATEGORIAS_DOCUMENTO, Documento, Usuario
 from .servicos import ErroValidacao, _escapar_like
 
 EXTENSOES_DOCUMENTO = {".pdf", ".doc", ".docx", ".odt", ".rtf", ".txt", ".xls", ".xlsx", ".ods",
@@ -42,7 +44,15 @@ def _validar(dados: dict) -> dict:
         raise ErroValidacao("Informe o título do documento (até 150 caracteres).")
     if dados.get("categoria") not in CATEGORIAS_DOCUMENTO:
         raise ErroValidacao("Escolha a categoria do documento.")
-    return {"titulo": titulo, "categoria": dados["categoria"],
+    vencimento = None
+    if dados["categoria"] == CATEGORIA_CONTRATOS and (dados.get("vencimento") or "").strip():
+        try:
+            vencimento = date.fromisoformat(dados["vencimento"].strip())
+        except ValueError:
+            raise ErroValidacao("Data de vencimento inválida.") from None
+        if not 2000 <= vencimento.year <= 2100:
+            raise ErroValidacao("Data de vencimento inválida.")
+    return {"titulo": titulo, "categoria": dados["categoria"], "vencimento": vencimento,
             "descricao": (dados.get("descricao") or "").strip()[:2000] or None}
 
 

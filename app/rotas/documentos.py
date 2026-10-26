@@ -34,7 +34,8 @@ def _formulario(doc):
             return redirect(url_for("documentos.lista"))
         dados = request.form
     elif doc:
-        dados = {"titulo": doc.titulo, "categoria": doc.categoria, "descricao": doc.descricao or ""}
+        dados = {"titulo": doc.titulo, "categoria": doc.categoria, "descricao": doc.descricao or "",
+                 "vencimento": doc.vencimento.isoformat() if doc.vencimento else ""}
     else:
         dados = {"categoria": request.args.get("categoria", "")}
     return render_template("documentos/documento.html", doc=doc, dados=dados, CATEGORIAS=CATEGORIAS_DOCUMENTO,
