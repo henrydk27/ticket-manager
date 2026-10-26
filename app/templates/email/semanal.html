@@ -12,9 +12,12 @@
         <span style="font-weight:700;font-size:15px;margin-left:6px;vertical-align:middle;">Ticket Manager</span>
       </td></tr>
       <tr><td style="padding:24px;">
-        <p style="margin:0 0 16px;font-size:18px;font-weight:700;">Preventivas pendentes</p>
+        <p style="margin:0 0 8px;font-size:18px;font-weight:700;">Avisos da semana</p>
+
+        {% if atrasadas or proximas %}
+        <p style="margin:18px 0 0;font-size:15px;font-weight:700;">Preventivas</p>
         {% for titulo, cor, lista in (("Atrasadas", "#9b1c13", atrasadas), ("Vencem nos próximos dias", "#8a5300", proximas)) if lista %}
-        <p style="margin:16px 0 6px;font-size:14px;font-weight:700;color:{{ cor }};">{{ titulo }} ({{ lista|length }})</p>
+        <p style="margin:10px 0 6px;font-size:13px;font-weight:700;color:{{ cor }};">{{ titulo }} ({{ lista|length }})</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
           {% for x in lista %}
           <tr>
@@ -26,11 +29,29 @@
           {% endfor %}
         </table>
         {% endfor %}
-        <p style="margin:22px 0 0;"><a href="{{ link }}" style="display:inline-block;background:#1f3a5f;color:#ffffff;text-decoration:none;
-           font-weight:600;font-size:14px;padding:10px 18px;border-radius:6px;">Abrir Preventivas</a></p>
+        <p style="margin:14px 0 0;"><a href="{{ link_preventivas }}" style="display:inline-block;background:#1f3a5f;color:#ffffff;text-decoration:none;
+           font-weight:600;font-size:13px;padding:8px 14px;border-radius:6px;">Abrir Preventivas</a></p>
+        {% endif %}
+
+        {% if vencidos or vencendo %}
+        <p style="margin:24px 0 0;font-size:15px;font-weight:700;">Contratos</p>
+        {% for titulo, cor, lista in (("Vencidos", "#9b1c13", vencidos), ("Vencem nos próximos 30 dias", "#8a5300", vencendo)) if lista %}
+        <p style="margin:10px 0 6px;font-size:13px;font-weight:700;color:{{ cor }};">{{ titulo }} ({{ lista|length }})</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
+          {% for d in lista %}
+          <tr>
+            <td style="padding:5px 8px 5px 0;border-bottom:1px solid #eef1f4;">{{ d.titulo }}</td>
+            <td style="padding:5px 0 5px 8px;border-bottom:1px solid #eef1f4;white-space:nowrap;text-align:right;">{{ d.vencimento|data }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+        {% endfor %}
+        <p style="margin:14px 0 0;"><a href="{{ link_contratos }}" style="display:inline-block;background:#1f3a5f;color:#ffffff;text-decoration:none;
+           font-weight:600;font-size:13px;padding:8px 14px;border-radius:6px;">Abrir Contratos</a></p>
+        {% endif %}
       </td></tr>
       <tr><td style="padding:14px 24px;border-top:1px solid #dfe3e8;font-size:12px;color:#5b636e;">
-        Aviso automático do Ticket Manager (toda semana, quando há preventivas pendentes).
+        Aviso automático do Ticket Manager (toda semana, quando há algo pendente).
       </td></tr>
     </table>
   </td></tr>

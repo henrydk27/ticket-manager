@@ -7,7 +7,8 @@ Regras: ninguém recebe aviso da própria ação, e só recebe quem tem e-mail e
 - mudança de status     → solicitante (encerrado: com link para avaliar)
 - pedido de nova senha  → CPD (config avisos_cpd; vazio = remetente)
 - conta nova (login)    → CPD
-- preventivas pendentes → CPD (resumo semanal: python manage.py avisar-preventivas)
+- resumo semanal        → CPD: preventivas pendentes e contratos vencendo/vencidos
+                          (python manage.py avisar-semanal, agendado no cron)
 """
 
 from flask import current_app, render_template, request, url_for
@@ -115,22 +116,34 @@ def conta_criada(u: Usuario) -> None:
                 "Se a conta não for de alguém da empresa, desative-a.")
 
 
-def mensagem_preventivas(pendentes: list) -> "correio.Mensagem | None":
-    """Resumo das preventivas atrasadas e que vencem em breve (None = nada a avisar ou sem destino)."""
+def mensagem_semanal(pendentes: list, contratos: list | None = None) -> "correio.Mensagem | None":
+    """Resumo semanal ao CPD: preventivas atrasadas/vencendo e contratos vencendo/vencidos.
+
+    None = nada a avisar ou sem destino configurado.
+    """
+    contratos = contratos or []
     cfg = current_app.extensions["email"]
     destino = cfg.avisos_cpd or cfg.remetente
-    if not pendentes or not destino:
+    if not (pendentes or contratos) or not destino:
         return None
     atrasadas = [x for x in pendentes if x.estado == "atrasada"]
     proximas = [x for x in pendentes if x.estado != "atrasada"]
-    dados = dict(atrasadas=atrasadas, proximas=proximas, link=_link("preventivas.lista"),
-                 cid_marca=correio.CID_MARCA)
+    vencidos = [d for d in contratos if d.situacao_vencimento == "vencido"]
+    vencendo = [d for d in contratos if d.situacao_vencimento != "vencido"]
+    dados = dict(atrasadas=atrasadas, proximas=proximas, vencidos=vencidos, vencendo=vencendo,
+                 link_preventivas=_link("preventivas.lista"),
+                 link_contratos=_link("documentos.lista", categoria="Contratos"), cid_marca=correio.CID_MARCA)
+
+    def qtd(n, um, varios):
+        return f"{n} {um if n == 1 else varios}"
     partes = []
-    if atrasadas:
-        partes.append(f"{len(atrasadas)} atrasada{'s' if len(atrasadas) > 1 else ''}")
-    if proximas:
-        partes.append(f"{len(proximas)} vencendo")
+    if pendentes:
+        partes.append(qtd(len(pendentes), "preventiva pendente", "preventivas pendentes"))
+    if vencendo:
+        partes.append(qtd(len(vencendo), "contrato vencendo", "contratos vencendo"))
+    if vencidos:
+        partes.append(qtd(len(vencidos), "contrato vencido", "contratos vencidos"))
     return correio.Mensagem(
-        para=destino, assunto="[Ticket Manager] Preventivas: " + " e ".join(partes),
-        texto=render_template("email/preventivas.txt", **dados),
-        html=render_template("email/preventivas.html", **dados))
+        para=destino, assunto="[Ticket Manager] Avisos da semana: " + ", ".join(partes),
+        texto=render_template("email/semanal.txt", **dados),
+        html=render_template("email/semanal.html", **dados))

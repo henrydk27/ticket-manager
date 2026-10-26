@@ -1,9 +1,0 @@
-Preventivas pendentes no Ticket Manager
-{% for titulo, lista in (("Atrasadas", atrasadas), ("Vencem nos próximos dias", proximas)) if lista %}
-{{ titulo }} ({{ lista|length }}):
-{% for x in lista %}- {{ x.eq.patrimonio }} · {{ x.eq.tipo }} {{ x.eq.descricao }}{% if x.eq.setor %} · {{ x.eq.setor }}{% endif %}{% if x.eq.usuario %} · {{ x.eq.usuario.nome }}{% endif %} — {{ x.proxima|data }}
-{% endfor %}{% endfor %}
-Abrir Preventivas: {{ link }}
-
---
-Aviso automático do Ticket Manager (toda semana, quando há preventivas pendentes).

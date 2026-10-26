@@ -75,8 +75,8 @@ Menu **Preventivas** (administradores e quem atende a T.I):
   com anotação, peças trocadas, observações e uma foto/arquivo. Vai para o histórico do equipamento
   e recalcula a próxima data.
 - Item com **Problema** abre um **chamado para a T.I** automaticamente.
-- **Relatório** das preventivas do período em Excel e **e-mail semanal** ao CPD com as pendentes
-  (`python manage.py avisar-preventivas`, agendado no cron; veja deploy/OPERACAO.md).
+- **Relatório** das preventivas do período em Excel e **e-mail semanal** ao CPD com as pendentes (e os contratos vencendo)
+  (`python manage.py avisar-semanal`, agendado no cron; veja deploy/OPERACAO.md).
 
 ## Documentos
 
@@ -144,7 +144,7 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/templates/`, `app/static/` | HTML, CSS e JavaScript (sem build, sem CDN); `tema.js` aplica claro/escuro e a cor |
 | `app/temas.py` | temas de cor (cor × intensidade × claro/escuro); gera `static/cores.css` (`python -m app.temas`) |
 | `migracoes/` | versões da estrutura do banco (Alembic) |
-| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-preventivas` |
+| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-semanal` |
 | `wsgi.py` | ponto de entrada do Gunicorn |
 | `deploy/` | serviço systemd, Nginx, backup e guia de instalação |
 | `tests/` | testes, dados de exemplo e modo demonstração |

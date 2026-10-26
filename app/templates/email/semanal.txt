@@ -1,0 +1,14 @@
+Avisos da semana no Ticket Manager
+{% for titulo, lista in (("Preventivas atrasadas", atrasadas), ("Preventivas vencendo nos próximos dias", proximas)) if lista %}
+{{ titulo }} ({{ lista|length }}):
+{% for x in lista %}- {{ x.eq.patrimonio }} · {{ x.eq.tipo }} {{ x.eq.descricao }}{% if x.eq.setor %} · {{ x.eq.setor }}{% endif %}{% if x.eq.usuario %} · {{ x.eq.usuario.nome }}{% endif %} — {{ x.proxima|data }}
+{% endfor %}{% endfor %}{% if atrasadas or proximas %}
+Abrir Preventivas: {{ link_preventivas }}
+{% endif %}{% for titulo, lista in (("Contratos vencidos", vencidos), ("Contratos vencendo nos próximos 30 dias", vencendo)) if lista %}
+{{ titulo }} ({{ lista|length }}):
+{% for d in lista %}- {{ d.titulo }} — {{ d.vencimento|data }}
+{% endfor %}{% endfor %}{% if vencidos or vencendo %}
+Abrir Contratos: {{ link_contratos }}
+{% endif %}
+--
+Aviso automático do Ticket Manager (toda semana, quando há algo pendente).

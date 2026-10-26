@@ -163,18 +163,20 @@ sudo crontab -u ticketapp -e
 Adicione a linha abaixo e salve (toda segunda-feira às 7h):
 
 ```
-0 7 * * 1 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-preventivas
+0 7 * * 1 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-semanal
 ```
 
 Para testar na hora:
 
 ```bash
 cd /opt/ticket-manager
-sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-preventivas
+sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-semanal
 ```
 
 O e-mail vai para o `avisos_cpd` do `config.ini` (em branco, para o `remetente`) e só é enviado
-quando há preventivas atrasadas ou vencendo nos próximos 15 dias.
+quando há preventivas atrasadas ou vencendo nos próximos 15 dias, ou contratos vencendo nos próximos
+30 dias ou vencidos há até 60. (Se o cron ainda usa `avisar-preventivas`, o nome antigo, continua
+funcionando e manda o mesmo e-mail.)
 
 ## HTTPS (recomendado se houver acesso de fora da rede)
 

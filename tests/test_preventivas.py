@@ -165,11 +165,11 @@ def test_relatorio_excel_e_resumo_semanal(client, s, app, contas):
 
     app.extensions["email"].avisos_cpd = "cpd@empresa.com.br"
     with app.test_request_context():
-        msg = notificacoes.mensagem_preventivas(preventivas.pendentes(s))
-    assert msg.para == "cpd@empresa.com.br" and "1 atrasada" in msg.assunto
+        msg = notificacoes.mensagem_semanal(preventivas.pendentes(s))
+    assert msg.para == "cpd@empresa.com.br" and "1 preventiva pendente" in msg.assunto
     assert "000124" in msg.texto and "000123" not in msg.texto
     with app.test_request_context():
-        assert notificacoes.mensagem_preventivas([]) is None
+        assert notificacoes.mensagem_semanal([]) is None
 
 
 def test_registrar_pela_ficha_volta_para_a_ficha(client, s, contas):

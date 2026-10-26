@@ -72,6 +72,7 @@ PLANOS_PADRAO = {
 CATEGORIA_CONTRATOS = "Contratos"
 CATEGORIAS_DOCUMENTO = ["Termos", CATEGORIA_CONTRATOS, "Regras e políticas", "Procedimentos", "Formulários", "Outros"]
 AVISO_VENCIMENTO_DIAS = 30              # contrato "vence em breve" nos últimos 30 dias
+LEMBRAR_VENCIDO_DIAS = 60               # o e-mail semanal lembra de contrato vencido por até 60 dias
 
 
 # Quanto tempo a pessoa tem para criar a senha depois que o admin cadastra ou libera

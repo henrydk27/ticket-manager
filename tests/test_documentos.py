@@ -123,3 +123,24 @@ def test_vencimento_dos_contratos(client, s, contas):
     assert f'value="{(hoje + timedelta(days=10)).isoformat()}"' in client.get(f"/documentos/{d.id}/editar").get_data(as_text=True)
     assert "Data de vencimento inválida" in enviar(client, titulo="X", categoria="Contratos",
                                                    vencimento="31/02/2026").get_data(as_text=True)
+
+
+
+def test_aviso_semanal_de_contratos(client, s, app, contas):
+    from datetime import date, timedelta
+    from app import documentos, notificacoes
+    entrar(client, "admin", "admin123")
+    hoje = date.today()
+    for titulo, dias in (("Contrato vencendo", 10), ("Contrato vencido", -5), ("Contrato longo", 200),
+                         ("Contrato vencido há muito", -90)):
+        enviar(client, titulo=titulo, categoria="Contratos", vencimento=(hoje + timedelta(days=dias)).isoformat())
+    lista = documentos.contratos_a_vencer(s)
+    assert [d.titulo for d in lista] == ["Contrato vencido", "Contrato vencendo"]
+    app.extensions["email"].avisos_cpd = "cpd@empresa.com.br"
+    with app.test_request_context():
+        msg = notificacoes.mensagem_semanal([], lista)
+        assert notificacoes.mensagem_semanal([], []) is None
+    assert msg.para == "cpd@empresa.com.br"
+    assert "1 contrato vencendo" in msg.assunto and "1 contrato vencido" in msg.assunto
+    assert "Contrato vencendo" in msg.texto and "Contrato longo" not in msg.texto
+    assert "categoria=Contratos" in msg.texto and "Preventivas" not in msg.texto

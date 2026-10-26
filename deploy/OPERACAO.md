@@ -102,7 +102,7 @@ Menu **Preventivas**, para **administradores** e quem **atende a T.I**.
 Só equipamentos **Em uso** entram nas preventivas. A primeira vence um período depois do cadastro;
 as seguintes, um período depois da última feita. Tudo fica no histórico do equipamento.
 
-### E-mail semanal das preventivas
+### E-mail semanal (preventivas e contratos)
 
 Agende o resumo semanal ao CPD no cron do usuário do serviço:
 
@@ -113,18 +113,20 @@ sudo crontab -u ticketapp -e
 Adicione a linha abaixo e salve (toda segunda-feira às 7h):
 
 ```
-0 7 * * 1 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-preventivas
+0 7 * * 1 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-semanal
 ```
 
 Para testar na hora:
 
 ```bash
 cd /opt/ticket-manager
-sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-preventivas
+sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisar-semanal
 ```
 
 O e-mail vai para o `avisos_cpd` do `config.ini` (em branco, para o `remetente`) e só é enviado
-quando há preventivas atrasadas ou vencendo nos próximos 15 dias.
+quando há preventivas atrasadas ou vencendo nos próximos 15 dias, ou contratos vencendo nos próximos
+30 dias ou vencidos há até 60. (Se o cron ainda usa `avisar-preventivas`, o nome antigo, continua
+funcionando e manda o mesmo e-mail.)
 
 ## Documentos
 

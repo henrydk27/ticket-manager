@@ -4,7 +4,7 @@
     python manage.py criar-admin LOGIN      cria um administrador (pede nome, setor e senha)
     python manage.py tornar-admin LOGIN     promove uma conta existente a administrador
     python manage.py testar-email DESTINO   envia um e-mail de teste (confere a seção [email])
-    python manage.py avisar-preventivas     manda ao CPD o resumo das preventivas pendentes (agendar no cron)
+    python manage.py avisar-semanal         resumo semanal ao CPD: preventivas e contratos (agendar no cron)
 """
 
 import argparse
@@ -82,8 +82,9 @@ def testar_email(destino: str) -> None:
     print("Enviado. Confira a caixa de entrada (e o spam) de", destino)
 
 
-def avisar_preventivas() -> None:
-    from app import create_app, notificacoes, preventivas
+def avisar_semanal() -> None:
+    """Resumo semanal ao CPD: preventivas pendentes e contratos vencendo/vencidos."""
+    from app import create_app, documentos, notificacoes, preventivas
     from app.config import carregar_config
     from app.correio import enviar_sincrono
 
@@ -95,12 +96,13 @@ def avisar_preventivas() -> None:
         s = app.extensions["sessoes"]()
         try:
             pendentes = preventivas.pendentes(s)
-            msg = notificacoes.mensagem_preventivas(pendentes)
+            contratos = documentos.contratos_a_vencer(s)
+            msg = notificacoes.mensagem_semanal(pendentes, contratos)
             if msg is None:
-                print("Nenhuma preventiva pendente: nada enviado.")
+                print("Nenhuma preventiva pendente nem contrato vencendo: nada enviado.")
                 return
             enviar_sincrono(cfg.email, msg)
-            print(f"Enviado para {msg.para}: {len(pendentes)} preventiva(s) pendente(s).")
+            print(f"Enviado para {msg.para}: {len(pendentes)} preventiva(s) e {len(contratos)} contrato(s).")
         finally:
             s.close()
 
@@ -112,13 +114,15 @@ def main() -> None:
     sub.add_parser("criar-admin", help="cria um administrador").add_argument("login")
     sub.add_parser("tornar-admin", help="promove uma conta a administrador").add_argument("login")
     sub.add_parser("testar-email", help="envia um e-mail de teste").add_argument("destino")
-    sub.add_parser("avisar-preventivas", help="resumo semanal das preventivas pendentes ao CPD")
+    sub.add_parser("avisar-semanal", help="resumo semanal ao CPD: preventivas e contratos")
+    sub.add_parser("avisar-preventivas", help="mesmo que avisar-semanal (nome antigo)")
     a = p.parse_args()
     {"migrar": lambda: migrar(),
      "criar-admin": lambda: criar_admin(a.login),
      "tornar-admin": lambda: tornar_admin(a.login),
      "testar-email": lambda: testar_email(a.destino),
-     "avisar-preventivas": lambda: avisar_preventivas()}[a.comando]()
+     "avisar-semanal": lambda: avisar_semanal(),
+     "avisar-preventivas": lambda: avisar_semanal()}[a.comando]()
 
 
 if __name__ == "__main__":

@@ -4,14 +4,15 @@ Supervisores e administradores consultam; só administradores cadastram, trocam 
 O arquivo fica na mesma pasta dos anexos (entra no backup junto).
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from . import anexos as arquivos_disco
 from .anexos import AnexoInvalido, Arquivo
-from .modelos import CATEGORIA_CONTRATOS, CATEGORIAS_DOCUMENTO, Documento, Usuario
+from .modelos import (AVISO_VENCIMENTO_DIAS, CATEGORIA_CONTRATOS, CATEGORIAS_DOCUMENTO, LEMBRAR_VENCIDO_DIAS,
+                      Documento, Usuario)
 from .servicos import ErroValidacao, _escapar_like
 
 EXTENSOES_DOCUMENTO = {".pdf", ".doc", ".docx", ".odt", ".rtf", ".txt", ".xls", ".xlsx", ".ods",
@@ -27,6 +28,16 @@ def listar(s: Session, texto: str = "", categoria: str = "") -> list[Documento]:
     if categoria:
         cond.append(Documento.categoria == categoria)
     return list(s.scalars(select(Documento).where(*cond).order_by(func.lower(Documento.titulo), Documento.id)))
+
+
+def contratos_a_vencer(s: Session, hoje: date | None = None) -> list[Documento]:
+    """Contratos que vencem nos próximos 30 dias ou venceram há até 60 (para o aviso semanal)."""
+    hoje = hoje or date.today()
+    return list(s.scalars(select(Documento).where(
+        Documento.categoria == CATEGORIA_CONTRATOS,
+        Documento.vencimento >= hoje - timedelta(days=LEMBRAR_VENCIDO_DIAS),
+        Documento.vencimento <= hoje + timedelta(days=AVISO_VENCIMENTO_DIAS),
+    ).order_by(Documento.vencimento, Documento.titulo)))
 
 
 def contagem_por_categoria(s: Session) -> dict[str, int]:
