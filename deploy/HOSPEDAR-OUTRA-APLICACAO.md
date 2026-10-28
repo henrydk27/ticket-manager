@@ -14,6 +14,9 @@ As duas aplicações dividem o Nginx e o PostgreSQL, mas cada uma tem **o seu us
 a sua pasta, o seu banco, a sua porta interna e o seu serviço**. Assim uma não enxerga os
 arquivos nem os dados da outra, e dá para parar, atualizar ou apagar uma sem mexer na outra.
 
+> Se a aplicação foi feita por outra pessoa ou outra IA, confira antes a compatibilidade com o
+> [CHECKLIST-NOVA-APLICACAO.md](CHECKLIST-NOVA-APLICACAO.md).
+
 ## Antes de começar: escolha os nomes
 
 O exemplo deste guia usa uma aplicação chamada **estoque**. Troque pelos nomes da sua em todos os
