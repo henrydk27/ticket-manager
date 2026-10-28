@@ -24,6 +24,8 @@ Resultado final: **Nginx** (porta 80) → **Gunicorn** (serviço `ticket-manager
 
 Para o dia a dia depois de instalado (atualizar, backup, comandos úteis), veja
 **[OPERACAO.md](OPERACAO.md)**.
+Para colocar **outra aplicação** no mesmo servidor, veja
+**[HOSPEDAR-OUTRA-APLICACAO.md](HOSPEDAR-OUTRA-APLICACAO.md)**.
 
 ## 1. Pacotes
 
