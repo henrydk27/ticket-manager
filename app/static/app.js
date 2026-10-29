@@ -237,6 +237,22 @@ document.addEventListener("DOMContentLoaded", () => {
       const r = area.getBoundingClientRect();
       aplicar(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), { x: e.clientX - r.left, y: e.clientY - r.top });
     }, { passive: false });
+    // Fundo escuro (padrão) ou claro; a escolha fica neste navegador
+    const botaoFundo = vis.querySelector("[data-fundo]");
+    const aplicarFundo = (claro) => {
+      vis.classList.toggle("fundo-claro", claro);
+      botaoFundo.textContent = claro ? "Fundo escuro" : "Fundo claro";
+      botaoFundo.setAttribute("aria-pressed", String(claro));
+    };
+    let claro = false;
+    try { claro = localStorage.getItem("diagrama-fundo") === "claro"; } catch (e) { /* sem localStorage */ }
+    aplicarFundo(claro);
+    botaoFundo.addEventListener("click", () => {
+      claro = !claro;
+      aplicarFundo(claro);
+      try { localStorage.setItem("diagrama-fundo", claro ? "claro" : "escuro"); } catch (e) { /* só nesta página */ }
+    });
+
     let arrasto = null;
     area.addEventListener("pointerdown", (e) => {
       arrasto = { x: e.clientX, y: e.clientY, l: area.scrollLeft, t: area.scrollTop };
