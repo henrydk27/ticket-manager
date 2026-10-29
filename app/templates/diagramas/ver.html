@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}{{ d.titulo }}{% endblock %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('diagramas.lista') }}">‹ Diagramas</a></p>
+<div class="cabecalho">
+  <div>
+    <p class="suave numero">Atualizado em {{ d.atualizado_em|data_hora }}{% if d.autor %} por {{ d.autor.nome }}{% endif %}</p>
+    <h1>{{ d.titulo }}</h1>
+    {% if d.descricao %}<p class="suave texto-livre">{{ d.descricao }}</p>{% endif %}
+  </div>
+  <div class="acoes-cabecalho">
+    {% if d.editavel_arquivo %}
+    <a class="botao" href="{{ url_for('diagramas.editavel', diagrama_id=d.id) }}" title="Abra no draw.io para editar">Baixar editável (.drawio)</a>
+    {% elif embutido %}
+    <a class="botao" href="{{ url_for('diagramas.imagem', diagrama_id=d.id, baixar=1) }}" title="Este arquivo abre e edita direto no draw.io">Baixar editável</a>
+    {% endif %}
+    <a class="botao" href="{{ url_for('diagramas.imagem', diagrama_id=d.id, baixar=1) }}">Baixar imagem</a>
+    {% if usuario.is_admin %}<a class="botao" href="{{ url_for('diagramas.editar', diagrama_id=d.id) }}">Editar</a>{% endif %}
+  </div>
+</div>
+
+<div class="cartao visualizador" data-visualizador>
+  <div class="visualizador-barra">
+    <button type="button" class="botao botao-pequeno" data-zoom="menos" aria-label="Diminuir zoom">−</button>
+    <span class="visualizador-zoom" data-zoom-valor>100%</span>
+    <button type="button" class="botao botao-pequeno" data-zoom="mais" aria-label="Aumentar zoom">+</button>
+    <button type="button" class="botao botao-pequeno" data-zoom="ajustar">Ajustar à tela</button>
+    <button type="button" class="botao botao-pequeno" data-zoom="real">Tamanho real</button>
+    <a class="botao botao-pequeno" href="{{ url_for('diagramas.imagem', diagrama_id=d.id) }}" target="_blank" rel="noopener">Abrir em nova aba</a>
+    <span class="suave visualizador-dica">Arraste para mover · Ctrl + rolagem para zoom</span>
+  </div>
+  <div class="visualizador-area" data-visualizador-area tabindex="0" aria-label="Diagrama {{ d.titulo }}">
+    <img src="{{ url_for('diagramas.imagem', diagrama_id=d.id) }}" alt="{{ d.titulo }}" data-visualizador-imagem draggable="false">
+  </div>
+</div>
+{% endblock %}

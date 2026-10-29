@@ -199,6 +199,60 @@ document.addEventListener("DOMContentLoaded", () => {
     atualizar();
   });
 
+  // Diagramas: zoom (botões e Ctrl + rolagem) e arrastar para mover
+  document.querySelectorAll("[data-visualizador]").forEach((vis) => {
+    const area = vis.querySelector("[data-visualizador-area]");
+    const img = vis.querySelector("[data-visualizador-imagem]");
+    const rotulo = vis.querySelector("[data-zoom-valor]");
+    let zoom = 1;
+    const base = () => img.naturalWidth || 1000;
+    const aplicar = (novo, foco) => {
+      const antes = zoom;
+      zoom = Math.min(8, Math.max(0.05, novo));
+      // mantém o ponto sob o mouse (ou o centro) no mesmo lugar
+      const fx = foco ? foco.x : area.clientWidth / 2;
+      const fy = foco ? foco.y : area.clientHeight / 2;
+      const px = (area.scrollLeft + fx) / antes, py = (area.scrollTop + fy) / antes;
+      img.style.width = `${Math.round(base() * zoom)}px`;
+      area.scrollLeft = px * zoom - fx;
+      area.scrollTop = py * zoom - fy;
+      rotulo.textContent = `${Math.round(zoom * 100)}%`;
+    };
+    const ajustar = () => {
+      const w = img.naturalWidth || 1, h = img.naturalHeight || 1;
+      aplicar(Math.min(area.clientWidth / w, area.clientHeight / h) * 0.98);
+      area.scrollLeft = 0; area.scrollTop = 0;
+    };
+    if (img.complete) ajustar(); else img.addEventListener("load", ajustar);
+    vis.querySelectorAll("[data-zoom]").forEach((b) => b.addEventListener("click", () => {
+      const acao = b.dataset.zoom;
+      if (acao === "mais") aplicar(zoom * 1.25);
+      else if (acao === "menos") aplicar(zoom / 1.25);
+      else if (acao === "real") aplicar(1);
+      else ajustar();
+    }));
+    area.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const r = area.getBoundingClientRect();
+      aplicar(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), { x: e.clientX - r.left, y: e.clientY - r.top });
+    }, { passive: false });
+    let arrasto = null;
+    area.addEventListener("pointerdown", (e) => {
+      arrasto = { x: e.clientX, y: e.clientY, l: area.scrollLeft, t: area.scrollTop };
+      area.classList.add("arrastando");
+      area.setPointerCapture(e.pointerId);
+    });
+    area.addEventListener("pointermove", (e) => {
+      if (!arrasto) return;
+      area.scrollLeft = arrasto.l - (e.clientX - arrasto.x);
+      area.scrollTop = arrasto.t - (e.clientY - arrasto.y);
+    });
+    const soltar = () => { arrasto = null; area.classList.remove("arrastando"); };
+    area.addEventListener("pointerup", soltar);
+    area.addEventListener("pointercancel", soltar);
+  });
+
   // Envia o formulário ao mudar o select (ex.: período do painel)
   document.querySelectorAll("select[data-enviar-ao-mudar]").forEach((sel) => {
     sel.addEventListener("change", () => sel.form.submit());

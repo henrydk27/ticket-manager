@@ -368,6 +368,28 @@ class Documento(Base):
         return "vencido" if dias < 0 else ("vence" if dias <= AVISO_VENCIMENTO_DIAS else "vigente")
 
 
+class Diagrama(Base):
+    """Diagrama da infraestrutura (mapa da rede, câmeras...): imagem + arquivo editável do draw.io.
+    Os arquivos ficam em disco (anexos_pasta), nunca no repositório."""
+    __tablename__ = "diagramas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(150))
+    descricao: Mapped[str | None] = mapped_column(Text)
+    ordem: Mapped[int] = mapped_column(Integer, default=0)
+    nome: Mapped[str] = mapped_column(String(255))                   # imagem: nome original
+    tamanho: Mapped[int] = mapped_column(Integer)
+    arquivo: Mapped[str] = mapped_column(String(100), unique=True)   # imagem: nome em disco
+    editavel_nome: Mapped[str | None] = mapped_column(String(255))
+    editavel_tamanho: Mapped[int | None] = mapped_column(Integer)
+    editavel_arquivo: Mapped[str | None] = mapped_column(String(100), unique=True)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, onupdate=agora)
+
+    autor: Mapped[Usuario | None] = relationship(lazy="joined")
+
+
 class PlanoPreventiva(Base):
     """Plano de preventiva de um tipo de equipamento (sem linha aqui, vale PLANOS_PADRAO)."""
     __tablename__ = "planos_preventiva"

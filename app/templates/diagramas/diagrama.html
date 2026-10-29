@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block titulo %}{{ d.titulo if d else 'Novo diagrama' }}{% endblock %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('diagramas.ver', diagrama_id=d.id) if d else url_for('diagramas.lista') }}">‹ {{ d.titulo if d else 'Diagramas' }}</a></p>
+<div class="cabecalho">
+  <div>
+    {% if d %}<p class="suave numero">Atualizado em {{ d.atualizado_em|data_hora }}{% if d.autor %} por {{ d.autor.nome }}{% endif %}</p>{% endif %}
+    <h1>{{ 'Editar diagrama' if d else 'Novo diagrama' }}</h1>
+  </div>
+</div>
+
+<div class="detalhe-grade">
+  <section class="detalhe-principal">
+    <form class="cartao formulario formulario-largo" method="post" enctype="multipart/form-data"
+          action="{{ url_for('diagramas.editar', diagrama_id=d.id) if d else url_for('diagramas.novo') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <div class="grade-campos">
+        <div>
+          <label for="titulo">Título</label>
+          <input id="titulo" name="titulo" maxlength="150" required value="{{ dados.get('titulo') or '' }}"
+                 placeholder="Ex.: Mapa da rede" {{ 'autofocus' if not d }}>
+        </div>
+        <div>
+          <label for="ordem">Ordem na lista</label>
+          <input id="ordem" name="ordem" type="number" min="0" max="999" value="{{ dados.get('ordem') or '0' }}">
+          <p class="dica">Os menores aparecem primeiro.</p>
+        </div>
+      </div>
+      <label for="descricao">Descrição <span class="suave">(opcional)</span></label>
+      <textarea id="descricao" name="descricao" rows="2" maxlength="2000"
+                placeholder="O que o diagrama mostra, de quando é...">{{ dados.get('descricao') or '' }}</textarea>
+
+      <label for="imagem">{{ 'Trocar a imagem' if d else 'Imagem' }} <span class="suave">({{ 'opcional; ' if d }}SVG, PNG ou JPG)</span></label>
+      {% if d %}<p class="suave">Atual: {{ d.nome }} · {{ d.tamanho|tamanho }}</p>{% endif %}
+      <input id="imagem" name="imagem" type="file" accept="{{ ext_imagem }}" {{ 'required' if not d }}>
+      <p class="dica">No draw.io: <strong>Arquivo → Exportar como → SVG</strong>. Marcando "Incluir uma cópia do meu
+        diagrama", a própria imagem (.drawio.svg) também abre para edição.</p>
+
+      <label for="editavel">{{ 'Trocar o arquivo editável' if d and d.editavel_arquivo else 'Arquivo editável' }} <span class="suave">(opcional, .drawio)</span></label>
+      {% if d and d.editavel_arquivo %}
+      <p class="suave">Atual: {{ d.editavel_nome }} · {{ d.editavel_tamanho|tamanho }}
+        <label class="opcao opcao-inline"><input type="checkbox" name="remover_editavel" value="1"> remover</label></p>
+      {% endif %}
+      <input id="editavel" name="editavel" type="file" accept="{{ ext_editavel }}">
+      <p class="dica">O arquivo que você abre no draw.io para atualizar o desenho.</p>
+
+      <div class="acoes">
+        <a class="botao" href="{{ url_for('diagramas.ver', diagrama_id=d.id) if d else url_for('diagramas.lista') }}">Cancelar</a>
+        <button class="botao botao-primario" type="submit">{{ 'Salvar alterações' if d else 'Cadastrar' }}</button>
+      </div>
+    </form>
+  </section>
+
+  {% if d %}
+  <aside>
+    <form method="post" action="{{ url_for('diagramas.apagar', diagrama_id=d.id) }}"
+          data-confirmar="Apagar o diagrama “{{ d.titulo }}”? Os arquivos também serão apagados.">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="botao botao-perigo botao-largo" type="submit">Apagar diagrama</button>
+    </form>
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}

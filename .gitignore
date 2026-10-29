@@ -17,3 +17,8 @@ dist/
 # Documentos (apresentações etc.) ficam fora do Git
 *.docx
 *.doc
+
+# Diagramas da rede (IPs e estrutura interna): ficam só no servidor, pela tela Diagramas
+*.drawio
+*.drawio.svg
+*.drawio.png

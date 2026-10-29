@@ -128,6 +128,19 @@ quando há preventivas atrasadas ou vencendo nos próximos 15 dias, ou contratos
 30 dias ou vencidos há até 60. (Se o cron ainda usa `avisar-preventivas`, o nome antigo, continua
 funcionando e manda o mesmo e-mail.)
 
+## Diagramas
+
+Menu **Diagramas**, visível para **administradores** e quem **atende a T.I**.
+
+| Situação | O que fazer |
+|---|---|
+| Publicar um diagrama (admin) | No draw.io: **Arquivo → Exportar como → SVG**, marcando **Incluir uma cópia do meu diagrama** (gera um `.drawio.svg`, que é imagem e editável ao mesmo tempo). No sistema: **+ Novo diagrama** → título → envie o arquivo |
+| Atualizar o desenho | **Baixar editável** → abra no draw.io → altere → exporte de novo → **Editar** → troque a imagem |
+| Ver em detalhe | Botões de zoom, **Ctrl + rolagem do mouse** ou **Abrir em nova aba**; arraste para mover |
+
+Os arquivos ficam no servidor (pasta dos anexos) e entram no backup. Não coloque diagramas da rede
+no GitHub: eles mostram IPs e a estrutura interna.
+
 ## Documentos
 
 Menu **Documentos**, visível para **supervisores e administradores**: termos, regras, procedimentos

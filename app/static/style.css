@@ -98,8 +98,10 @@ h2 { font-size: 1.1rem; }
 .marca { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--texto); font-size: 1.05rem; }
 .marca:hover { text-decoration: none; }
 .marca-icone { width: 34px; height: 34px; display: block; }
-.menu { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
-.menu a { padding: 6px 12px; border-radius: 6px; color: var(--texto-2); font-weight: 500; }
+.menu { display: flex; gap: 2px; flex: 1; flex-wrap: wrap; }
+.menu a { padding: 6px 10px; border-radius: 6px; color: var(--texto-2); font-weight: 500; white-space: nowrap; }
+/* telas médias: menu um pouco mais compacto para caber numa linha */
+@media (max-width: 1500px) { .menu a { padding: 6px 7px; font-size: .94rem; } }
 .menu a:hover { background: var(--superficie-2); color: var(--texto); text-decoration: none; }
 .menu a.ativo { background: var(--primaria-suave); color: var(--primaria); }
 .topo-direita { display: flex; align-items: center; gap: 14px; }
@@ -527,3 +529,21 @@ a.usuario-nome { color: var(--texto); }
 .plano textarea { width: 100%; font-size: .9rem; }
 .checklist-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .checklist-topo .cartao-titulo { margin: 0; }
+
+/* ─── Diagramas ────────────────────────────────────────────────────────── */
+.diagramas-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.diagrama-cartao { display: grid; gap: 6px; color: var(--texto); align-content: start; }
+.diagrama-cartao:hover { border-color: var(--serie); text-decoration: none; }
+.diagrama-miniatura { display: block; height: 170px; background: #fff; border: 1px solid var(--borda);
+  border-radius: 6px; overflow: hidden; }
+.diagrama-miniatura img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+.visualizador { padding: 0; overflow: hidden; }
+.visualizador-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 12px;
+  border-bottom: 1px solid var(--borda); }
+.visualizador-zoom { min-width: 4.5ch; text-align: center; font-variant-numeric: tabular-nums; font-size: .9rem; }
+.visualizador-dica { margin-left: auto; font-size: .8rem; }
+.visualizador-area { height: calc(100vh - 260px); min-height: 420px; overflow: auto; background: #fff;
+  cursor: grab; touch-action: none; }
+.visualizador-area.arrastando { cursor: grabbing; }
+.visualizador-area img { display: block; max-width: none; user-select: none; }
+.opcao-inline { display: inline-flex; margin: 0 0 0 10px; }

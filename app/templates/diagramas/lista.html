@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}Diagramas{% endblock %}
+
+{% block conteudo %}
+<div class="cabecalho">
+  <div>
+    <h1>Diagramas</h1>
+    <p class="suave">Mapa da rede, câmeras e outros desenhos da infraestrutura.</p>
+  </div>
+  {% if usuario.is_admin %}
+  <div class="acoes-cabecalho">
+    <a class="botao botao-primario" href="{{ url_for('diagramas.novo') }}">+ Novo diagrama</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if itens %}
+<div class="diagramas-grade">
+  {% for d in itens %}
+  <a class="cartao diagrama-cartao" href="{{ url_for('diagramas.ver', diagrama_id=d.id) }}">
+    <span class="diagrama-miniatura"><img src="{{ url_for('diagramas.imagem', diagrama_id=d.id) }}" alt="" loading="lazy"></span>
+    <strong>{{ d.titulo }}</strong>
+    {% if d.descricao %}<span class="subtitulo">{{ d.descricao }}</span>{% endif %}
+    <span class="subtitulo">Atualizado em {{ d.atualizado_em|data }}{% if d.autor %} por {{ d.autor.nome }}{% endif %}</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="vazio">
+  <h2>Nenhum diagrama cadastrado ainda</h2>
+  {% if usuario.is_admin %}
+  <p class="suave">No draw.io, use <strong>Arquivo → Exportar como → SVG</strong> e envie a imagem aqui, junto com o
+    arquivo <strong>.drawio</strong> para editar depois.</p>
+  <p><a class="botao botao-primario" href="{{ url_for('diagramas.novo') }}">Cadastrar diagrama</a></p>
+  {% else %}
+  <p class="suave">Quando a T.I publicar o mapa da rede e outros diagramas, eles aparecem aqui.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

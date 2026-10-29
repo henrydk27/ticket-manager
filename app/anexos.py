@@ -43,8 +43,10 @@ def extensao(nome: str) -> str:
     return os.path.splitext(nome)[1].lower()
 
 
-def ler_anexos(arquivos: list[FileStorage]) -> list[Arquivo]:
-    """Valida e lê os arquivos do formulário. Lança AnexoInvalido com a mensagem para o usuário."""
+def ler_anexos(arquivos: list[FileStorage], permitidas: set[str] | None = None) -> list[Arquivo]:
+    """Valida e lê os arquivos do formulário. Lança AnexoInvalido com a mensagem para o usuário.
+
+    permitidas: extensões aceitas (padrão: as dos anexos de chamado)."""
     arquivos = [a for a in arquivos if a and a.filename]
     if len(arquivos) > MAX_ARQUIVOS:
         raise AnexoInvalido(f"Envie no máximo {MAX_ARQUIVOS} arquivos por vez.")
@@ -53,7 +55,7 @@ def ler_anexos(arquivos: list[FileStorage]) -> list[Arquivo]:
     resultado = []
     for a in arquivos:
         nome = nome_seguro(a.filename)
-        if extensao(nome) not in EXTENSOES_PERMITIDAS:
+        if extensao(nome) not in (permitidas or EXTENSOES_PERMITIDAS):
             raise AnexoInvalido(f"Tipo de arquivo não permitido: {nome}")
         conteudo = a.read(limite + 1)
         if len(conteudo) > limite:

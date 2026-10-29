@@ -78,6 +78,14 @@ Menu **Preventivas** (administradores e quem atende a T.I):
 - **Relatório** das preventivas do período em Excel e **e-mail semanal** ao CPD com as pendentes (e os contratos vencendo)
   (`python manage.py avisar-semanal`, agendado no cron; veja deploy/OPERACAO.md).
 
+## Diagramas
+
+Menu **Diagramas** (administradores e quem atende a T.I): mapa da rede, câmeras e outros desenhos
+da infraestrutura, com zoom e arrastar. O administrador envia a imagem exportada do draw.io (SVG ou
+PNG) e o arquivo editável (`.drawio`), ou um `.drawio.svg`, que é as duas coisas. Os arquivos ficam
+no servidor (pasta dos anexos, entram no backup) e **nunca no repositório**: o `.gitignore` bloqueia
+`*.drawio`, porque os diagramas mostram IPs e a estrutura da rede.
+
 ## Documentos
 
 Termos, regras, procedimentos, formulários e contratos internos da empresa. Supervisores e
