@@ -5,6 +5,7 @@
     python manage.py tornar-admin LOGIN     promove uma conta existente a administrador
     python manage.py testar-email DESTINO   envia um e-mail de teste (confere a seção [email])
     python manage.py avisar-semanal         resumo semanal ao CPD: preventivas e contratos (agendar no cron)
+    python manage.py lembrar-avaliacoes     lembra quem abriu de avaliar os chamados encerrados (agendar no cron)
 """
 
 import argparse
@@ -107,6 +108,37 @@ def avisar_semanal() -> None:
             s.close()
 
 
+def lembrar_avaliacoes() -> None:
+    """Manda a cada pessoa um e-mail com os chamados encerrados que ela ainda não avaliou."""
+    from app import create_app, notificacoes, servicos
+    from app.config import carregar_config
+    from app.correio import enviar_sincrono
+
+    cfg = carregar_config()
+    if not cfg.email.ativo:
+        sys.exit("E-mail desligado: preencha host e remetente na seção [email] do config.ini.")
+    app = create_app(cfg)
+    with app.test_request_context(base_url=cfg.email.url_site or "http://localhost"):
+        s = app.extensions["sessoes"]()
+        try:
+            enviados = falhas = 0
+            for u, chamados in servicos.lembretes_de_avaliacao(s).items():
+                msg = notificacoes.mensagem_lembrete_avaliacao(u, chamados)
+                if msg is None:
+                    continue
+                try:
+                    enviar_sincrono(cfg.email, msg)
+                except Exception as e:      # um e-mail com problema não impede os outros
+                    falhas += 1
+                    print(f"Falhou para {u.login}: {type(e).__name__}: {e}")
+                    continue
+                servicos.registrar_lembretes(s, chamados)
+                enviados += 1
+            print(f"Lembretes enviados: {enviados}" + (f" · falhas: {falhas}" if falhas else ""))
+        finally:
+            s.close()
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Administração do Ticket Manager")
     sub = p.add_subparsers(dest="comando", required=True)
@@ -116,13 +148,15 @@ def main() -> None:
     sub.add_parser("testar-email", help="envia um e-mail de teste").add_argument("destino")
     sub.add_parser("avisar-semanal", help="resumo semanal ao CPD: preventivas e contratos")
     sub.add_parser("avisar-preventivas", help="mesmo que avisar-semanal (nome antigo)")
+    sub.add_parser("lembrar-avaliacoes", help="lembra quem abriu de avaliar os chamados encerrados")
     a = p.parse_args()
     {"migrar": lambda: migrar(),
      "criar-admin": lambda: criar_admin(a.login),
      "tornar-admin": lambda: tornar_admin(a.login),
      "testar-email": lambda: testar_email(a.destino),
      "avisar-semanal": lambda: avisar_semanal(),
-     "avisar-preventivas": lambda: avisar_semanal()}[a.comando]()
+     "avisar-preventivas": lambda: avisar_semanal(),
+     "lembrar-avaliacoes": lambda: lembrar_avaliacoes()}[a.comando]()
 
 
 if __name__ == "__main__":

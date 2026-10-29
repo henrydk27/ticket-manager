@@ -1,0 +1,11 @@
+Olá, {{ destino.nome.split()[0] }}.
+
+{{ 'O seu chamado foi encerrado' if chamados|length == 1 else 'Estes chamados seus foram encerrados' }} e ainda não {{ 'foi avaliado' if chamados|length == 1 else 'foram avaliados' }}.
+Leva um clique: Bom, Regular ou Ruim. A sua avaliação ajuda a melhorar o atendimento.
+
+{% for c in chamados %}- #{{ c.id }} {{ c.titulo }} ({{ c.setor_destino }}{% if c.responsavel %}, {{ c.responsavel.nome }}{% endif %}) — encerrado em {{ c.fechado_em|data }}
+{% endfor %}
+Avaliar agora: {{ link }}
+
+--
+Aviso automático do Ticket Manager.

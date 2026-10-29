@@ -647,6 +647,36 @@ def avaliacoes_pendentes(s: Session, usuario: Usuario) -> list[Chamado]:
         Chamado.avaliacao.is_(None)).order_by(Chamado.fechado_em)).unique())
 
 
+# Lembrete de avaliação: 1 dia depois de encerrar e mais um 3 dias depois (no máximo 2)
+LEMBRETE_PRIMEIRO_DIAS, LEMBRETE_INTERVALO_DIAS, LEMBRETES_MAXIMO = 1, 3, 2
+
+
+def lembretes_de_avaliacao(s: Session) -> dict[Usuario, list[Chamado]]:
+    """Chamados encerrados sem avaliação que já podem receber lembrete, por solicitante."""
+    agora_ = agora()
+    candidatos = s.scalars(select(Chamado).where(
+        Chamado.status == STATUS_FECHADO, Chamado.avaliacao.is_(None),
+        Chamado.fechado_em <= agora_ - timedelta(days=LEMBRETE_PRIMEIRO_DIAS),
+        Chamado.lembretes_avaliacao < LEMBRETES_MAXIMO,
+    ).order_by(Chamado.fechado_em)).unique()
+    por_pessoa: dict[Usuario, list[Chamado]] = defaultdict(list)
+    for c in candidatos:
+        u = c.solicitante
+        if not (u.ativo and u.email):
+            continue
+        if c.ultimo_lembrete_em and agora_ - c.ultimo_lembrete_em < timedelta(days=LEMBRETE_INTERVALO_DIAS):
+            continue
+        por_pessoa[u].append(c)
+    return dict(por_pessoa)
+
+
+def registrar_lembretes(s: Session, chamados: list[Chamado]) -> None:
+    for c in chamados:
+        c.lembretes_avaliacao = (c.lembretes_avaliacao or 0) + 1
+        c.ultimo_lembrete_em = agora()
+    s.commit()
+
+
 def avaliar(s: Session, c: Chamado, usuario: Usuario, avaliacao: str) -> bool:
     if avaliacao not in AVALIACOES:
         raise ErroValidacao("Avaliação inválida.")

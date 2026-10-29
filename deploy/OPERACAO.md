@@ -102,6 +102,17 @@ Menu **Preventivas**, para **administradores** e quem **atende a T.I**.
 Só equipamentos **Em uso** entram nas preventivas. A primeira vence um período depois do cadastro;
 as seguintes, um período depois da última feita. Tudo fica no histórico do equipamento.
 
+### Lembrete de avaliação
+
+Quem abriu um chamado e ainda não avaliou o atendimento recebe um e-mail **1 dia** depois do
+encerramento e, se continuar sem avaliar, mais um **3 dias** depois (no máximo 2 por chamado,
+uma mensagem só por pessoa). No sistema, enquanto houver pendente, aparece **★ Avaliar** no topo.
+Agende de segunda a sexta às 8h, no cron do usuário do serviço (`sudo crontab -u ticketapp -e`):
+
+```
+0 8 * * 1-5 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py lembrar-avaliacoes
+```
+
 ### E-mail semanal (preventivas e contratos)
 
 Agende o resumo semanal ao CPD no cron do usuário do serviço:

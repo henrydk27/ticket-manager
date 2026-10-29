@@ -7,6 +7,7 @@ Regras: ninguém recebe aviso da própria ação, e só recebe quem tem e-mail e
 - mudança de status     → solicitante (encerrado: com link para avaliar)
 - pedido de nova senha  → CPD (config avisos_cpd; vazio = remetente)
 - conta nova (login)    → CPD
+- avaliação pendente    → quem abriu (até 2 lembretes: python manage.py lembrar-avaliacoes)
 - resumo semanal        → CPD: preventivas pendentes e contratos vencendo/vencidos
                           (python manage.py avisar-semanal, agendado no cron)
 """
@@ -147,3 +148,17 @@ def mensagem_semanal(pendentes: list, contratos: list | None = None) -> "correio
         para=destino, assunto="[Ticket Manager] Avisos da semana: " + ", ".join(partes),
         texto=render_template("email/semanal.txt", **dados),
         html=render_template("email/semanal.html", **dados))
+
+
+def mensagem_lembrete_avaliacao(u: Usuario, chamados: list) -> "correio.Mensagem | None":
+    """Lembra quem abriu de avaliar os chamados encerrados (uma mensagem com todos)."""
+    if not chamados or not u.email or not u.ativo:
+        return None
+    n = len(chamados)
+    dados = dict(destino=u, chamados=chamados, link=_link("chamados.avaliacoes"), cid_marca=correio.CID_MARCA)
+    return correio.Mensagem(
+        para=u.email,
+        assunto=("[Ticket Manager] Como foi o atendimento? " +
+                 (f"Chamado #{chamados[0].id}: {chamados[0].titulo}" if n == 1 else f"{n} chamados esperando avaliação")),
+        texto=render_template("email/lembrete_avaliacao.txt", **dados),
+        html=render_template("email/lembrete_avaliacao.html", **dados))

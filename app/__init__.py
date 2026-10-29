@@ -93,6 +93,7 @@ def create_app(cfg: Config | None = None) -> Flask:
     def _contexto():
         u = g.get("usuario")
         pedidos = servicos.pedidos_de_senha(banco.db()) if u is not None and u.is_admin else 0
-        return {"usuario": u, "pedidos_senha": pedidos}
+        a_avaliar = len(servicos.avaliacoes_pendentes(banco.db(), u)) if u is not None else 0
+        return {"usuario": u, "pedidos_senha": pedidos, "a_avaliar": a_avaliar}
 
     return app

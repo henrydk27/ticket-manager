@@ -42,6 +42,8 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 - Quem atende pode **mudar o status direto na lista** de chamados, sem abrir o chamado.
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
+- **Lembrete de avaliação:** quem não avaliou um chamado encerrado recebe até 2 e-mails (1 e 4 dias
+  depois) e vê **★ Avaliar** no topo do sistema (`python manage.py lembrar-avaliacoes`, agendado no cron).
 - **Painel:** indicadores (em aberto, sem responsável, abertos, encerrados, tempo médio e
   satisfação) com comparação ao período anterior e linha de tendência; gráficos de abertos x
   encerrados por semana ou mês, status, há quanto tempo estão em aberto, setor x prioridade,
@@ -152,7 +154,7 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/templates/`, `app/static/` | HTML, CSS e JavaScript (sem build, sem CDN); `tema.js` aplica claro/escuro e a cor |
 | `app/temas.py` | temas de cor (cor × intensidade × claro/escuro); gera `static/cores.css` (`python -m app.temas`) |
 | `migracoes/` | versões da estrutura do banco (Alembic) |
-| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-semanal` |
+| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-semanal`, `lembrar-avaliacoes` |
 | `wsgi.py` | ponto de entrada do Gunicorn |
 | `deploy/` | serviço systemd, Nginx, backup e guia de instalação |
 | `tests/` | testes, dados de exemplo e modo demonstração |

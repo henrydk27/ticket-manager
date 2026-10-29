@@ -896,3 +896,46 @@ def test_pdf_do_relatorio_com_graficos(client, s, contas):
     com = exportacao.gerar_pdf([], d_(2026, 1, 1), d_(2026, 1, 31), d, "Todos os setores").getvalue()
     sem = exportacao.gerar_pdf([], d_(2026, 1, 1), d_(2026, 1, 31)).getvalue()
     assert com[:4] == b"%PDF" and len(com) > len(sem) + 3000
+
+
+
+# ─── lembrete de avaliação ──────────────────────────────────────────────────
+
+def test_lembrete_de_avaliacao(client, s, app, contas):
+    from datetime import datetime as dt, timedelta as td
+    from app import notificacoes
+    agora_ = dt.now().replace(microsecond=0)
+    for c in s.scalars(select(Chamado).where(Chamado.status == "Fechado")):
+        c.avaliacao = "Bom"                                   # zera o cenário
+    s.commit()
+    a, b = chamado(s, "Impressora do fiscal não imprime"), chamado(s, "Erro ao emitir nota fiscal")
+    a.status, a.fechado_em, a.avaliacao = "Fechado", agora_ - td(days=2), None     # ana, já pode lembrar
+    b.status, b.fechado_em, b.avaliacao = "Fechado", agora_ - td(hours=5), None    # ana, encerrado agora há pouco
+    s.commit()
+
+    pend = servicos.lembretes_de_avaliacao(s)
+    ana = usuario(s, "ana")
+    assert list(pend) == [ana] and [c.id for c in pend[ana]] == [a.id]
+    with app.test_request_context():
+        msg = notificacoes.mensagem_lembrete_avaliacao(ana, pend[ana])
+    assert msg.para == "ana@empresa.com.br" and f"#{a.id}" in msg.assunto and "/avaliacoes" in msg.texto
+
+    servicos.registrar_lembretes(s, pend[ana])
+    assert servicos.lembretes_de_avaliacao(s) == {}           # espera 3 dias para o próximo
+    a = chamado(s, "Impressora do fiscal não imprime")
+    a.ultimo_lembrete_em = agora_ - td(days=4)
+    s.commit()
+    assert [c.id for c in servicos.lembretes_de_avaliacao(s)[usuario(s, "ana")]] == [a.id]
+    servicos.registrar_lembretes(s, [a])
+    a = chamado(s, "Impressora do fiscal não imprime")
+    a.ultimo_lembrete_em = agora_ - td(days=10)
+    s.commit()
+    assert servicos.lembretes_de_avaliacao(s) == {}           # no máximo 2 lembretes
+
+    # aviso fixo no topo enquanto houver pendente
+    entrar(client, "ana", "ana12345")
+    assert "★ Avaliar" in client.get("/conta/").get_data(as_text=True)
+    token = csrf(client, "/avaliacoes")
+    for c in (a, chamado(s, "Erro ao emitir nota fiscal")):
+        client.post(f"/chamados/{c.id}/avaliar", data={"csrf": token, "avaliacao": "Bom"})
+    assert "★ Avaliar" not in client.get("/conta/").get_data(as_text=True)

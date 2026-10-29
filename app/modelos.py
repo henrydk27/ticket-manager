@@ -197,6 +197,9 @@ class Chamado(Base):
     fechado_em: Mapped[datetime | None] = mapped_column(DateTime)
     avaliacao: Mapped[str | None] = mapped_column(String(10))
     avaliado_em: Mapped[datetime | None] = mapped_column(DateTime)
+    # lembretes por e-mail para quem abriu avaliar o atendimento (manage.py lembrar-avaliacoes)
+    lembretes_avaliacao: Mapped[int] = mapped_column(Integer, default=0)
+    ultimo_lembrete_em: Mapped[datetime | None] = mapped_column(DateTime)
 
     solicitante: Mapped[Usuario] = relationship(foreign_keys=[solicitante_id], lazy="joined")
     responsavel: Mapped[Usuario | None] = relationship(foreign_keys=[responsavel_id], lazy="joined")

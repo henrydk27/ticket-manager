@@ -551,3 +551,6 @@ a.usuario-nome { color: var(--texto); }
 .visualizador-area.arrastando { cursor: grabbing; }
 .visualizador-area img { display: block; max-width: none; user-select: none; }
 .opcao-inline { display: inline-flex; margin: 0 0 0 10px; }
+.avaliar-pendente { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 6px;
+  background: var(--st-andamento-f); color: var(--st-andamento-t); font-weight: 600; white-space: nowrap; }
+.avaliar-pendente:hover { text-decoration: none; filter: brightness(1.05); }

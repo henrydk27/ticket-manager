@@ -41,6 +41,10 @@
       {% endif %}
     </nav>
     <div class="topo-direita">
+      {% if a_avaliar %}
+      <a class="avaliar-pendente" href="{{ url_for('chamados.avaliacoes') }}"
+         title="Chamados encerrados esperando a sua avaliação">★ Avaliar <span class="contador-menu">{{ a_avaliar }}</span></a>
+      {% endif %}
       <a class="botao botao-primario botao-novo" href="{{ url_for('chamados.novo') }}">+ Novo chamado</a>
       <a class="usuario-nome" href="{{ url_for('conta.perfil') }}" title="Minha conta · {{ usuario.papel_nome }}">
         {{ usuario.nome.split()[0] }}{% if usuario.is_admin %} <small>admin</small>{% elif usuario.is_supervisor %} <small>supervisor</small>{% elif usuario.atende %} <small>atendente</small>{% endif %}
