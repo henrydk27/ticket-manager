@@ -9,6 +9,11 @@ Abrir Preventivas: {{ link_preventivas }}
 {% for d in lista %}- {{ d.titulo }} — {{ d.vencimento|data }}
 {% endfor %}{% endfor %}{% if vencidos or vencendo %}
 Abrir Contratos: {{ link_contratos }}
+{% endif %}{% if tarefas %}
+Tarefas da T.I atrasadas ({{ tarefas|length }}):
+{% for x in tarefas %}- {{ x.tarefa.titulo }} — era para {{ x.tarefa.proxima|data }}{% if x.tarefa.responsavel %} · {{ x.tarefa.responsavel.nome }}{% endif %}
+{% endfor %}
+Abrir Tarefas: {{ link_tarefas }}
 {% endif %}
 --
 Aviso automático do Ticket Manager (toda semana, quando há algo pendente).

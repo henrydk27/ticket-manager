@@ -7,8 +7,10 @@ Regras: ninguém recebe aviso da própria ação, e só recebe quem tem e-mail e
 - mudança de status     → solicitante (encerrado: com link para avaliar)
 - pedido de nova senha  → CPD (config avisos_cpd; vazio = remetente)
 - conta nova (login)    → CPD
-- avaliação pendente    → quem abriu (até 2 lembretes: python manage.py lembrar-avaliacoes)
-- resumo semanal        → CPD: preventivas pendentes e contratos vencendo/vencidos
+- avaliação pendente    → quem abriu (até 2 lembretes: python manage.py avisos-diarios)
+- tarefas da T.I        → responsável (ou toda a T.I): atrasadas, do dia e no prazo de aviso
+                          (python manage.py avisos-diarios)
+- resumo semanal        → CPD: preventivas pendentes, contratos vencendo/vencidos e tarefas atrasadas
                           (python manage.py avisar-semanal, agendado no cron)
 """
 
@@ -117,22 +119,23 @@ def conta_criada(u: Usuario) -> None:
                 "Se a conta não for de alguém da empresa, desative-a.")
 
 
-def mensagem_semanal(pendentes: list, contratos: list | None = None) -> "correio.Mensagem | None":
-    """Resumo semanal ao CPD: preventivas atrasadas/vencendo e contratos vencendo/vencidos.
+def mensagem_semanal(pendentes: list, contratos: list | None = None,
+                     tarefas: list | None = None) -> "correio.Mensagem | None":
+    """Resumo semanal ao CPD: preventivas atrasadas/vencendo, contratos vencendo/vencidos e tarefas atrasadas.
 
     None = nada a avisar ou sem destino configurado.
     """
-    contratos = contratos or []
+    contratos, tarefas = contratos or [], tarefas or []
     cfg = current_app.extensions["email"]
     destino = cfg.avisos_cpd or cfg.remetente
-    if not (pendentes or contratos) or not destino:
+    if not (pendentes or contratos or tarefas) or not destino:
         return None
     atrasadas = [x for x in pendentes if x.estado == "atrasada"]
     proximas = [x for x in pendentes if x.estado != "atrasada"]
     vencidos = [d for d in contratos if d.situacao_vencimento == "vencido"]
     vencendo = [d for d in contratos if d.situacao_vencimento != "vencido"]
-    dados = dict(atrasadas=atrasadas, proximas=proximas, vencidos=vencidos, vencendo=vencendo,
-                 link_preventivas=_link("preventivas.lista"),
+    dados = dict(atrasadas=atrasadas, proximas=proximas, vencidos=vencidos, vencendo=vencendo, tarefas=tarefas,
+                 link_preventivas=_link("preventivas.lista"), link_tarefas=_link("tarefas.lista", estado="atrasada"),
                  link_contratos=_link("documentos.lista", categoria="Contratos"), cid_marca=correio.CID_MARCA)
 
     def qtd(n, um, varios):
@@ -144,6 +147,8 @@ def mensagem_semanal(pendentes: list, contratos: list | None = None) -> "correio
         partes.append(qtd(len(vencendo), "contrato vencendo", "contratos vencendo"))
     if vencidos:
         partes.append(qtd(len(vencidos), "contrato vencido", "contratos vencidos"))
+    if tarefas:
+        partes.append(qtd(len(tarefas), "tarefa atrasada", "tarefas atrasadas"))
     return correio.Mensagem(
         para=destino, assunto="[Ticket Manager] Avisos da semana: " + ", ".join(partes),
         texto=render_template("email/semanal.txt", **dados),
@@ -162,3 +167,26 @@ def mensagem_lembrete_avaliacao(u: Usuario, chamados: list) -> "correio.Mensagem
                  (f"Chamado #{chamados[0].id}: {chamados[0].titulo}" if n == 1 else f"{n} chamados esperando avaliação")),
         texto=render_template("email/lembrete_avaliacao.txt", **dados),
         html=render_template("email/lembrete_avaliacao.html", **dados))
+
+
+def mensagem_tarefas(u: Usuario, itens: list) -> "correio.Mensagem | None":
+    """Aviso diário das tarefas da T.I: atrasadas, de hoje e as que vencem no prazo de aviso."""
+    if not itens or not u.email or not u.ativo:
+        return None
+    atrasadas = [x for x in itens if x.estado == "atrasada"]
+    hoje = [x for x in itens if x.estado == "hoje"]
+    proximas = [x for x in itens if x.estado not in ("atrasada", "hoje")]
+    dados = dict(destino=u, atrasadas=atrasadas, hoje=hoje, proximas=proximas,
+                 link=_link("tarefas.lista"), cid_marca=correio.CID_MARCA)
+    if len(itens) == 1:
+        x = itens[0]
+        quando = {"atrasada": "atrasada", "hoje": "para hoje"}.get(
+            x.estado, f"em {x.dias} dia{'s' if x.dias != 1 else ''}")
+        assunto = f"[Ticket Manager] Tarefa {quando}: {x.tarefa.titulo}"
+    else:
+        partes = [f"{len(lista)} {rotulo}" for lista, rotulo in
+                  ((atrasadas, "atrasada(s)"), (hoje, "para hoje"), (proximas, "chegando")) if lista]
+        assunto = "[Ticket Manager] Tarefas da T.I: " + ", ".join(partes)
+    return correio.Mensagem(para=u.email, assunto=assunto,
+                            texto=render_template("email/tarefas.txt", **dados),
+                            html=render_template("email/tarefas.html", **dados))

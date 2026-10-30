@@ -554,3 +554,23 @@ a.usuario-nome { color: var(--texto); }
 .avaliar-pendente { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 6px;
   background: var(--st-andamento-f); color: var(--st-andamento-t); font-weight: 600; white-space: nowrap; }
 .avaliar-pendente:hover { text-decoration: none; filter: brightness(1.05); }
+
+/* ─── Tarefas da T.I ───────────────────────────────────────────────────── */
+.col-data { white-space: nowrap; }
+.espaco-topo-pequeno { margin-top: 8px; }
+.tarefa-descricao { max-width: 46ch; max-height: 3.2em; overflow: hidden; }
+.concluir-tarefa { display: inline-block; }
+.concluir-tarefa summary { list-style: none; cursor: pointer; display: inline-block; }
+.concluir-tarefa summary::-webkit-details-marker { display: none; }
+/* aberto: caixa no centro da tela (fora da tabela, que tem rolagem própria) */
+.concluir-tarefa form {
+  position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 50;
+  width: min(380px, calc(100vw - 32px)); padding: 16px; text-align: left; white-space: normal;
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio);
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .35), 0 10px 30px rgba(0, 0, 0, .25);
+}
+.concluir-tarefa form strong { font-size: .95rem; }
+.concluir-tarefa form input { width: 100%; }
+.concluir-tarefa-acoes { display: flex; justify-content: flex-end; gap: 8px; }
+.concluir-tarefa[open] summary { opacity: .6; }

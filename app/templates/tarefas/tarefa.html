@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block titulo %}{{ t.titulo if t else 'Nova tarefa' }}{% endblock %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('tarefas.lista') }}">‹ Tarefas</a></p>
+<div class="cabecalho">
+  <div>
+    {% if t %}<p class="suave numero">{{ descricao_repeticao(t) }} · {{ ('próxima em ' ~ (t.proxima|data)) if t.proxima else 'concluída' }}</p>{% endif %}
+    <h1>{{ t.titulo if t else 'Nova tarefa' }}</h1>
+  </div>
+</div>
+
+<div class="detalhe-grade">
+  <section class="detalhe-principal">
+    <form class="cartao formulario formulario-largo" method="post"
+          action="{{ url_for('tarefas.editar', tarefa_id=t.id) if t else url_for('tarefas.nova') }}" data-avisar-alteracoes>
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+      <label for="titulo">Tarefa</label>
+      <input id="titulo" name="titulo" maxlength="150" required value="{{ dados.get('titulo') or '' }}"
+             placeholder="Ex.: Conferir backup dos servidores" {{ 'autofocus' if not t }}>
+
+      <label for="descricao">Como fazer <span class="suave">(opcional)</span></label>
+      <textarea id="descricao" name="descricao" rows="4" maxlength="4000"
+                placeholder="Passos, onde conferir, o que anotar...">{{ dados.get('descricao') or '' }}</textarea>
+
+      <h2 class="cartao-titulo espaco-secao">Quando</h2>
+      <div class="grade-campos">
+        <div>
+          <label for="repeticao">Repetição</label>
+          <select id="repeticao" name="repeticao" required data-repeticao>
+            {% for chave, nome in REPETICOES.items() %}<option value="{{ chave }}" {{ 'selected' if dados.get('repeticao') == chave }}>{{ nome }}</option>{% endfor %}
+          </select>
+        </div>
+        <div data-se-repeticao="mensal">
+          <label for="dia_mes">Dia do mês</label>
+          <input id="dia_mes" name="dia_mes" type="number" min="1" max="31" value="{{ dados.get('dia_mes') or '' }}">
+          <p class="dica">29, 30 ou 31: nos meses mais curtos, vale o último dia.</p>
+        </div>
+        <div data-se-repeticao="semanal">
+          <label for="dia_semana">Dia da semana</label>
+          <select id="dia_semana" name="dia_semana">
+            {% for d in DIAS_SEMANA %}<option value="{{ loop.index0 }}" {{ 'selected' if dados.get('dia_semana') == loop.index0|string }}>{{ d|capitalize }}</option>{% endfor %}
+          </select>
+        </div>
+        <div data-se-repeticao="meses">
+          <label for="intervalo_meses">A cada quantos meses</label>
+          <input id="intervalo_meses" name="intervalo_meses" type="number" min="1" max="60" value="{{ dados.get('intervalo_meses') or '' }}">
+          <p class="dica">3 = trimestral, 6 = semestral, 12 = anual.</p>
+        </div>
+        <div>
+          <label for="inicio" data-rotulo-inicio>A partir de</label>
+          <input id="inicio" name="inicio" type="date" required value="{{ dados.get('inicio') or '' }}">
+          <p class="dica" data-dica-inicio>A primeira vez é nesta data ou na primeira depois dela.</p>
+        </div>
+      </div>
+
+      <h2 class="cartao-titulo espaco-secao">Aviso</h2>
+      <div class="grade-campos">
+        <div>
+          <label for="responsavel_id">Responsável</label>
+          <select id="responsavel_id" name="responsavel_id">
+            <option value="">Toda a T.I</option>
+            {% for u in equipe %}<option value="{{ u.id }}" {{ 'selected' if dados.get('responsavel_id') == u.id|string }}>{{ u.nome }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="avisar_dias">Avisar quantos dias antes</label>
+          <input id="avisar_dias" name="avisar_dias" type="number" min="0" max="60" value="{{ dados.get('avisar_dias') or '0' }}">
+          <p class="dica">0 = só no dia. Atrasada, o aviso continua até alguém concluir.</p>
+        </div>
+      </div>
+      {% if t and t.ativa %}
+      <label class="opcao"><input type="checkbox" name="recalcular" value="1"> Recalcular a próxima data a partir de "A partir de"</label>
+      {% endif %}
+
+      <div class="acoes">
+        <a class="botao" href="{{ url_for('tarefas.lista') }}">Cancelar</a>
+        <button class="botao botao-primario" type="submit">{{ 'Salvar alterações' if t else 'Cadastrar' }}</button>
+      </div>
+    </form>
+  </section>
+
+  {% if t %}
+  <aside class="detalhe-lateral">
+    {% if t.ativa %}
+    <div class="cartao">
+      <h2 class="cartao-titulo">Concluir agora</h2>
+      <form method="post" action="{{ url_for('tarefas.concluir', tarefa_id=t.id) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <label for="observacao" class="oculto">Observação</label>
+        <input id="observacao" name="observacao" maxlength="2000" placeholder="Observação (opcional)">
+        <button class="botao botao-primario botao-largo espaco-topo-pequeno" type="submit">Marcar como feita</button>
+      </form>
+    </div>
+    {% endif %}
+    <div class="cartao">
+      <h2 class="cartao-titulo">Histórico</h2>
+      {% if t.execucoes %}
+      <ol class="historico-equipamento">
+        {% for e in t.execucoes %}
+        <li><div>Feita em {{ e.feita_em|data_hora }} · {{ e.usuario.nome if e.usuario else '—' }}</div>
+          <div class="subtitulo">prevista para {{ e.data_prevista|data }}</div>
+          {% if e.observacao %}<div class="texto-livre">{{ e.observacao }}</div>{% endif %}</li>
+        {% endfor %}
+      </ol>
+      {% else %}<p class="suave">Ainda não foi feita.</p>{% endif %}
+    </div>
+    {% if usuario.is_admin %}
+    <form method="post" action="{{ url_for('tarefas.apagar', tarefa_id=t.id) }}"
+          data-confirmar="Apagar a tarefa “{{ t.titulo }}” e o histórico dela?">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="botao botao-perigo botao-largo" type="submit">Apagar tarefa</button>
+    </form>
+    {% endif %}
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}

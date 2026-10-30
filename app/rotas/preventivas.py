@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
 
 from .. import anexos as arquivos_disco
-from .. import exportacao, inventario, notificacoes, preventivas
+from .. import exportacao, inventario, notificacoes, preventivas, tarefas
 from ..anexos import TIPOS_EXIBIVEIS, AnexoInvalido, ler_anexos
 from ..banco import db
 from ..modelos import RESULTADOS_ITEM, SETORES, TIPOS_EQUIPAMENTO
@@ -27,7 +27,9 @@ def lista():
     )
     itens, contagem = preventivas.listar(db(), f)
     hoje = date.today()
+    _, por_estado = tarefas.listar(db())
     return render_template("preventivas/lista.html", itens=itens, contagem=contagem, f=f,
+                           tarefas_pendentes=por_estado["atrasada"] + por_estado["hoje"],
                            filtrado=any((f.texto, f.setor, f.tipo, f.estado)), ESTADOS=preventivas.ESTADOS,
                            TIPOS=TIPOS_EQUIPAMENTO, de=hoje.replace(day=1).isoformat(), ate=hoje.isoformat())
 

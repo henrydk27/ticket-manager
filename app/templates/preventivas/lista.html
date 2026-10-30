@@ -7,11 +7,10 @@
     <h1>Preventivas</h1>
     <span class="suave">Revisão periódica dos equipamentos em uso</span>
   </div>
-  {% if usuario.is_admin %}
   <div class="acoes-cabecalho">
-    <a class="botao" href="{{ url_for('preventivas.planos') }}">Planos e checklists</a>
+    <a class="botao" href="{{ url_for('tarefas.lista') }}">Tarefas{% if tarefas_pendentes %} <span class="contador-menu">{{ tarefas_pendentes }}</span>{% endif %}</a>
+    {% if usuario.is_admin %}<a class="botao" href="{{ url_for('preventivas.planos') }}">Planos e checklists</a>{% endif %}
   </div>
-  {% endif %}
 </div>
 
 <div class="resumo-situacoes">

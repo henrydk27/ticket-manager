@@ -274,6 +274,39 @@ document.addEventListener("DOMContentLoaded", () => {
     sel.addEventListener("change", () => sel.form.submit());
   });
 
+  // Tarefas: mostra só o campo da repetição escolhida (dia do mês, dia da semana ou intervalo)
+  document.querySelectorAll("select[data-repeticao]").forEach((sel) => {
+    const form = sel.form;
+    const rotulo = form.querySelector("[data-rotulo-inicio]");
+    const dica = form.querySelector("[data-dica-inicio]");
+    const aplicar = () => {
+      form.querySelectorAll("[data-se-repeticao]").forEach((bloco) => {
+        bloco.hidden = bloco.dataset.seRepeticao !== sel.value;
+      });
+      const unica = sel.value === "unica";
+      if (rotulo) rotulo.textContent = unica ? "Data" : "A partir de";
+      if (dica) dica.hidden = unica;
+    };
+    sel.addEventListener("change", aplicar);
+    aplicar();
+  });
+
+  // Caixa aberta a partir de um <details> (ex.: concluir tarefa): Cancelar e Esc fecham
+  document.querySelectorAll("[data-fechar-detalhes]").forEach((b) => {
+    b.addEventListener("click", () => { b.closest("details").open = false; });
+  });
+  document.querySelectorAll("details.concluir-tarefa").forEach((d) => {
+    d.addEventListener("toggle", () => {
+      if (!d.open) return;
+      document.querySelectorAll("details.concluir-tarefa[open]").forEach((o) => { if (o !== d) o.open = false; });
+      const campo = d.querySelector("input[name='observacao']");
+      if (campo) campo.focus();
+    });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") document.querySelectorAll("details.concluir-tarefa[open]").forEach((d) => { d.open = false; });
+  });
+
   // Evita envio duplo
   document.querySelectorAll("form[method='post']").forEach((form) => {
     form.addEventListener("submit", (e) => {

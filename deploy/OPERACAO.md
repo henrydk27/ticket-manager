@@ -102,18 +102,38 @@ Menu **Preventivas**, para **administradores** e quem **atende a T.I**.
 Só equipamentos **Em uso** entram nas preventivas. A primeira vence um período depois do cadastro;
 as seguintes, um período depois da última feita. Tudo fica no histórico do equipamento.
 
+### Tarefas da T.I
+
+**Preventivas** → **Tarefas**: rotinas que se repetem (conferir backup, atualizar servidores, trocar a
+senha do Wi-Fi de visitantes, renovar certificado...). Administradores e quem atende a T.I veem,
+cadastram e concluem; só o administrador apaga.
+
+| O que fazer | Onde |
+|---|---|
+| Cadastrar | **+ Nova tarefa** → título, como fazer, repetição (todo mês no dia X, toda semana, a cada N meses ou uma vez só), data de início, responsável (ou toda a T.I) e quantos dias antes avisar |
+| Marcar como feita | **Concluir** na linha da tarefa (observação opcional). A próxima data é calculada sozinha; se ficou atrasada, pula para a próxima depois de hoje |
+| Ver quem fez e quando | Clique no nome da tarefa → **Histórico** |
+| Mudar a data | Edite **A partir de** (ou marque **Recalcular a próxima data**) |
+
+O botão **Tarefas** mostra quantas estão atrasadas ou para hoje. O aviso por e-mail sai no comando
+diário abaixo (para o responsável, ou para toda a T.I) enquanto houver tarefa atrasada, do dia ou
+no prazo de aviso; as atrasadas também entram no e-mail semanal do CPD.
+
 ### Lembrete de avaliação
 
 Quem abriu um chamado e ainda não avaliou o atendimento recebe um e-mail **1 dia** depois do
 encerramento e, se continuar sem avaliar, mais um **3 dias** depois (no máximo 2 por chamado,
 uma mensagem só por pessoa). No sistema, enquanto houver pendente, aparece **★ Avaliar** no topo.
-Agende de segunda a sexta às 8h, no cron do usuário do serviço (`sudo crontab -u ticketapp -e`):
+O mesmo comando diário manda os avisos das **Tarefas da T.I**. Agende de segunda a sexta às 8h, no
+cron do usuário do serviço (`sudo crontab -u ticketapp -e`):
 
 ```
-0 8 * * 1-5 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py lembrar-avaliacoes
+0 8 * * 1-5 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py avisos-diarios
 ```
 
-### E-mail semanal (preventivas e contratos)
+(Se o cron ainda usa `lembrar-avaliacoes`, o nome antigo, continua funcionando e faz a mesma coisa.)
+
+### E-mail semanal (preventivas, contratos e tarefas)
 
 Agende o resumo semanal ao CPD no cron do usuário do serviço:
 
@@ -136,7 +156,7 @@ sudo -u ticketapp TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin
 
 O e-mail vai para o `avisos_cpd` do `config.ini` (em branco, para o `remetente`) e só é enviado
 quando há preventivas atrasadas ou vencendo nos próximos 15 dias, ou contratos vencendo nos próximos
-30 dias ou vencidos há até 60. (Se o cron ainda usa `avisar-preventivas`, o nome antigo, continua
+30 dias ou vencidos há até 60, ou tarefas da T.I atrasadas. (Se o cron ainda usa `avisar-preventivas`, o nome antigo, continua
 funcionando e manda o mesmo e-mail.)
 
 ## Diagramas

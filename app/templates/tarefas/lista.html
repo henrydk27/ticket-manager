@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block titulo %}Tarefas{% endblock %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('preventivas.lista') }}">‹ Preventivas</a></p>
+<div class="cabecalho">
+  <div>
+    <h1>Tarefas da T.I</h1>
+    <span class="suave">Rotinas que se repetem, com aviso por e-mail e registro de quem fez</span>
+  </div>
+  <div class="acoes-cabecalho">
+    <a class="botao botao-primario" href="{{ url_for('tarefas.nova') }}">+ Nova tarefa</a>
+  </div>
+</div>
+
+<div class="resumo-situacoes">
+  {% for chave, rotulo in ESTADOS.items() %}
+  <a class="resumo-situacao{{ ' ativa' if estado == chave }}" href="{{ url_for('tarefas.lista', estado=chave) }}">
+    <span class="resumo-numero">{{ contagem[chave] }}</span> {{ rotulo }}
+  </a>
+  {% endfor %}
+  {% if estado %}<a class="resumo-situacao" href="{{ url_for('tarefas.lista') }}">Ver todas</a>{% endif %}
+</div>
+
+{% if itens %}
+<div class="tabela-rolagem">
+<table class="tabela">
+  <thead>
+    <tr><th>Tarefa</th><th>Repetição</th><th>Responsável</th><th>Próxima</th><th>Última vez</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for x in itens %}
+    {% set t = x.tarefa %}
+    <tr id="t{{ t.id }}">
+      <td class="col-titulo"><a href="{{ url_for('tarefas.editar', tarefa_id=t.id) }}"><strong>{{ t.titulo }}</strong></a>
+        {% if t.descricao %}<div class="subtitulo texto-livre tarefa-descricao">{{ t.descricao }}</div>{% endif %}</td>
+      <td>{{ descricao_repeticao(t) }}{% if t.avisar_dias %}<div class="subtitulo">avisa {{ t.avisar_dias }} dia{{ 's' if t.avisar_dias > 1 }} antes</div>{% endif %}</td>
+      <td>{{ t.responsavel.nome if t.responsavel else 'Toda a T.I' }}</td>
+      <td class="col-data">
+        {% if x.estado == 'concluida' %}<span class="badge badge-fechado">concluída</span>
+        {% else %}
+        {{ t.proxima|data }}
+        <div>{% if x.estado == 'atrasada' %}<span class="badge badge-prev-atrasada">atrasada há {{ -x.dias }} dia{{ 's' if -x.dias != 1 }}</span>
+          {% elif x.estado == 'hoje' %}<span class="badge badge-prev-vence">hoje</span>
+          {% elif x.estado == 'vence' %}<span class="badge badge-prev-vence">em {{ x.dias }} dia{{ 's' if x.dias != 1 }}</span>
+          {% else %}<span class="subtitulo">em {{ x.dias }} dias</span>{% endif %}</div>
+        {% endif %}
+      </td>
+      <td class="col-data">{% if x.ultima %}{{ x.ultima.feita_em|data }}<div class="subtitulo">{{ x.ultima.usuario.nome if x.ultima.usuario else '—' }}</div>{% else %}<span class="suave">nunca</span>{% endif %}</td>
+      <td class="col-acoes">
+        {% if x.estado != 'concluida' %}
+        <details class="concluir-tarefa">
+          <summary class="botao botao-pequeno {{ 'botao-primario' if x.estado in ('atrasada', 'hoje') }}">Concluir</summary>
+          <form method="post" action="{{ url_for('tarefas.concluir', tarefa_id=t.id) }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <input type="hidden" name="voltar" value="{{ request.full_path }}">
+            <strong>{{ t.titulo }}</strong>
+            <label for="obs{{ t.id }}">Observação <span class="suave">(opcional)</span></label>
+            <input id="obs{{ t.id }}" name="observacao" maxlength="2000" placeholder="Ex.: backup ok, 3 rotinas conferidas">
+            <div class="concluir-tarefa-acoes">
+              <button class="botao" type="button" data-fechar-detalhes>Cancelar</button>
+              <button class="botao botao-primario" type="submit">Marcar como feita</button>
+            </div>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="vazio">
+  {% if estado %}
+  <h2>Nenhuma tarefa aqui</h2>
+  <p><a class="botao" href="{{ url_for('tarefas.lista') }}">Ver todas</a></p>
+  {% else %}
+  <h2>Nenhuma tarefa cadastrada</h2>
+  <p class="suave">Cadastre as rotinas da T.I: conferir backups, atualizar servidores, trocar a senha do Wi-Fi de visitantes...</p>
+  <p><a class="botao botao-primario" href="{{ url_for('tarefas.nova') }}">Cadastrar tarefa</a></p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

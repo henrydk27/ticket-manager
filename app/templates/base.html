@@ -33,7 +33,7 @@
       <a href="{{ url_for('inventario.lista') }}" class="{{ 'ativo' if ep.startswith('inventario.') }}">Inventário</a>
       {% endif %}
       {% if usuario.faz_preventiva %}
-      <a href="{{ url_for('preventivas.lista') }}" class="{{ 'ativo' if ep.startswith('preventivas.') }}">Preventivas</a>
+      <a href="{{ url_for('preventivas.lista') }}" class="{{ 'ativo' if ep.startswith(('preventivas.', 'tarefas.')) }}">Preventivas</a>
       <a href="{{ url_for('diagramas.lista') }}" class="{{ 'ativo' if ep.startswith('diagramas.') }}">Diagramas</a>
       {% endif %}
       {% if usuario.is_admin %}

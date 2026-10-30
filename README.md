@@ -43,7 +43,7 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
 - **Lembrete de avaliação:** quem não avaliou um chamado encerrado recebe até 2 e-mails (1 e 4 dias
-  depois) e vê **★ Avaliar** no topo do sistema (`python manage.py lembrar-avaliacoes`, agendado no cron).
+  depois) e vê **★ Avaliar** no topo do sistema (`python manage.py avisos-diarios`, agendado no cron).
 - **Painel:** indicadores (em aberto, sem responsável, abertos, encerrados, tempo médio e
   satisfação) com comparação ao período anterior e linha de tendência; gráficos de abertos x
   encerrados por semana ou mês, status, há quanto tempo estão em aberto, setor x prioridade,
@@ -80,6 +80,13 @@ Menu **Preventivas** (administradores e quem atende a T.I):
 - **Relatório** das preventivas do período em Excel e **e-mail semanal** ao CPD com as pendentes (e os contratos vencendo)
   (`python manage.py avisar-semanal`, agendado no cron; veja deploy/OPERACAO.md).
 
+
+### Tarefas da T.I
+
+Em **Preventivas** → **Tarefas**: rotinas que se repetem (todo mês no dia X, toda semana, a cada N
+meses ou uma vez só), com responsável (ou toda a T.I) e aviso por e-mail no dia, alguns dias antes e
+enquanto estiver atrasada (`python manage.py avisos-diarios`). Concluir registra quem fez, quando e
+uma observação, e calcula a próxima data. As atrasadas também vão no e-mail semanal do CPD.
 ## Diagramas
 
 Menu **Diagramas** (administradores e quem atende a T.I): mapa da rede, câmeras e outros desenhos
@@ -149,12 +156,13 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/inventario.py`, `app/rotas/inventario.py` | inventário de TI: equipamentos, atribuição e histórico |
 | `app/documentos.py`, `app/rotas/documentos.py` | documentos internos (termos, regras, procedimentos) |
 | `app/preventivas.py`, `app/rotas/preventivas.py` | revisão preventiva: planos, vencimentos, registro e chamado automático |
+| `app/tarefas.py`, `app/rotas/tarefas.py` | tarefas recorrentes da T.I: próxima data, conclusão com histórico e avisos |
 | `app/notificacoes.py`, `app/correio.py` | quem recebe cada aviso e o envio por SMTP em segundo plano |
 | `app/rotas/` | páginas: `auth` (login/cadastro), `conta`, `chamados`, `admin` (painel, relatório, usuários), `inventario` |
 | `app/templates/`, `app/static/` | HTML, CSS e JavaScript (sem build, sem CDN); `tema.js` aplica claro/escuro e a cor |
 | `app/temas.py` | temas de cor (cor × intensidade × claro/escuro); gera `static/cores.css` (`python -m app.temas`) |
 | `migracoes/` | versões da estrutura do banco (Alembic) |
-| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-semanal`, `lembrar-avaliacoes` |
+| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-semanal`, `avisos-diarios` |
 | `wsgi.py` | ponto de entrada do Gunicorn |
 | `deploy/` | serviço systemd, Nginx, backup e guia de instalação |
 | `tests/` | testes, dados de exemplo e modo demonstração |

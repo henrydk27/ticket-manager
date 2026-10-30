@@ -1,0 +1,11 @@
+Olá, {{ destino.nome.split()[0] }}.
+
+Tarefas da T.I que precisam de atenção:
+{% for titulo, lista in (("Atrasadas", atrasadas), ("Para hoje", hoje), ("Chegando", proximas)) if lista %}
+{{ titulo }} ({{ lista|length }}):
+{% for x in lista %}- {{ x.tarefa.titulo }} — {{ x.tarefa.proxima|data }}{% if x.estado == 'atrasada' %} (atrasada há {{ -x.dias }} dia{{ 's' if -x.dias != 1 }}){% elif x.estado != 'hoje' %} (em {{ x.dias }} dia{{ 's' if x.dias != 1 }}){% endif %}{% if not x.tarefa.responsavel %} · toda a T.I{% endif %}
+{% endfor %}{% endfor %}
+Depois de fazer, marque como concluída: {{ link }}
+
+--
+Aviso automático do Ticket Manager (todo dia útil, enquanto houver tarefa pendente).

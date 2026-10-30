@@ -197,7 +197,7 @@ class Chamado(Base):
     fechado_em: Mapped[datetime | None] = mapped_column(DateTime)
     avaliacao: Mapped[str | None] = mapped_column(String(10))
     avaliado_em: Mapped[datetime | None] = mapped_column(DateTime)
-    # lembretes por e-mail para quem abriu avaliar o atendimento (manage.py lembrar-avaliacoes)
+    # lembretes por e-mail para quem abriu avaliar o atendimento (manage.py avisos-diarios)
     lembretes_avaliacao: Mapped[int] = mapped_column(Integer, default=0)
     ultimo_lembrete_em: Mapped[datetime | None] = mapped_column(DateTime)
 
@@ -439,3 +439,45 @@ class Preventiva(Base):
 
     def contar(self, resultado: str) -> int:
         return sum(1 for i in self.itens if i[1] == resultado)
+
+
+class Tarefa(Base):
+    """Tarefa recorrente da T.I (conferir backups, trocar a senha do Wi-Fi...), com aviso por e-mail."""
+    __tablename__ = "tarefas"
+    __table_args__ = (Index("ix_tarefas_proxima", "proxima"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(150))
+    descricao: Mapped[str | None] = mapped_column(Text)
+    repeticao: Mapped[str] = mapped_column(String(10))           # mensal, semanal, meses, unica
+    inicio: Mapped[date] = mapped_column(Date)
+    dia_mes: Mapped[int | None] = mapped_column(Integer)
+    dia_semana: Mapped[int | None] = mapped_column(Integer)      # 0 = segunda
+    intervalo_meses: Mapped[int | None] = mapped_column(Integer)
+    avisar_dias: Mapped[int] = mapped_column(Integer, default=0)
+    responsavel_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    ativa: Mapped[bool] = mapped_column(Boolean, default=True)
+    proxima: Mapped[date | None] = mapped_column(Date)
+    criado_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+    responsavel: Mapped[Usuario | None] = relationship(lazy="joined", foreign_keys=[responsavel_id])
+    execucoes: Mapped[list["TarefaExecucao"]] = relationship(
+        back_populates="tarefa", cascade="all, delete-orphan", passive_deletes=True,
+        order_by="TarefaExecucao.feita_em.desc()")
+
+
+class TarefaExecucao(Base):
+    """Registro de que uma tarefa foi feita."""
+    __tablename__ = "tarefas_execucoes"
+    __table_args__ = (Index("ix_tarefas_execucoes_tarefa", "tarefa_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tarefa_id: Mapped[int] = mapped_column(ForeignKey("tarefas.id", ondelete="CASCADE"))
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    data_prevista: Mapped[date] = mapped_column(Date)
+    observacao: Mapped[str | None] = mapped_column(Text)
+    feita_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+    tarefa: Mapped[Tarefa] = relationship(back_populates="execucoes")
+    usuario: Mapped[Usuario | None] = relationship(lazy="joined")
