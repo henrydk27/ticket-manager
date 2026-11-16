@@ -49,7 +49,8 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 - **Painel:** indicadores (em aberto, sem responsável, abertos, encerrados, tempo médio e
   satisfação) com comparação ao período anterior e linha de tendência; gráficos de abertos x
   encerrados por semana ou mês, status, há quanto tempo estão em aberto, setor x prioridade,
-  horários de pico (dia x hora), avaliações e desempenho por responsável. Os gráficos são SVG
+  horários de pico (dia x hora), avaliações, desempenho por responsável e **por categoria**
+  (problema, solicitação, dúvida: abertos, em aberto e tempo médio de cada uma). Os gráficos são SVG
   gerados no servidor (`app/graficos.py`), sem biblioteca externa. O tempo
   médio conta **só o expediente** (segunda a sexta, das 7h às 18h; ajuste em
   `EXPEDIENTE_INICIO`, `EXPEDIENTE_FIM` e `DIAS_EXPEDIENTE` em `app/servicos.py`).

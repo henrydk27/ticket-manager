@@ -130,6 +130,35 @@
 </div>
 
 <div class="cartao grafico">
+  <h2 class="cartao-titulo">Por categoria</h2>
+  <p class="suave grafico-sub">Quanto do atendimento é problema, pedido ou dúvida</p>
+  {% set classes_cat = {'Problema': 'g-cat-problema', 'Solicitação': 'g-cat-solicitacao', 'Dúvida': 'g-cat-duvida'} %}
+  {% set total_cat = d.por_categoria|map(attribute='abertos')|sum %}
+  {% if total_cat or d.por_categoria|map(attribute='em_aberto')|sum %}
+  <div class="rosca-area">
+    {% set itens_cat = [] %}
+    {% for x in d.por_categoria %}{% set _ = itens_cat.append((x.nome, x.abertos, classes_cat.get(x.nome, 'g-cat-sem'))) %}{% endfor %}
+    {{ graficos.rosca(itens_cat) }}
+    <table class="tabela tabela-categoria">
+      <thead><tr><th>Categoria</th><th>Abertos no período</th><th>Em aberto agora</th><th>Tempo médio</th></tr></thead>
+      <tbody>
+        {% for x in d.por_categoria %}
+        <tr>
+          <td><i class="marca-categoria {{ classes_cat.get(x.nome, 'g-cat-sem') }}-bg"></i>
+            {% if x.categoria %}<a href="{{ url_for('chamados.lista', categoria=x.categoria, **escopo) }}">{{ x.nome }}</a>{% else %}<span class="suave">{{ x.nome }}</span>{% endif %}</td>
+          <td>{{ x.abertos }}{% if total_cat %} <span class="suave">({{ (100 * x.abertos / total_cat)|round|int }}%)</span>{% endif %}</td>
+          <td>{{ x.em_aberto }}</td>
+          <td>{{ x.tempo|horas if x.tempo is not none else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="suave grafico-sub">O gráfico mostra os abertos no período; tempo médio dos encerrados no período, em horas de expediente.</p>
+  {% else %}<p class="suave">Nenhum chamado no período.</p>{% endif %}
+</div>
+
+<div class="cartao grafico">
   <h2 class="cartao-titulo">Em aberto por {{ 'setor' if d.por_destino else 'setor de quem pediu' }} e prioridade</h2>
   <p class="suave grafico-sub">Onde está a fila e quanto dela é urgente</p>
   {% if d.setor_prioridade %}

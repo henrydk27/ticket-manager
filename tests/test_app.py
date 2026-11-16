@@ -952,3 +952,19 @@ def test_categoria_do_chamado(client, s, contas):
     assert "Solicitação" in client.get(f"/chamados/{c.id}").get_data(as_text=True)
     html = client.get("/chamados?categoria=Dúvida").get_data(as_text=True)
     assert "Como mapear a pasta?" in html and "Instalar o Excel" not in html
+
+
+def test_painel_por_categoria(client, s, contas):
+    from datetime import datetime, timedelta
+    admin = usuario(s, "admin")
+    s.add(Chamado(titulo="Antigo sem categoria", descricao="x", prioridade="Baixa", setor="Fiscal",
+                  setor_destino="T.I", solicitante_id=admin.id, aberto_em=datetime.now() - timedelta(hours=2)))
+    s.commit()
+    d = servicos.indicadores(s, datetime.now() - timedelta(days=30), datetime.now() + timedelta(minutes=1), admin)
+    cats = {x["nome"]: x for x in d["por_categoria"]}
+    assert list(cats)[:3] == ["Problema", "Solicitação", "Dúvida"] and cats["Sem categoria"]["em_aberto"] == 1
+    assert sum(x["abertos"] for x in d["por_categoria"]) == d["resumo"]["novos"]
+    assert cats["Dúvida"]["abertos"] == 1
+    entrar(client, "admin", "admin123")
+    html = client.get("/painel").get_data(as_text=True)
+    assert "Por categoria" in html and "categoria=D" in html

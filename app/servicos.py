@@ -697,6 +697,7 @@ def avaliar(s: Session, c: Chamado, usuario: Usuario, avaliacao: str) -> bool:
 
 HORAS_DIA_UTIL = EXPEDIENTE_FIM - EXPEDIENTE_INICIO      # 11 h
 # Faixas de "há quanto tempo está em aberto" (horas de expediente)
+SEM_CATEGORIA = "Sem categoria"
 FAIXAS_IDADE = [("Até 4 h", 4), ("4 h a 1 dia", HORAS_DIA_UTIL), ("1 a 3 dias", 3 * HORAS_DIA_UTIL),
                 ("Mais de 3 dias", None)]
 DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
@@ -806,6 +807,16 @@ def indicadores(s: Session, inicio: datetime, fim: datetime, usuario: Usuario, s
           "tempo": sum(r["tempos"]) / len(r["tempos"]) if r["tempos"] else None} for n, r in resp.items()),
         key=lambda x: (-(x["em_aberto"] + x["encerrados"]), x["nome"]))[:8]
 
+    # por categoria: abertos no período, em aberto agora e tempo médio dos encerrados no período
+    por_categoria = []
+    for nome in CATEGORIAS + [None]:
+        tempo_cat, _s, _n = _medias([c for c in fechados if c.categoria == nome])
+        item = {"nome": nome or SEM_CATEGORIA, "categoria": nome or "",
+                "abertos": sum(1 for c in novos if c.categoria == nome),
+                "em_aberto": sum(1 for c in abertos if c.categoria == nome), "tempo": tempo_cat}
+        if nome or item["abertos"] or item["em_aberto"]:      # "sem categoria" só se houver (chamados antigos)
+            por_categoria.append(item)
+
     def variacao(atual, anterior):
         if atual is None or anterior in (None, 0):
             return None
@@ -828,6 +839,7 @@ def indicadores(s: Session, inicio: datetime, fim: datetime, usuario: Usuario, s
         "avaliacoes": [(a, sum(1 for c in fechados if c.avaliacao == a)) for a in AVALIACOES],
         "sem_avaliacao": sum(1 for c in fechados if not c.avaliacao),
         "responsaveis": responsaveis,
+        "por_categoria": por_categoria,
     }
 
 

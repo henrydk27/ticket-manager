@@ -22,6 +22,7 @@ STATUS = {"Aberto": colors.HexColor("#1D4F91"), "Em andamento": colors.HexColor(
           "Aguardando usuário": colors.HexColor("#5B2D91")}
 AVAL = [colors.HexColor("#0CA30C"), colors.HexColor("#EDA100"), colors.HexColor("#D03B3B")]
 PRIO = [PERIGO, S1, NEUTRO]
+CATEGORIA = {"Problema": S2, "Solicitação": S1, "Dúvida": colors.HexColor("#5B2D91")}
 SEQ = [colors.HexColor("#A9CBF0"), colors.HexColor("#6AA5E6"), S1, PERIGO]
 
 
@@ -95,6 +96,37 @@ def rosca(por_status: list[tuple[str, int]], largura: float, altura: float) -> D
         d.add(Rect(cx + r + 16, y, 7, 7, fillColor=STATUS.get(st, S1), strokeColor=None))
         d.add(String(cx + r + 27, y + 0.5, f"{st}  {n}", fontName="Helvetica", fontSize=8, fillColor=TINTA))
         y -= 16
+    return d
+
+
+def categorias(itens: list[dict], largura: float, altura: float = 46 * mm) -> Drawing:
+    """Rosca dos abertos no período por categoria, com em aberto agora e tempo médio na legenda."""
+    d = Drawing(largura, altura)
+    _titulo(d, "Por categoria", "Abertos no período · em aberto agora · tempo médio (expediente)")
+    total = sum(x["abertos"] for x in itens)
+    if not total and not any(x["em_aberto"] for x in itens):
+        d.add(String(0, altura - 34, "Nenhum chamado no período.", fontName="Helvetica", fontSize=8, fillColor=TINTA2))
+        return d
+    cx, cy, r = 46, (altura - 26) / 2, min(40, (altura - 34) / 2)
+    ang = 90.0
+    for x in itens:
+        if x["abertos"]:
+            passo = 360 * x["abertos"] / total
+            d.add(Wedge(cx, cy, r, ang - passo, ang, radius1=r * 0.62, fillColor=CATEGORIA.get(x["nome"], NEUTRO),
+                        strokeColor=colors.white, strokeWidth=1.5))
+            ang -= passo
+    if not total:
+        d.add(Circle(cx, cy, r * 0.81, fillColor=None, strokeColor=TRILHO, strokeWidth=r * 0.38))
+    d.add(String(cx, cy - 6, str(total), fontName="Helvetica-Bold", fontSize=16, fillColor=TINTA, textAnchor="middle"))
+    y = cy + 8 * (len(itens) - 1)
+    for x in itens:
+        pct = f" ({round(100 * x['abertos'] / total)}%)" if total else ""
+        d.add(Rect(cx + r + 16, y, 7, 7, fillColor=CATEGORIA.get(x["nome"], NEUTRO), strokeColor=None))
+        d.add(String(cx + r + 27, y + 0.5, f"{x['nome']}  {x['abertos']}{pct}", fontName="Helvetica-Bold",
+                     fontSize=8, fillColor=TINTA))
+        d.add(String(cx + r + 27, y - 9, f"{x['em_aberto']} em aberto · média {formatos.horas(x['tempo'])}",
+                     fontName="Helvetica", fontSize=7, fillColor=TINTA2))
+        y -= 22
     return d
 
 
@@ -220,12 +252,13 @@ def resumo(d: dict, estilos, largura_util: float) -> list:
 
     baixo = Table([[calor(d["calor"], meia), avaliacao(d["avaliacoes"], d["sem_avaliacao"], meia)]],
                   colWidths=[meia + 10 * mm, meia])
-    for t in (grade, meio, baixo):
+    cat = Table([[categorias(d["por_categoria"], meia), ""]], colWidths=[meia + 10 * mm, meia])
+    for t in (grade, meio, baixo, cat):
         t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
                                ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
 
     partes = [tabela, Spacer(1, 5 * mm), grade, Spacer(1, 4 * mm), KeepTogether([meio]), Spacer(1, 4 * mm),
-              KeepTogether([baixo])]
+              KeepTogether([baixo]), Spacer(1, 4 * mm), KeepTogether([cat])]
     if d["responsaveis"]:
         cab = estilos["BodyText"].clone("resp_c", fontSize=8, fontName="Helvetica-Bold", textColor=colors.white)
         cel = estilos["BodyText"].clone("resp_l", fontSize=8, leading=10)

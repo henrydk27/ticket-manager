@@ -591,3 +591,12 @@ a.usuario-nome { color: var(--texto); }
 .opcao-categoria span { display: flex; flex-direction: column; gap: 2px; }
 .opcao-categoria small { color: var(--texto-2); font-size: .78rem; line-height: 1.3; }
 @media (max-width: 640px) { .opcoes-categoria { grid-template-columns: 1fr; } }
+
+/* ─── Painel: por categoria ────────────────────────────────────────────── */
+.g-cat-problema { stroke: var(--g-s2); } .g-cat-problema-bg { background: var(--g-s2); }
+.g-cat-solicitacao { stroke: var(--g-s1); } .g-cat-solicitacao-bg { background: var(--g-s1); }
+.g-cat-duvida { stroke: var(--st-aguardando-t); } .g-cat-duvida-bg { background: var(--st-aguardando-t); }
+.g-cat-sem { stroke: var(--g-neutro); } .g-cat-sem-bg { background: var(--g-neutro); }
+.tabela-categoria { flex: 1; min-width: 300px; width: auto; }
+.tabela-categoria td, .tabela-categoria th { padding: 6px 10px; }
+.marca-categoria { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
