@@ -29,7 +29,7 @@ def abrir(client, s, titulo, setor="T.I", para="carlos", **extra):
     """Abre um chamado pelo formulário e devolve a resposta."""
     dados = {"csrf": csrf(client, "/chamados/novo"), "setor_destino": setor,
              "responsavel": usuario(s, para).id if para else "",
-             "titulo": titulo, "descricao": "Detalhes", "prioridade": "Baixa"}
+             "titulo": titulo, "descricao": "Detalhes", "prioridade": "Baixa", "categoria": "Problema"}
     dados.update(extra)
     return client.post("/chamados/novo", content_type="multipart/form-data", data=dados)
 
@@ -939,3 +939,16 @@ def test_lembrete_de_avaliacao(client, s, app, contas):
     for c in (a, chamado(s, "Erro ao emitir nota fiscal")):
         client.post(f"/chamados/{c.id}/avaliar", data={"csrf": token, "avaliacao": "Bom"})
     assert "★ Avaliar" not in client.get("/conta/").get_data(as_text=True)
+
+
+def test_categoria_do_chamado(client, s, contas):
+    entrar(client, "ana", "ana12345")
+    r = abrir(client, s, "Sem categoria", categoria="")
+    assert "Escolha a categoria" in r.get_data(as_text=True)
+    assert abrir(client, s, "Instalar o Excel", categoria="Solicitação").status_code == 302
+    assert abrir(client, s, "Como mapear a pasta?", categoria="Dúvida").status_code == 302
+    c = s.scalar(select(Chamado).where(Chamado.titulo == "Instalar o Excel"))
+    assert c.categoria == "Solicitação"
+    assert "Solicitação" in client.get(f"/chamados/{c.id}").get_data(as_text=True)
+    html = client.get("/chamados?categoria=Dúvida").get_data(as_text=True)
+    assert "Como mapear a pasta?" in html and "Instalar o Excel" not in html

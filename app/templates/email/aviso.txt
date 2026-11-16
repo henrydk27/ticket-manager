@@ -8,7 +8,8 @@ Chamado #{{ c.id }} · para {{ c.setor_destino }}
 {{ citacao }}
 {% endif %}
 Status: {{ c.status }}
-Prioridade: {{ c.prioridade }}
+{% if c.categoria %}Categoria: {{ c.categoria }}
+{% endif %}Prioridade: {{ c.prioridade }}
 Pedido por: {{ c.solicitante.nome }} ({{ c.setor }})
 Responsável: {{ c.responsavel.nome if c.responsavel else '—' }}
 

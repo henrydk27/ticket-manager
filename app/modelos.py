@@ -22,6 +22,8 @@ STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO = (
 STATUS = [STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO]
 
 PRIORIDADES = ["Alta", "Média", "Baixa"]
+CATEGORIA_PROBLEMA = "Problema"
+CATEGORIAS = [CATEGORIA_PROBLEMA, "Solicitação", "Dúvida"]
 AVALIACOES = ["Bom", "Regular", "Ruim"]
 SETORES = [
     "Administração", "Compras", "Contábil", "Diretoria", "Enfermaria", "Engenharia", "Expedição", "Fábrica",
@@ -188,6 +190,7 @@ class Chamado(Base):
     descricao: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(30), default=STATUS_ABERTO)
     prioridade: Mapped[str] = mapped_column(String(10))
+    categoria: Mapped[str | None] = mapped_column(String(15))   # vazio nos chamados antigos
     setor: Mapped[str] = mapped_column(String(50))  # setor de quem pediu (origem)
     setor_destino: Mapped[str] = mapped_column(String(50))  # setor que atende
     solicitante_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))

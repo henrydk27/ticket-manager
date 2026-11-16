@@ -42,6 +42,10 @@
     {% for s in SETORES %}<option {{ 'selected' if f.setor == s }}>{{ s }}</option>{% endfor %}
   </select>
   {% endif %}
+  <select name="categoria" aria-label="Categoria" data-enviar-ao-mudar>
+    <option value="">Todas as categorias</option>
+    {% for cat in CATEGORIAS %}<option {{ 'selected' if f.categoria == cat }}>{{ cat }}</option>{% endfor %}
+  </select>
   <select name="status" aria-label="Status" data-enviar-ao-mudar>
     <option value="">Todos os status</option>
     <option value="abertos" {{ 'selected' if f.status == 'abertos' }}>Em aberto</option>
@@ -72,6 +76,7 @@
       <td class="col-id"><a href="{{ link }}">#{{ c.id }}</a></td>
       <td class="col-titulo">
         <a href="{{ link }}">{{ c.titulo }}</a>
+        {% if c.categoria %}<span class="categoria">{{ c.categoria }}</span>{% endif %}
         {% if c.prioridade == 'Alta' %}{{ c.prioridade|prioridade }}{% endif %}
         {% if anexos.get(c.id) %}<span class="clipe" title="{{ anexos[c.id] }} anexo(s)">📎 {{ anexos[c.id] }}</span>{% endif %}
         {% if c.solicitante_id != usuario.id %}<div class="subtitulo">de {{ c.solicitante.nome }} · {{ c.setor }}</div>{% endif %}

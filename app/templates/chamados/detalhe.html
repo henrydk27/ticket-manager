@@ -19,7 +19,7 @@
   <div>
     <p class="suave numero">Chamado #{{ c.id }} · para {{ c.setor_destino }}</p>
     <h1>{{ c.titulo }}</h1>
-    <div class="etiquetas">{{ c.status|status }} {{ c.prioridade|prioridade }}</div>
+    <div class="etiquetas">{{ c.status|status }} {{ c.prioridade|prioridade }}{% if c.categoria %} <span class="categoria">{{ c.categoria }}</span>{% endif %}</div>
   </div>
 </div>
 

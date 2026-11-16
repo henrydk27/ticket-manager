@@ -40,6 +40,16 @@
     </div>
   </div>
 
+  <label>Categoria</label>
+  <div class="opcoes-categoria" role="radiogroup" aria-label="Categoria">
+    {% for cat, dica in (('Problema', 'Algo parou ou não funciona'), ('Solicitação', 'Pedir algo novo: acesso, instalação, troca...'), ('Dúvida', 'Como fazer, onde fica, posso...?')) %}
+    <label class="opcao-categoria">
+      <input type="radio" name="categoria" value="{{ cat }}" required {{ 'checked' if form.categoria == cat }}>
+      <span><strong>{{ cat }}</strong><small>{{ dica }}</small></span>
+    </label>
+    {% endfor %}
+  </div>
+
   <label for="titulo">Título</label>
   <input id="titulo" name="titulo" maxlength="150" required value="{{ form.titulo or '' }}"
          placeholder="Resuma o pedido em uma frase">

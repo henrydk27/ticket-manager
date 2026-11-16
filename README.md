@@ -39,6 +39,8 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 - Quem atende e abre um pedido para **outro** setor acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
 - O setor de cada pessoa só é alterado pelo administrador (é ele que define o que ela vê).
+- Ao abrir, a pessoa escolhe a **categoria**: Problema, Solicitação ou Dúvida. A lista filtra por categoria
+  e ela aparece no chamado, nos e-mails e no relatório (chamados antigos ficam sem categoria).
 - Quem atende pode **mudar o status direto na lista** de chamados, sem abrir o chamado.
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
@@ -176,7 +178,7 @@ python -m alembic revision --autogenerate -m "descrição da mudança"
 python manage.py migrar
 ```
 
-Setores, prioridades, status, tipos de equipamento e situações ficam em listas no início de
+Setores, categorias de chamado, prioridades, status, tipos de equipamento e situações ficam em listas no início de
 `app/modelos.py`. Para incluir ou mudar uma cor do tema, edite `CORES` em `app/temas.py` e rode
 `python -m app.temas` (o comando aponta combinações sem contraste; um teste confere o `cores.css`). Quem atende cada setor é definido na tela **Usuários**.
 

@@ -25,6 +25,7 @@
 
         <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:13px;color:#5b636e;margin:0 0 20px;">
           <tr><td style="padding:2px 12px 2px 0;">Status</td><td style="color:#1b1f24;">{{ c.status }}</td></tr>
+          {% if c.categoria %}<tr><td style="padding:2px 12px 2px 0;">Categoria</td><td style="color:#1b1f24;">{{ c.categoria }}</td></tr>{% endif %}
           <tr><td style="padding:2px 12px 2px 0;">Prioridade</td><td style="color:#1b1f24;">{{ c.prioridade }}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;">Pedido por</td><td style="color:#1b1f24;">{{ c.solicitante.nome }} ({{ c.setor }})</td></tr>
           <tr><td style="padding:2px 12px 2px 0;">Responsável</td><td style="color:#1b1f24;">{{ c.responsavel.nome if c.responsavel else '—' }}</td></tr>

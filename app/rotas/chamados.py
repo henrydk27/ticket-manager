@@ -8,7 +8,7 @@ from .. import anexos as arquivos_disco
 from .. import notificacoes, servicos
 from ..anexos import TIPOS_EXIBIVEIS, AnexoInvalido, ler_anexos
 from ..banco import db
-from ..modelos import SETORES, Comentario
+from ..modelos import CATEGORIAS, Comentario, SETORES
 from ..seguranca import admin_obrigatorio, login_obrigatorio
 
 bp = Blueprint("chamados", __name__)
@@ -25,6 +25,7 @@ def _filtros_da_url() -> servicos.Filtros:
         texto=a.get("q", "").strip()[:100],
         status=a.get("status", ""),
         setor=a.get("setor", "") if a.get("setor") in SETORES else "",
+        categoria=a.get("categoria", "") if a.get("categoria") in CATEGORIAS else "",
         ordenar=a.get("ordenar", "id"),
         direcao="asc" if a.get("direcao") == "asc" else "desc",
         pagina=pagina,
@@ -90,7 +91,8 @@ def novo():
             arquivos = ler_anexos(request.files.getlist("anexos"))
             c = servicos.criar_chamado(db(), g.usuario, form.get("setor_destino", ""),
                                        form.get("responsavel", ""), form.get("titulo", ""),
-                                       form.get("descricao", ""), form.get("prioridade", ""), arquivos)
+                                       form.get("descricao", ""), form.get("prioridade", ""), arquivos,
+                                       form.get("categoria", ""))
         except (servicos.ErroValidacao, AnexoInvalido) as e:
             flash(str(e), "erro")
         else:

@@ -15,7 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import anexos as arquivos_disco
 from .anexos import Arquivo
-from .modelos import (AVALIACOES, PAPEIS, PAPEL_ADMIN, PAPEL_USUARIO, PRIORIDADES, SETORES, STATUS,
+from .modelos import (AVALIACOES, CATEGORIAS, PAPEIS, PAPEL_ADMIN, PAPEL_USUARIO, PRIORIDADES, SETORES, STATUS,
                       STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_FECHADO, Anexo, Chamado, Comentario,
                       Equipamento, TentativaLogin, Usuario, agora)
 
@@ -431,6 +431,7 @@ ORDENACAO = {
     "para": Chamado.setor_destino,
     "status": Chamado.status,
     "prioridade": case({p: i for i, p in enumerate(PRIORIDADES)}, value=Chamado.prioridade),
+    "categoria": Chamado.categoria,
     "abertura": Chamado.aberto_em,
     "responsavel": func.lower(Responsavel.nome),
 }
@@ -449,6 +450,7 @@ class Filtros:
     texto: str = ""
     status: str = ""      # "" = todos, "abertos" = todos menos Fechado, ou um status
     setor: str = ""       # setor de destino (só o admin filtra por setor)
+    categoria: str = ""   # Problema, Solicitação ou Dúvida
     ordenar: str = "id"
     direcao: str = "desc"
     pagina: int = 1
@@ -476,6 +478,8 @@ def listar_chamados(s: Session, f: Filtros, usuario: Usuario) -> tuple[list[Cham
         if numero.isdigit():
             busca.append(Chamado.id == int(numero))
         cond.append(or_(*busca))
+    if f.categoria:
+        cond.append(Chamado.categoria == f.categoria)
     if f.status == "abertos":
         cond.append(Chamado.status != STATUS_FECHADO)
     elif f.status:
@@ -526,17 +530,19 @@ def _commit_com_arquivos(s: Session, gravados: list[str]) -> None:
 
 
 def criar_chamado(s: Session, autor: Usuario, setor_destino: str, responsavel_id, titulo: str,
-                  descricao: str, prioridade: str, arquivos: list[Arquivo]) -> Chamado:
+                  descricao: str, prioridade: str, arquivos: list[Arquivo], categoria: str) -> Chamado:
     responsavel = _responsavel_valido(s, setor_destino, responsavel_id)
     titulo, descricao = titulo.strip(), descricao.strip()
     if not titulo or not descricao:
         raise ErroValidacao("Preencha título e descrição.")
     if len(titulo) > 150:
         raise ErroValidacao("O título pode ter no máximo 150 caracteres.")
+    if categoria not in CATEGORIAS:
+        raise ErroValidacao("Escolha a categoria: problema, solicitação ou dúvida.")
     if prioridade not in PRIORIDADES:
         raise ErroValidacao("Escolha a prioridade.")
 
-    c = Chamado(titulo=titulo, descricao=descricao, prioridade=prioridade, setor=autor.setor,
+    c = Chamado(titulo=titulo, descricao=descricao, categoria=categoria, prioridade=prioridade, setor=autor.setor,
                 setor_destino=setor_destino, responsavel_id=responsavel.id,
                 solicitante_id=autor.id, status=STATUS_ABERTO)
     s.add(c)
