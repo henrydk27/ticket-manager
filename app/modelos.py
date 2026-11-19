@@ -491,3 +491,42 @@ class TarefaExecucao(Base):
 
     tarefa: Mapped[Tarefa] = relationship(back_populates="execucoes")
     usuario: Mapped[Usuario | None] = relationship(lazy="joined")
+
+
+class Pesquisa(Base):
+    """Pesquisa de satisfação com a T.I (abre sozinha em junho e dezembro; ver app/pesquisas.py)."""
+    __tablename__ = "pesquisas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(150))
+    aberta_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    encerra_em: Mapped[date] = mapped_column(Date)                 # último dia para responder
+    encerrada_em: Mapped[datetime | None] = mapped_column(DateTime)   # encerrada antes pelo administrador
+    convidados: Mapped[int] = mapped_column(Integer, default=0)
+    lembrete_em: Mapped[datetime | None] = mapped_column(DateTime)
+    criado_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))  # vazio = automática
+
+    respostas: Mapped[list["RespostaPesquisa"]] = relationship(
+        back_populates="pesquisa", cascade="all, delete-orphan", passive_deletes=True,
+        order_by="RespostaPesquisa.respondida_em")
+
+    def aberta(self, hoje: date | None = None) -> bool:
+        return self.encerrada_em is None and (hoje or date.today()) <= self.encerra_em
+
+
+class RespostaPesquisa(Base):
+    """Resposta de uma pessoa (identificada) a uma pesquisa."""
+    __tablename__ = "pesquisas_respostas"
+    __table_args__ = (Index("ux_pesquisa_usuario", "pesquisa_id", "usuario_id", unique=True),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pesquisa_id: Mapped[int] = mapped_column(ForeignKey("pesquisas.id", ondelete="CASCADE"))
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    setor: Mapped[str] = mapped_column(String(50))          # setor de quem respondeu, na época
+    resolvidos: Mapped[str] = mapped_column(String(10))     # ver pesquisas.RESOLVIDOS
+    nota: Mapped[int] = mapped_column(Integer)              # 0 a 10
+    comentario: Mapped[str | None] = mapped_column(Text)
+    respondida_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+    pesquisa: Mapped[Pesquisa] = relationship(back_populates="respostas")
+    usuario: Mapped[Usuario | None] = relationship(lazy="joined")

@@ -119,12 +119,21 @@ O botão **Tarefas** mostra quantas estão atrasadas ou para hoje. O aviso por e
 diário abaixo (para o responsável, ou para toda a T.I) enquanto houver tarefa atrasada, do dia ou
 no prazo de aviso; as atrasadas também entram no e-mail semanal do CPD.
 
+### Pesquisa de satisfação da T.I
+
+Abre sozinha no **1º dia útil de junho e de dezembro** (pelo comando diário abaixo, sem linha nova no
+cron), fica aberta **7 dias** e vai para todas as contas ativas fora da T.I: convite por e-mail, aviso
+"✎ Pesquisa" no topo do sistema e **um lembrete** no 5º dia para quem ainda não respondeu. É
+identificada e só o administrador vê o resultado: **Painel → Pesquisas de satisfação** (nota média, NPS,
+gráficos, respostas com nome e comentário, Excel e PDF). Lá também dá para **abrir uma pesquisa agora**
+ou **encerrar antes do prazo**. Meses e prazo ficam em `MESES` e `PRAZO_DIAS` em `app/pesquisas.py`.
+
 ### Lembrete de avaliação
 
 Quem abriu um chamado e ainda não avaliou o atendimento recebe um e-mail **1 dia** depois do
 encerramento e, se continuar sem avaliar, mais um **3 dias** depois (no máximo 2 por chamado,
 uma mensagem só por pessoa). No sistema, enquanto houver pendente, aparece **★ Avaliar** no topo.
-O mesmo comando diário manda os avisos das **Tarefas da T.I**. Agende de segunda a sexta às 8h, no
+O mesmo comando diário manda os avisos das **Tarefas da T.I** e abre a **pesquisa de satisfação**. Agende de segunda a sexta às 8h, no
 cron do usuário do serviço (`sudo crontab -u ticketapp -e`):
 
 ```

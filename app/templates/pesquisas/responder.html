@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titulo %}Pesquisa de satisfação{% endblock %}
+
+{% block conteudo %}
+<div class="cabecalho">
+  <div>
+    <h1>Pesquisa de satisfação da T.I</h1>
+    {% if pode and not respondida %}<span class="suave">3 perguntas rápidas · aberta até {{ p.encerra_em|data }}{% if dias %} ({{ dias }} dia{{ 's' if dias != 1 }}){% else %} (último dia){% endif %}</span>{% endif %}
+  </div>
+</div>
+
+{% if not p %}
+<div class="vazio"><h2>Nenhuma pesquisa aberta agora</h2>
+  <p class="suave">A pesquisa de satisfação da T.I acontece em junho e dezembro. Você recebe o convite por e-mail.</p></div>
+{% elif not pode %}
+<div class="vazio"><h2>Esta pesquisa é para quem usa o atendimento da T.I</h2>
+  <p class="suave">A equipe da T.I e os administradores não respondem.</p></div>
+{% elif respondida %}
+<div class="vazio"><h2>Você já respondeu. Obrigado!</h2>
+  <p class="suave">A sua resposta ajuda a melhorar o atendimento da T.I.</p></div>
+{% else %}
+<form class="cartao formulario formulario-largo pesquisa painel" method="post" action="{{ url_for('pesquisas.responder') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+  <fieldset>
+    <legend><span class="pesquisa-numero">1</span> Nos últimos 6 meses, seus chamados foram resolvidos?</legend>
+    <div class="pesquisa-opcoes">
+      {% for chave, rotulo in RESOLVIDOS.items() %}
+      <label class="opcao-categoria"><input type="radio" name="resolvidos" value="{{ chave }}" required {{ 'checked' if dados.get('resolvidos') == chave }}>
+        <span><strong>{{ rotulo }}</strong></span></label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><span class="pesquisa-numero">2</span> De 0 a 10, que nota você dá para o atendimento da T.I?</legend>
+    <div class="escala-nota" role="radiogroup" aria-label="Nota de 0 a 10">
+      {% for n in range(11) %}
+      <label class="nota nota-{{ 'baixa' if n <= 6 else ('media' if n <= 8 else 'alta') }}">
+        <input type="radio" name="nota" value="{{ n }}" required {{ 'checked' if dados.get('nota') == n|string }}><span>{{ n }}</span></label>
+      {% endfor %}
+    </div>
+    <div class="escala-legenda"><span>Muito insatisfeito</span><span>Muito satisfeito</span></div>
+  </fieldset>
+
+  <fieldset>
+    <legend><span class="pesquisa-numero">3</span> O que podemos melhorar? <span class="suave">(opcional)</span></legend>
+    <textarea name="comentario" rows="4" maxlength="4000" aria-label="Comentário ou sugestão"
+              placeholder="Um elogio, uma reclamação, uma ideia...">{{ dados.get('comentario') or '' }}</textarea>
+  </fieldset>
+
+  <p class="dica">A pesquisa é identificada: a T.I vê o seu nome junto da resposta, para poder retornar se for o caso.</p>
+  <div class="acoes">
+    <a class="botao" href="{{ url_for('chamados.lista') }}">Responder depois</a>
+    <button class="botao botao-primario" type="submit">Enviar resposta</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

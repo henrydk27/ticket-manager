@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:'Segoe UI',Arial,sans-serif;color:#1b1f24;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:24px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="max-width:560px;background:#ffffff;border:1px solid #dfe3e8;border-radius:8px;">
+      <tr><td style="padding:18px 24px;border-bottom:1px solid #dfe3e8;">
+        <img src="cid:{{ cid_marca }}" width="30" height="30" alt=""
+             style="vertical-align:middle;border:0;display:inline-block;">
+        <span style="font-weight:700;font-size:15px;margin-left:6px;vertical-align:middle;">Ticket Manager</span>
+      </td></tr>
+      <tr><td style="padding:24px;">
+        <p style="margin:0 0 12px;font-size:15px;">Olá, {{ destino.nome.split()[0] }}.</p>
+        <p style="margin:0 0 16px;font-size:15px;">
+          {% if lembrete %}Ainda dá tempo: a <strong>pesquisa de satisfação da T.I</strong> fecha em <strong>{{ p.encerra_em|data }}</strong>.
+          {% else %}A T.I quer saber como está o atendimento. São <strong>3 perguntas rápidas</strong> (menos de 1 minuto):{% endif %}</p>
+        <ol style="margin:0 0 20px;padding-left:20px;font-size:14px;color:#5b636e;line-height:1.6;">
+          <li>Nos últimos 6 meses, seus chamados foram resolvidos?</li>
+          <li>De 0 a 10, que nota você dá para o atendimento da T.I?</li>
+          <li>O que podemos melhorar? (opcional)</li>
+        </ol>
+        <a href="{{ link }}" style="display:inline-block;background:#1f3a5f;color:#ffffff;text-decoration:none;
+                                   font-weight:600;font-size:14px;padding:10px 18px;border-radius:6px;">Responder a pesquisa</a>
+        <p style="margin:16px 0 0;font-size:13px;color:#5b636e;">Prazo: até {{ p.encerra_em|data }}. Obrigado pela ajuda!</p>
+      </td></tr>
+      <tr><td style="padding:14px 24px;border-top:1px solid #dfe3e8;font-size:12px;color:#5b636e;">
+        Aviso automático do Ticket Manager (a pesquisa acontece em junho e dezembro).
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

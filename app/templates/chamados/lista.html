@@ -17,6 +17,13 @@
   <span class="suave">{{ total }} encontrado{{ 's' if total != 1 }}</span>
 </div>
 
+{% if pesquisa_pendente %}
+<div class="aviso aviso-info">
+  A T.I quer saber como está o atendimento: 3 perguntas rápidas, até {{ pesquisa_pendente.encerra_em|data }}.
+  <a href="{{ url_for('pesquisas.responder') }}">Responder a pesquisa</a>
+</div>
+{% endif %}
+
 {% if pendentes %}
 <div class="aviso aviso-info">
   Você tem {{ pendentes }} chamado{{ 's' if pendentes > 1 }} encerrado{{ 's' if pendentes > 1 }} esperando avaliação.

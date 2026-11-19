@@ -5,13 +5,14 @@
     python manage.py tornar-admin LOGIN     promove uma conta existente a administrador
     python manage.py testar-email DESTINO   envia um e-mail de teste (confere a seção [email])
     python manage.py avisar-semanal         resumo semanal ao CPD: preventivas, contratos e tarefas (agendar no cron)
-    python manage.py avisos-diarios         lembretes de avaliação e de tarefas da T.I (agendar no cron)
+    python manage.py avisos-diarios         lembretes de avaliação, tarefas da T.I e pesquisa semestral (cron)
 """
 
 import argparse
 import getpass
 import os
 import sys
+from datetime import date
 
 from alembic import command
 from alembic.config import Config as AlembicConfig
@@ -113,7 +114,7 @@ def avisar_semanal() -> None:
 def avisos_diarios() -> None:
     """Avisos do dia por e-mail: chamados encerrados esperando avaliação (para quem abriu) e
     tarefas da T.I atrasadas, de hoje ou no prazo de aviso (para o responsável ou toda a T.I)."""
-    from app import create_app, notificacoes, servicos, tarefas
+    from app import create_app, notificacoes, pesquisas, servicos, tarefas
     from app.config import carregar_config
     from app.correio import enviar_sincrono
 
@@ -145,7 +146,19 @@ def avisos_diarios() -> None:
                     avaliacoes += 1
             avisos_tarefas = sum(enviar(u, notificacoes.mensagem_tarefas(u, itens))
                                  for u, itens in tarefas.avisos_do_dia(s).items())
+            convites = lembretes_pesquisa = 0
+            hoje = date.today()
+            if pesquisas.deve_abrir(s, hoje):
+                p = pesquisas.abrir(s, hoje=hoje)
+                convites = sum(enviar(u, notificacoes.mensagem_pesquisa(u, p)) for u in pesquisas.participantes(s))
+                print(f"Pesquisa de satisfação aberta até {p.encerra_em:%d/%m/%Y}.")
+            p, faltam = pesquisas.a_lembrar(s, hoje)
+            if p is not None:
+                lembretes_pesquisa = sum(enviar(u, notificacoes.mensagem_pesquisa(u, p, lembrete=True)) for u in faltam)
+                pesquisas.marcar_lembrete(s, p)
             print(f"Lembretes de avaliação: {avaliacoes} · avisos de tarefas: {avisos_tarefas}"
+                  + (f" · convites da pesquisa: {convites}" if convites else "")
+                  + (f" · lembretes da pesquisa: {lembretes_pesquisa}" if lembretes_pesquisa else "")
                   + (f" · falhas: {falhas}" if falhas else ""))
         finally:
             s.close()
@@ -160,7 +173,7 @@ def main() -> None:
     sub.add_parser("testar-email", help="envia um e-mail de teste").add_argument("destino")
     sub.add_parser("avisar-semanal", help="resumo semanal ao CPD: preventivas, contratos e tarefas")
     sub.add_parser("avisar-preventivas", help="mesmo que avisar-semanal (nome antigo)")
-    sub.add_parser("avisos-diarios", help="lembretes de avaliação e de tarefas da T.I")
+    sub.add_parser("avisos-diarios", help="lembretes de avaliação, tarefas da T.I e pesquisa semestral")
     sub.add_parser("lembrar-avaliacoes", help="mesmo que avisos-diarios (nome antigo)")
     a = p.parse_args()
     {"migrar": lambda: migrar(),

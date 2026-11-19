@@ -185,3 +185,107 @@ def gerar_excel_preventivas(lista: list) -> io.BytesIO:
     wb.save(buf)
     buf.seek(0)
     return buf
+
+
+# ─── pesquisa de satisfação ─────────────────────────────────────────────────
+
+def _colunas_pesquisa():
+    from .pesquisas import RESOLVIDOS
+    return [
+        ("Respondida em", lambda r: formatos.data_hora(r.respondida_em), 17),
+        ("Nome", lambda r: r.usuario.nome if r.usuario else "(conta apagada)", 26),
+        ("Setor", lambda r: r.setor, 16),
+        ("Chamados resolvidos?", lambda r: RESOLVIDOS.get(r.resolvidos, r.resolvidos), 30),
+        ("Nota (0 a 10)", lambda r: r.nota, 13),
+        ("Comentário ou sugestão", lambda r: r.comentario or "", 70),
+    ]
+
+
+def gerar_excel_pesquisa(p, res) -> io.BytesIO:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Respostas"
+    fundo, fonte = PatternFill("solid", fgColor=AZUL), Font(bold=True, color="FFFFFF")
+    colunas = _colunas_pesquisa()
+    for col, (titulo, _v, largura) in enumerate(colunas, start=1):
+        cel = ws.cell(row=1, column=col, value=titulo)
+        cel.fill, cel.font = fundo, fonte
+        ws.column_dimensions[cel.column_letter].width = largura
+    for r in res.respostas:
+        ws.append([valor(r) for _t, valor, _l in colunas])
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+
+    resumo = wb.create_sheet("Resumo")
+    linhas = [("Pesquisa", p.titulo), ("Período", f"{formatos.data(p.aberta_em)} a {formatos.data(p.encerra_em)}"),
+              ("Respostas", f"{res.total} de {res.convidados}"),
+              ("Nota média", round(res.media, 1) if res.media is not None else "—"),
+              ("NPS", res.nps if res.nps is not None else "—"),
+              ("Notas 9-10 (satisfeitos)", res.promotores), ("Notas 7-8 (neutros)", res.neutros),
+              ("Notas 0-6 (insatisfeitos)", res.detratores)]
+    linhas += [(f"Resolvidos: {rotulo}", n) for rotulo, n in res.resolvidos]
+    for linha in linhas:
+        resumo.append(list(linha))
+    resumo.column_dimensions["A"].width, resumo.column_dimensions["B"].width = 34, 50
+    for cel in resumo["A"]:
+        cel.font = Font(bold=True)
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def gerar_pdf_pesquisa(p, res) -> io.BytesIO:
+    buf = io.BytesIO()
+    pagina = A4
+    doc = SimpleDocTemplate(buf, pagesize=pagina, leftMargin=14 * mm, rightMargin=14 * mm,
+                            topMargin=14 * mm, bottomMargin=14 * mm, title=p.titulo)
+    estilos = getSampleStyleSheet()
+    celula = estilos["BodyText"].clone("p_cel", fontSize=8.5, leading=11)
+    cab = estilos["BodyText"].clone("p_cab", fontSize=8.5, leading=10, fontName="Helvetica-Bold", textColor=colors.white)
+    largura = pagina[0] - 28 * mm
+
+    def tabela(linhas, larguras, cabecalho=True):
+        t = Table(linhas, colWidths=larguras, repeatRows=1 if cabecalho else 0, hAlign="LEFT")
+        estilo = [("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#C8CDD5")), ("VALIGN", (0, 0), (-1, -1), "TOP")]
+        if cabecalho:
+            estilo += [("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#" + AZUL)),
+                       ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F3F5F8")])]
+        t.setStyle(TableStyle(estilo))
+        return t
+
+    media = f"{res.media:.1f}".replace(".", ",") if res.media is not None else "—"
+    taxa = f" ({round(res.taxa)}%)" if res.taxa is not None else ""
+    kpis = [[Paragraph(escape(a), cab) for a in ("Respostas", "Nota média", "NPS", "Satisfeitos (9-10)",
+                                                  "Neutros (7-8)", "Insatisfeitos (0-6)")],
+            [Paragraph(x, celula) for x in (f"{res.total} de {res.convidados}{taxa}", media,
+                                            str(res.nps) if res.nps is not None else "—",
+                                            str(res.promotores), str(res.neutros), str(res.detratores))]]
+    notas = [[Paragraph("Nota", cab)] + [Paragraph(str(n), cab) for n in range(11)],
+             [Paragraph("Respostas", celula)] + [Paragraph(str(v), celula) for v in res.notas]]
+    resolvidos = [[Paragraph("Nos últimos 6 meses, seus chamados foram resolvidos?", cab), Paragraph("Respostas", cab)]]
+    resolvidos += [[Paragraph(escape(r), celula), Paragraph(str(n), celula)] for r, n in res.resolvidos]
+
+    from .pesquisas import RESOLVIDOS
+    respostas = [[Paragraph(t, cab) for t in ("Nome", "Setor", "Resolvidos?", "Nota", "Comentário ou sugestão")]]
+    respostas += [[Paragraph(escape(r.usuario.nome if r.usuario else "—"), celula), Paragraph(escape(r.setor), celula),
+                   Paragraph(escape(RESOLVIDOS.get(r.resolvidos, r.resolvidos)), celula), Paragraph(str(r.nota), celula),
+                   Paragraph(escape(r.comentario or ""), celula)] for r in res.respostas]
+
+    def rodape(canvas, doc_):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 8)
+        canvas.drawString(14 * mm, 8 * mm, f"Gerado em {datetime.now():%d/%m/%Y %H:%M}")
+        canvas.drawRightString(pagina[0] - 14 * mm, 8 * mm, f"Página {doc_.page}")
+        canvas.restoreState()
+
+    partes = [Paragraph(escape(p.titulo), estilos["Title"]),
+              Paragraph(f"Aberta de {p.aberta_em:%d/%m/%Y} a {p.encerra_em:%d/%m/%Y}", estilos["Normal"]),
+              Spacer(1, 5 * mm), tabela(kpis, [largura / 6] * 6), Spacer(1, 5 * mm),
+              tabela(notas, [22 * mm] + [(largura - 22 * mm) / 11] * 11), Spacer(1, 5 * mm),
+              tabela(resolvidos, [largura - 30 * mm, 30 * mm]), Spacer(1, 6 * mm),
+              Paragraph("Respostas", estilos["Heading3"]),
+              tabela(respostas, [40 * mm, 26 * mm, 32 * mm, 12 * mm, largura - 110 * mm])]
+    doc.build(partes, onFirstPage=rodape, onLaterPages=rodape)
+    buf.seek(0)
+    return buf

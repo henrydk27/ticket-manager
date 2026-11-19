@@ -1,0 +1,15 @@
+Olá, {{ destino.nome.split()[0] }}.
+
+{% if lembrete %}Ainda dá tempo: a pesquisa de satisfação da T.I fecha em {{ p.encerra_em|data }}.{% else %}A T.I quer saber como está o atendimento. São 3 perguntas rápidas (menos de 1 minuto):{% endif %}
+
+1. Nos últimos 6 meses, seus chamados foram resolvidos?
+2. De 0 a 10, que nota você dá para o atendimento da T.I?
+3. O que podemos melhorar? (opcional)
+
+Responder: {{ link }}
+Prazo: até {{ p.encerra_em|data }}.
+
+Obrigado pela ajuda!
+
+--
+Aviso automático do Ticket Manager (a pesquisa acontece em junho e dezembro).

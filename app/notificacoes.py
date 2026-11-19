@@ -9,6 +9,7 @@ Regras: ninguém recebe aviso da própria ação, e só recebe quem tem e-mail e
 - conta nova (login)    → CPD
 - avaliação pendente    → quem abriu (até 2 lembretes: python manage.py avisos-diarios)
 - tarefas da T.I        → responsável (ou toda a T.I): atrasadas, do dia e no prazo de aviso
+- pesquisa de satisfação → quem não é da T.I: convite em junho e dezembro e um lembrete
                           (python manage.py avisos-diarios)
 - resumo semanal        → CPD: preventivas pendentes, contratos vencendo/vencidos e tarefas atrasadas
                           (python manage.py avisar-semanal, agendado no cron)
@@ -190,3 +191,15 @@ def mensagem_tarefas(u: Usuario, itens: list) -> "correio.Mensagem | None":
     return correio.Mensagem(para=u.email, assunto=assunto,
                             texto=render_template("email/tarefas.txt", **dados),
                             html=render_template("email/tarefas.html", **dados))
+
+
+def mensagem_pesquisa(u: Usuario, p, lembrete: bool = False) -> "correio.Mensagem | None":
+    """Convite (ou lembrete) para responder a pesquisa de satisfação da T.I."""
+    if not u.email or not u.ativo:
+        return None
+    dados = dict(destino=u, p=p, lembrete=lembrete, link=_link("pesquisas.responder"), cid_marca=correio.CID_MARCA)
+    assunto = ("[Ticket Manager] Lembrete: a pesquisa de satisfação da T.I fecha em " if lembrete
+               else "[Ticket Manager] Pesquisa de satisfação da T.I: responda até ") + f"{p.encerra_em:%d/%m}"
+    return correio.Mensagem(para=u.email, assunto=assunto,
+                            texto=render_template("email/pesquisa.txt", **dados),
+                            html=render_template("email/pesquisa.html", **dados))

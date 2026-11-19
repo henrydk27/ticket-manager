@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block titulo %}Pesquisas de satisfação{% endblock %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('admin.painel') }}">‹ Painel</a></p>
+<div class="cabecalho">
+  <div>
+    <h1>Pesquisas de satisfação</h1>
+    <span class="suave">Abre sozinha em 1º de junho e 1º de dezembro, por {{ PRAZO }} dias, para {{ participantes }} pessoa{{ 's' if participantes != 1 }} (todos fora da T.I)</span>
+  </div>
+  {% if not aberta %}
+  <form class="acoes-cabecalho" method="post" action="{{ url_for('pesquisas.abrir') }}"
+        data-confirmar="Abrir uma pesquisa agora e mandar o convite por e-mail para {{ participantes }} pessoa(s)?">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="botao" type="submit">Abrir pesquisa agora</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if itens %}
+<div class="tabela-rolagem">
+<table class="tabela">
+  <thead><tr><th>Pesquisa</th><th>Período</th><th>Respostas</th><th>Nota média</th><th>NPS</th><th></th></tr></thead>
+  <tbody>
+    {% for p, r in itens %}
+    <tr>
+      <td class="col-titulo"><a href="{{ url_for('pesquisas.resultado', pesquisa_id=p.id) }}"><strong>{{ p.titulo }}</strong></a>
+        {% if p.aberta() %} <span class="badge badge-aberto">aberta</span>{% endif %}</td>
+      <td class="col-data">{{ p.aberta_em|data }} a {{ p.encerra_em|data }}</td>
+      <td>{{ r.total }} de {{ r.convidados }}{% if r.taxa is not none %} <span class="suave">({{ r.taxa|round|int }}%)</span>{% endif %}</td>
+      <td>{{ ('%.1f'|format(r.media)).replace('.', ',') if r.media is not none else '—' }}</td>
+      <td>{{ r.nps if r.nps is not none else '—' }}</td>
+      <td class="col-acoes"><a class="botao botao-pequeno" href="{{ url_for('pesquisas.resultado', pesquisa_id=p.id) }}">Ver resultado</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="vazio"><h2>Nenhuma pesquisa ainda</h2>
+  <p class="suave">A primeira abre sozinha no próximo 1º de junho ou de dezembro, ou clique em "Abrir pesquisa agora".</p></div>
+{% endif %}
+{% endblock %}

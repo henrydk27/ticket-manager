@@ -600,3 +600,41 @@ a.usuario-nome { color: var(--texto); }
 .tabela-categoria { flex: 1; min-width: 300px; width: auto; }
 .tabela-categoria td, .tabela-categoria th { padding: 6px 10px; }
 .marca-categoria { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+
+/* ─── Pesquisa de satisfação ───────────────────────────────────────────── */
+.pesquisa fieldset { border: 0; padding: 0; margin: 0 0 22px; }
+.pesquisa legend { font-weight: 600; font-size: 1rem; margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.pesquisa-numero {
+  display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; flex: none;
+  background: var(--primaria); color: var(--sobre-primaria); font-size: .8rem;
+}
+.pesquisa-opcoes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.pesquisa textarea { width: 100%; }
+.escala-nota { display: grid; grid-template-columns: repeat(11, 1fr); gap: 6px; }
+.nota { margin: 0; cursor: pointer; }
+.nota input { position: absolute; opacity: 0; pointer-events: none; }
+.nota span {
+  display: grid; place-items: center; height: 44px; border-radius: var(--raio); font-weight: 700; font-size: 1.05rem;
+  border: 1px solid var(--borda); background: var(--superficie);
+}
+.nota:hover span { border-color: var(--serie); }
+.nota input:focus-visible + span { outline: 2px solid var(--foco); outline-offset: 2px; }
+.nota-baixa input:checked + span { background: var(--g-ruim); border-color: var(--g-ruim); color: #fff; }
+.nota-media input:checked + span { background: var(--g-regular); border-color: var(--g-regular); color: #1b1f24; }
+.nota-alta input:checked + span { background: var(--g-bom); border-color: var(--g-bom); color: #fff; }
+.escala-legenda { display: flex; justify-content: space-between; font-size: .8rem; color: var(--texto-2); margin-top: 6px; }
+.nota-bg-baixa { background: var(--g-ruim); } .nota-bg-media { background: var(--g-regular); } .nota-bg-alta { background: var(--g-bom); }
+.nota-txt-baixa { color: var(--g-ruim); } .nota-txt-media { color: var(--g-regular); } .nota-txt-alta { color: var(--g-bom); }
+.nota-selo { display: inline-grid; place-items: center; min-width: 28px; height: 24px; border-radius: 6px; font-weight: 700; color: #fff; }
+.nota-selo.nota-bg-media { color: #1b1f24; }
+.colunas-notas { display: grid; grid-template-columns: repeat(11, 1fr); gap: 6px; height: 170px; align-items: end; }
+.coluna-nota { display: grid; grid-template-rows: auto 1fr auto; height: 100%; text-align: center; gap: 4px; }
+.coluna-trilho { display: flex; align-items: flex-end; }
+.coluna-barra { display: block; width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; }
+.coluna-valor { font-size: .8rem; font-weight: 600; min-height: 1.1em; }
+.coluna-rotulo { font-size: .8rem; color: var(--texto-2); }
+@media (max-width: 640px) {
+  .pesquisa-opcoes { grid-template-columns: 1fr; }
+  .escala-nota { grid-template-columns: repeat(6, 1fr); }
+}
+.hbarras-rotulo-largo li { grid-template-columns: minmax(150px, 48%) 1fr 4ch; }

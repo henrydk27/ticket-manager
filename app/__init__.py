@@ -7,6 +7,7 @@ from flask import Flask, g, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import banco, correio, formatos, graficos, seguranca, servicos, temas
+from . import pesquisas as modulo_pesquisas  # o nome "pesquisas" é o blueprint dentro de create_app
 from .config import Config, carregar_config
 from .modelos import AVALIACOES, CATEGORIAS, PAPEIS, PRIORIDADES, SETORES, STATUS
 
@@ -85,8 +86,10 @@ def create_app(cfg: Config | None = None) -> Flask:
     app.register_error_handler(500, lambda e: _erro(500, "Erro interno",
                                                     "Algo deu errado. Se continuar, avise o suporte."))
 
-    from .rotas import admin, auth, chamados, conta, diagramas, documentos, inventario, preventivas, tarefas
-    for modulo in (auth, conta, chamados, admin, inventario, preventivas, tarefas, diagramas, documentos):
+    from .rotas import (admin, auth, chamados, conta, diagramas, documentos, inventario, pesquisas, preventivas,
+                        tarefas)
+    for modulo in (auth, conta, chamados, admin, inventario, preventivas, tarefas, diagramas, documentos,
+                   pesquisas):
         app.register_blueprint(modulo.bp)
 
     @app.context_processor
@@ -94,6 +97,7 @@ def create_app(cfg: Config | None = None) -> Flask:
         u = g.get("usuario")
         pedidos = servicos.pedidos_de_senha(banco.db()) if u is not None and u.is_admin else 0
         a_avaliar = len(servicos.avaliacoes_pendentes(banco.db(), u)) if u is not None else 0
-        return {"usuario": u, "pedidos_senha": pedidos, "a_avaliar": a_avaliar}
+        pesquisa = modulo_pesquisas.pendente_para(banco.db(), u) if u is not None else None
+        return {"usuario": u, "pedidos_senha": pedidos, "a_avaliar": a_avaliar, "pesquisa_pendente": pesquisa}
 
     return app

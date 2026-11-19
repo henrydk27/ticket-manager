@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block titulo %}{{ p.titulo }}{% endblock %}
+
+{% macro comparar(atual, anterior_valor, casas=0) -%}
+  {%- if atual is not none and anterior_valor is not none -%}
+  {%- set dif = atual - anterior_valor -%}
+  <span class="variacao {{ 'variacao-boa' if dif > 0 else ('variacao-ruim' if dif < 0 else 'suave') }}">
+    {{ '▲' if dif > 0 else ('▼' if dif < 0 else '=') }} {{ ('%+.' ~ casas ~ 'f')|format(dif)|replace('.', ',') }} vs anterior</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro faixa(n) %}{{ 'baixa' if n <= 6 else ('media' if n <= 8 else 'alta') }}{% endmacro %}
+
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('pesquisas.lista') }}">‹ Pesquisas</a></p>
+<div class="cabecalho">
+  <div>
+    <h1>{{ p.titulo }}</h1>
+    <span class="suave">{{ p.aberta_em|data }} a {{ p.encerra_em|data }} ·
+      {% if p.aberta() %}<strong>aberta</strong>, {{ dias }} dia{{ 's' if dias != 1 }} para o fim{% else %}encerrada{% endif %}</span>
+  </div>
+  <div class="acoes-cabecalho">
+    <a class="botao" href="{{ url_for('pesquisas.excel', pesquisa_id=p.id) }}">Baixar Excel</a>
+    <a class="botao" href="{{ url_for('pesquisas.pdf', pesquisa_id=p.id) }}">Baixar PDF</a>
+    {% if p.aberta() %}
+    <form method="post" action="{{ url_for('pesquisas.encerrar', pesquisa_id=p.id) }}" data-confirmar="Encerrar a pesquisa agora? Ninguém mais poderá responder.">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="botao" type="submit">Encerrar agora</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="painel">
+<div class="indicadores">
+  <div class="indicador">
+    <span class="indicador-rotulo">Respostas</span>
+    <span class="indicador-valor">{{ r.total }}<small class="suave"> / {{ r.convidados }}</small></span>
+    <span class="variacao suave">{{ (r.taxa|round|int ~ '% responderam') if r.taxa is not none else '' }}</span>
+  </div>
+  <div class="indicador">
+    <span class="indicador-rotulo">Nota média</span>
+    <span class="indicador-valor">{{ ('%.1f'|format(r.media)).replace('.', ',') if r.media is not none else '—' }}</span>
+    {{ comparar(r.media, anterior.media if anterior else none, 1) }}
+  </div>
+  <div class="indicador">
+    <span class="indicador-rotulo" title="% de notas 9-10 menos % de notas 0-6 (vai de -100 a 100)">NPS</span>
+    <span class="indicador-valor">{{ r.nps if r.nps is not none else '—' }}</span>
+    {{ comparar(r.nps, anterior.nps if anterior else none) }}
+    <span class="indicador-dica">% de notas 9-10 menos % de 0-6</span>
+  </div>
+  <div class="indicador">
+    <span class="indicador-rotulo">Satisfeitos · neutros · insatisfeitos</span>
+    <span class="indicador-valor"><span class="nota-txt-alta">{{ r.promotores }}</span> · <span class="nota-txt-media">{{ r.neutros }}</span> · <span class="nota-txt-baixa">{{ r.detratores }}</span></span>
+    <span class="indicador-dica">notas 9-10 · 7-8 · 0-6</span>
+  </div>
+</div>
+
+{% if r.total %}
+<div class="graficos-2">
+  <div class="cartao grafico">
+    <h2 class="cartao-titulo">Notas de 0 a 10</h2>
+    {% set mx = r.notas|max %}
+    <div class="colunas-notas" role="img" aria-label="{% for v in r.notas %}nota {{ loop.index0 }}: {{ v }}{{ ', ' if not loop.last }}{% endfor %}">
+      {% for v in r.notas %}
+      <div class="coluna-nota" title="Nota {{ loop.index0 }}: {{ v }} resposta{{ 's' if v != 1 }}">
+        <span class="coluna-valor">{{ v if v else '' }}</span>
+        <span class="coluna-trilho"><span class="coluna-barra nota-bg-{{ faixa(loop.index0) }}" style="height: {{ (100 * v / mx)|round(1) if mx else 0 }}%"></span></span>
+        <span class="coluna-rotulo">{{ loop.index0 }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="cartao grafico">
+    <h2 class="cartao-titulo">Os chamados foram resolvidos?</h2>
+    {% set mxr = r.resolvidos|map(attribute=1)|max %}
+    <ul class="hbarras hbarras-rotulo-largo">
+      {% for rotulo, n in r.resolvidos %}
+      <li><span class="hbarra-rotulo" title="{{ rotulo }}">{{ rotulo }}</span>
+        <span class="hbarra-trilho"><span class="hbarra g-s1-bg" style="width: {{ (100 * n / mxr)|round(1) if mxr else 0 }}%"></span></span>
+        <span class="hbarra-valor">{{ n }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<div class="cartao">
+  <h2 class="cartao-titulo">Respostas <span class="suave">({{ r.total }}, das notas mais baixas para as mais altas)</span></h2>
+  {% if r.respostas %}
+  <div class="tabela-rolagem">
+  <table class="tabela">
+    <thead><tr><th>Nome</th><th>Nota</th><th>Chamados resolvidos?</th><th>Comentário ou sugestão</th><th>Em</th></tr></thead>
+    <tbody>
+      {% for x in r.respostas|sort(attribute='nota') %}
+      <tr>
+        <td><strong>{{ x.usuario.nome if x.usuario else '(conta apagada)' }}</strong><div class="subtitulo">{{ x.setor }}</div></td>
+        <td><span class="nota-selo nota-bg-{{ faixa(x.nota) }}">{{ x.nota }}</span></td>
+        <td>{{ RESOLVIDOS.get(x.resolvidos, x.resolvidos) }}</td>
+        <td class="texto-livre">{{ x.comentario or '' }}</td>
+        <td class="col-data">{{ x.respondida_em|data }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="suave">Ninguém respondeu ainda.</p>{% endif %}
+</div>
+</div>
+{% endblock %}

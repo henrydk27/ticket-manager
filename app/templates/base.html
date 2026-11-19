@@ -41,6 +41,10 @@
       {% endif %}
     </nav>
     <div class="topo-direita">
+      {% if pesquisa_pendente %}
+      <a class="avaliar-pendente" href="{{ url_for('pesquisas.responder') }}"
+         title="Pesquisa de satisfação da T.I: responda até {{ pesquisa_pendente.encerra_em|data }}">✎ Pesquisa</a>
+      {% endif %}
       {% if a_avaliar %}
       <a class="avaliar-pendente" href="{{ url_for('chamados.avaliacoes') }}"
          title="Chamados encerrados esperando a sua avaliação">★ Avaliar <span class="contador-menu">{{ a_avaliar }}</span></a>

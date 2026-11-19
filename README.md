@@ -43,6 +43,10 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
   (pedido ou dúvida). Só a T.I (administradores e quem atende a T.I) reclassifica no chamado, inclusive
   como **Problema** (causa de incidentes que se repetem); a mudança fica no histórico. A lista filtra por
   categoria e ela aparece nos e-mails, no relatório e no painel.
+- **Pesquisa de satisfação da T.I** (identificada): abre sozinha em 1º de junho e 1º de dezembro, por 7 dias,
+  para todas as contas ativas fora da T.I (convite por e-mail, aviso no sistema e um lembrete). Três perguntas:
+  chamados resolvidos, nota de 0 a 10 e sugestão. Resultado só para o administrador (Painel → Pesquisas de
+  satisfação): nota média, NPS, gráficos, respostas com nome, comparação com a anterior, Excel e PDF.
 - Quem atende pode **mudar o status direto na lista** de chamados, sem abrir o chamado.
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
@@ -161,6 +165,7 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/inventario.py`, `app/rotas/inventario.py` | inventário de TI: equipamentos, atribuição e histórico |
 | `app/documentos.py`, `app/rotas/documentos.py` | documentos internos (termos, regras, procedimentos) |
 | `app/preventivas.py`, `app/rotas/preventivas.py` | revisão preventiva: planos, vencimentos, registro e chamado automático |
+| `app/pesquisas.py`, `app/rotas/pesquisas.py` | pesquisa de satisfação semestral: abertura, respostas, NPS e lembrete |
 | `app/tarefas.py`, `app/rotas/tarefas.py` | tarefas recorrentes da T.I: próxima data, conclusão com histórico e avisos |
 | `app/notificacoes.py`, `app/correio.py` | quem recebe cada aviso e o envio por SMTP em segundo plano |
 | `app/rotas/` | páginas: `auth` (login/cadastro), `conta`, `chamados`, `admin` (painel, relatório, usuários), `inventario` |

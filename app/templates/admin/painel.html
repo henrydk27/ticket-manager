@@ -53,6 +53,7 @@
       {% for n, rotulo in PERIODOS.items() %}<option value="{{ n }}" {{ 'selected' if n == dias }}>{{ rotulo }}</option>{% endfor %}
     </select>
     <noscript><button class="botao" type="submit">Aplicar</button></noscript>
+    {% if usuario.is_admin %}<a class="botao" href="{{ url_for('pesquisas.lista') }}">Pesquisas de satisfação</a>{% endif %}
   </form>
 </div>
 
