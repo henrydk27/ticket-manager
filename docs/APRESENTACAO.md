@@ -25,7 +25,7 @@ empresa e atende **todos os setores**, não só a T.I.
 
 ### Chamados para qualquer setor
 
-Quem abre escolhe o **setor de destino** e o **funcionário** que vai atender, a **categoria** (problema, solicitação ou dúvida), a prioridade
+Quem abre escolhe o **setor de destino** e o **funcionário** que vai atender, a **categoria** (incidente ou solicitação, como no ITIL; a T.I pode reclassificar como problema), a prioridade
 e pode anexar prints, PDFs e planilhas. A lista tem busca, filtros e ordenação, e quem pediu
 avalia o atendimento quando o chamado é encerrado.
 

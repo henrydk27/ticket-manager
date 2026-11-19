@@ -15,7 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import anexos as arquivos_disco
 from .anexos import Arquivo
-from .modelos import (AVALIACOES, CATEGORIAS, PAPEIS, PAPEL_ADMIN, PAPEL_USUARIO, PRIORIDADES, SETORES, STATUS,
+from .modelos import (AVALIACOES, CATEGORIAS, CATEGORIAS_ABERTURA, PAPEIS, PAPEL_ADMIN, PAPEL_USUARIO, PRIORIDADES, SETORES, STATUS,
                       STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_FECHADO, Anexo, Chamado, Comentario,
                       Equipamento, TentativaLogin, Usuario, agora)
 
@@ -537,8 +537,8 @@ def criar_chamado(s: Session, autor: Usuario, setor_destino: str, responsavel_id
         raise ErroValidacao("Preencha título e descrição.")
     if len(titulo) > 150:
         raise ErroValidacao("O título pode ter no máximo 150 caracteres.")
-    if categoria not in CATEGORIAS:
-        raise ErroValidacao("Escolha a categoria: problema, solicitação ou dúvida.")
+    if categoria not in (CATEGORIAS if autor.classifica_chamados else CATEGORIAS_ABERTURA):
+        raise ErroValidacao("Escolha a categoria: incidente ou solicitação.")
     if prioridade not in PRIORIDADES:
         raise ErroValidacao("Escolha a prioridade.")
 
@@ -608,6 +608,22 @@ def alterar_status(s: Session, c: Chamado, novo: str, autor: Usuario) -> bool:
         c.fechado_em = None  # reaberto
         c.avaliacao = c.avaliado_em = None
     _evento(s, c, autor, f"Status alterado de \"{anterior}\" para \"{novo}\".")
+    s.commit()
+    return True
+
+
+def classificar(s: Session, c: Chamado, categoria: str, autor: Usuario) -> bool:
+    """Muda a categoria (só administradores e quem atende a T.I; é quem classifica como Problema)."""
+    if not autor.classifica_chamados:
+        raise ErroValidacao("Só a T.I classifica a categoria do chamado.")
+    if categoria not in CATEGORIAS:
+        raise ErroValidacao("Categoria inválida.")
+    if categoria == c.categoria:
+        return False
+    anterior = c.categoria
+    c.categoria = categoria
+    _evento(s, c, autor, f"Categoria alterada de \"{anterior}\" para \"{categoria}\"." if anterior
+            else f"Categoria definida como \"{categoria}\".")
     s.commit()
     return True
 

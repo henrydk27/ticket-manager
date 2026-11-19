@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from . import anexos as arquivos_disco
 from .anexos import Arquivo
-from .modelos import (CATEGORIA_PROBLEMA, PLANOS_PADRAO, PRIORIDADES, RESULTADO_PROBLEMA, RESULTADOS_ITEM, SETOR_TI, SITUACAO_USO,
+from .modelos import (CATEGORIA_INCIDENTE, PLANOS_PADRAO, PRIORIDADES, RESULTADO_PROBLEMA, RESULTADOS_ITEM, SETOR_TI, SITUACAO_USO,
                       TIPOS_EQUIPAMENTO, Equipamento, MovimentoEquipamento, PlanoPreventiva, Preventiva, Usuario,
                       agora)
 from .servicos import ErroValidacao, _escapar_like
@@ -224,7 +224,7 @@ def registrar(s: Session, eq: Equipamento, tecnico: Usuario, data_txt: str, resu
                          + (f"\n\nObservações: {observacoes}" if observacoes else ""))
             chamado = servicos.criar_chamado(
                 s, tecnico, SETOR_TI, responsavel.id,
-                f"Preventiva: problema no patrimônio {eq.patrimonio}"[:150], descricao, PRIORIDADES[1], [], CATEGORIA_PROBLEMA)
+                f"Preventiva: problema no patrimônio {eq.patrimonio}"[:150], descricao, PRIORIDADES[1], [], CATEGORIA_INCIDENTE)
             p.chamado_id = chamado.id
             s.commit()
     return Registro(p, chamado, sem_atendente)

@@ -131,8 +131,8 @@
 
 <div class="cartao grafico">
   <h2 class="cartao-titulo">Por categoria</h2>
-  <p class="suave grafico-sub">Quanto do atendimento é problema, pedido ou dúvida</p>
-  {% set classes_cat = {'Problema': 'g-cat-problema', 'Solicitação': 'g-cat-solicitacao', 'Dúvida': 'g-cat-duvida'} %}
+  <p class="suave grafico-sub">Incidentes, solicitações e problemas (classificados pela T.I)</p>
+  {% set classes_cat = {'Incidente': 'g-cat-incidente', 'Solicitação': 'g-cat-solicitacao', 'Problema': 'g-cat-problema'} %}
   {% set total_cat = d.por_categoria|map(attribute='abertos')|sum %}
   {% if total_cat or d.por_categoria|map(attribute='em_aberto')|sum %}
   <div class="rosca-area">

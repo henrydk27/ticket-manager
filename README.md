@@ -39,8 +39,10 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
 - Quem atende e abre um pedido para **outro** setor acompanha esse chamado como solicitante.
 - A **primeira conta criada** no sistema vira administrador.
 - O setor de cada pessoa só é alterado pelo administrador (é ele que define o que ela vê).
-- Ao abrir, a pessoa escolhe a **categoria**: Problema, Solicitação ou Dúvida. A lista filtra por categoria
-  e ela aparece no chamado, nos e-mails e no relatório (chamados antigos ficam sem categoria).
+- **Categoria (ITIL):** ao abrir, a pessoa escolhe **Incidente** (algo parou ou falhou) ou **Solicitação**
+  (pedido ou dúvida). Só a T.I (administradores e quem atende a T.I) reclassifica no chamado, inclusive
+  como **Problema** (causa de incidentes que se repetem); a mudança fica no histórico. A lista filtra por
+  categoria e ela aparece nos e-mails, no relatório e no painel.
 - Quem atende pode **mudar o status direto na lista** de chamados, sem abrir o chamado.
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
@@ -50,7 +52,7 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
   satisfação) com comparação ao período anterior e linha de tendência; gráficos de abertos x
   encerrados por semana ou mês, status, há quanto tempo estão em aberto, setor x prioridade,
   horários de pico (dia x hora), avaliações, desempenho por responsável e **por categoria**
-  (problema, solicitação, dúvida: abertos, em aberto e tempo médio de cada uma). Os gráficos são SVG
+  (incidente, solicitação, problema: abertos, em aberto e tempo médio de cada uma). Os gráficos são SVG
   gerados no servidor (`app/graficos.py`), sem biblioteca externa. O tempo
   médio conta **só o expediente** (segunda a sexta, das 7h às 18h; ajuste em
   `EXPEDIENTE_INICIO`, `EXPEDIENTE_FIM` e `DIAS_EXPEDIENTE` em `app/servicos.py`).

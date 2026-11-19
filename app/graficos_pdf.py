@@ -22,7 +22,7 @@ STATUS = {"Aberto": colors.HexColor("#1D4F91"), "Em andamento": colors.HexColor(
           "Aguardando usuário": colors.HexColor("#5B2D91")}
 AVAL = [colors.HexColor("#0CA30C"), colors.HexColor("#EDA100"), colors.HexColor("#D03B3B")]
 PRIO = [PERIGO, S1, NEUTRO]
-CATEGORIA = {"Problema": S2, "Solicitação": S1, "Dúvida": colors.HexColor("#5B2D91")}
+CATEGORIA = {"Incidente": S2, "Solicitação": S1, "Problema": colors.HexColor("#5B2D91")}
 SEQ = [colors.HexColor("#A9CBF0"), colors.HexColor("#6AA5E6"), S1, PERIGO]
 
 

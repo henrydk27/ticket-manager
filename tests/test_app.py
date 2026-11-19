@@ -29,7 +29,7 @@ def abrir(client, s, titulo, setor="T.I", para="carlos", **extra):
     """Abre um chamado pelo formulário e devolve a resposta."""
     dados = {"csrf": csrf(client, "/chamados/novo"), "setor_destino": setor,
              "responsavel": usuario(s, para).id if para else "",
-             "titulo": titulo, "descricao": "Detalhes", "prioridade": "Baixa", "categoria": "Problema"}
+             "titulo": titulo, "descricao": "Detalhes", "prioridade": "Baixa", "categoria": "Incidente"}
     dados.update(extra)
     return client.post("/chamados/novo", content_type="multipart/form-data", data=dados)
 
@@ -946,11 +946,14 @@ def test_categoria_do_chamado(client, s, contas):
     r = abrir(client, s, "Sem categoria", categoria="")
     assert "Escolha a categoria" in r.get_data(as_text=True)
     assert abrir(client, s, "Instalar o Excel", categoria="Solicitação").status_code == 302
-    assert abrir(client, s, "Como mapear a pasta?", categoria="Dúvida").status_code == 302
+    assert abrir(client, s, "Como mapear a pasta?", categoria="Incidente").status_code == 302
+    # Problema e Dúvida não estão disponíveis para quem abre
+    assert "Escolha a categoria" in abrir(client, s, "Classificado", categoria="Problema").get_data(as_text=True)
+    assert "Escolha a categoria" in abrir(client, s, "Antiga", categoria="Dúvida").get_data(as_text=True)
     c = s.scalar(select(Chamado).where(Chamado.titulo == "Instalar o Excel"))
     assert c.categoria == "Solicitação"
     assert "Solicitação" in client.get(f"/chamados/{c.id}").get_data(as_text=True)
-    html = client.get("/chamados?categoria=Dúvida").get_data(as_text=True)
+    html = client.get("/chamados?categoria=Incidente").get_data(as_text=True)
     assert "Como mapear a pasta?" in html and "Instalar o Excel" not in html
 
 
@@ -962,9 +965,28 @@ def test_painel_por_categoria(client, s, contas):
     s.commit()
     d = servicos.indicadores(s, datetime.now() - timedelta(days=30), datetime.now() + timedelta(minutes=1), admin)
     cats = {x["nome"]: x for x in d["por_categoria"]}
-    assert list(cats)[:3] == ["Problema", "Solicitação", "Dúvida"] and cats["Sem categoria"]["em_aberto"] == 1
+    assert list(cats)[:3] == ["Incidente", "Solicitação", "Problema"] and cats["Sem categoria"]["em_aberto"] == 1
     assert sum(x["abertos"] for x in d["por_categoria"]) == d["resumo"]["novos"]
-    assert cats["Dúvida"]["abertos"] == 1
+    assert cats["Problema"]["abertos"] == 1
     entrar(client, "admin", "admin123")
     html = client.get("/painel").get_data(as_text=True)
-    assert "Por categoria" in html and "categoria=D" in html
+    assert "Por categoria" in html and "categoria=Incidente" in html
+
+
+def test_so_a_ti_classifica_como_problema(client, s, contas):
+    entrar(client, "ana", "ana12345")
+    abrir(client, s, "Impressora parou de novo", categoria="Incidente")
+    c = s.scalar(select(Chamado).where(Chamado.titulo == "Impressora parou de novo"))
+    pagina = client.get(f"/chamados/{c.id}").get_data(as_text=True)
+    assert 'name="categoria"' not in pagina
+    assert client.post(f"/chamados/{c.id}/categoria",
+                       data={"categoria": "Problema", "csrf": csrf(client, "/chamados")}).status_code in (403, 404)
+    sair(client)
+
+    entrar(client, "carlos", "carlos123")                     # atende a T.I
+    assert 'name="categoria"' in client.get(f"/chamados/{c.id}").get_data(as_text=True)
+    client.post(f"/chamados/{c.id}/categoria", data={"categoria": "Problema", "csrf": csrf(client, "/chamados")})
+    s.expire_all()
+    c = s.get(Chamado, c.id)
+    assert c.categoria == "Problema"
+    assert any("Incidente" in m.texto and "Problema" in m.texto for m in c.comentarios if m.evento)

@@ -580,7 +580,7 @@ a.usuario-nome { color: var(--texto); }
   display: inline-block; font-size: .75rem; font-weight: 600; padding: 1px 7px; border-radius: 999px;
   border: 1px solid var(--borda); color: var(--texto-2); background: var(--superficie-2); vertical-align: middle;
 }
-.opcoes-categoria { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+.opcoes-categoria { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 4px; }
 .opcao-categoria {
   display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; cursor: pointer; font-weight: normal;
   border: 1px solid var(--borda); border-radius: var(--raio); background: var(--superficie);
@@ -593,9 +593,9 @@ a.usuario-nome { color: var(--texto); }
 @media (max-width: 640px) { .opcoes-categoria { grid-template-columns: 1fr; } }
 
 /* ─── Painel: por categoria ────────────────────────────────────────────── */
-.g-cat-problema { stroke: var(--g-s2); } .g-cat-problema-bg { background: var(--g-s2); }
+.g-cat-incidente { stroke: var(--g-s2); } .g-cat-incidente-bg { background: var(--g-s2); }
 .g-cat-solicitacao { stroke: var(--g-s1); } .g-cat-solicitacao-bg { background: var(--g-s1); }
-.g-cat-duvida { stroke: var(--st-aguardando-t); } .g-cat-duvida-bg { background: var(--st-aguardando-t); }
+.g-cat-problema { stroke: var(--st-aguardando-t); } .g-cat-problema-bg { background: var(--st-aguardando-t); }
 .g-cat-sem { stroke: var(--g-neutro); } .g-cat-sem-bg { background: var(--g-neutro); }
 .tabela-categoria { flex: 1; min-width: 300px; width: auto; }
 .tabela-categoria td, .tabela-categoria th { padding: 6px 10px; }

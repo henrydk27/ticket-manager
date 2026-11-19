@@ -44,8 +44,8 @@ def popular(s: Session, chamados: bool = True) -> dict:
     ]
     for i, (titulo, destino, prio, dono, status, resp, dias) in enumerate(exemplos):
         aberto = base - timedelta(days=dias, hours=i * 3)
-        categoria = ("Dúvida" if titulo.startswith("Dúvida") else
-                     "Solicitação" if titulo.startswith(("Trocar", "Sem acesso")) else "Problema")
+        categoria = ("Solicitação" if titulo.startswith(("Trocar", "Sem acesso", "Dúvida")) else
+                     "Problema" if titulo.startswith("Erro ao emitir") else "Incidente")
         c = Chamado(titulo=titulo, descricao=f"{titulo}.\nDetalhes informados por quem pediu.", categoria=categoria,
                     setor_destino=destino, prioridade=prio, setor=u[dono].setor,
                     solicitante_id=u[dono].id, responsavel_id=u[resp].id,

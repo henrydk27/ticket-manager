@@ -160,6 +160,20 @@ def alterar_status(chamado_id: int):
     return _voltar(c)
 
 
+@bp.route("/chamados/<int:chamado_id>/categoria", methods=["POST"])
+@login_obrigatorio
+def classificar(chamado_id: int):
+    c = _chamado_atendido(chamado_id)
+    if not g.usuario.classifica_chamados:
+        abort(403)
+    try:
+        if servicos.classificar(db(), c, request.form.get("categoria", ""), g.usuario):
+            flash(f"Chamado #{c.id} classificado como {c.categoria}.", "ok")
+    except servicos.ErroValidacao as e:
+        flash(str(e), "erro")
+    return _voltar(c)
+
+
 @bp.route("/chamados/<int:chamado_id>/assumir", methods=["POST"])
 @login_obrigatorio
 def assumir(chamado_id: int):

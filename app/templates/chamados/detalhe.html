@@ -127,6 +127,20 @@
         </div>
       </form>
 
+      {% if usuario.classifica_chamados %}
+      <form method="post" action="{{ url_for('chamados.classificar', chamado_id=c.id) }}" class="form-lateral">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <label for="categoria">Categoria</label>
+        <div class="campo-com-botao">
+          <select id="categoria" name="categoria">
+            {% if not c.categoria %}<option value="">Sem categoria</option>{% endif %}
+            {% for cat in CATEGORIAS %}<option {{ 'selected' if c.categoria == cat }}>{{ cat }}</option>{% endfor %}
+          </select>
+          <button class="botao" type="submit">Salvar</button>
+        </div>
+      </form>
+      {% endif %}
+
       <form method="post" action="{{ url_for('chamados.encaminhar', chamado_id=c.id) }}" class="form-lateral">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <label for="e-setor">Encaminhar para</label>

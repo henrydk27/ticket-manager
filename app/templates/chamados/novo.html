@@ -42,7 +42,7 @@
 
   <label>Categoria</label>
   <div class="opcoes-categoria" role="radiogroup" aria-label="Categoria">
-    {% for cat, dica in (('Problema', 'Algo parou ou não funciona'), ('Solicitação', 'Pedir algo novo: acesso, instalação, troca...'), ('Dúvida', 'Como fazer, onde fica, posso...?')) %}
+    {% for cat, dica in (('Incidente', 'Algo parou ou não funciona como deveria: erro, falha, lentidão, sem acesso'), ('Solicitação', 'Pedir algo novo ou tirar uma dúvida: acesso, instalação, troca, orientação')) %}
     <label class="opcao-categoria">
       <input type="radio" name="categoria" value="{{ cat }}" required {{ 'checked' if form.categoria == cat }}>
       <span><strong>{{ cat }}</strong><small>{{ dica }}</small></span>

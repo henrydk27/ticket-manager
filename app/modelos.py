@@ -22,8 +22,10 @@ STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO = (
 STATUS = [STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO]
 
 PRIORIDADES = ["Alta", "Média", "Baixa"]
-CATEGORIA_PROBLEMA = "Problema"
-CATEGORIAS = [CATEGORIA_PROBLEMA, "Solicitação", "Dúvida"]
+# Categorias (ITIL): quem abre escolhe Incidente ou Solicitação; só a T.I classifica como Problema
+CATEGORIA_INCIDENTE, CATEGORIA_SOLICITACAO, CATEGORIA_PROBLEMA = "Incidente", "Solicitação", "Problema"
+CATEGORIAS_ABERTURA = [CATEGORIA_INCIDENTE, CATEGORIA_SOLICITACAO]
+CATEGORIAS = CATEGORIAS_ABERTURA + [CATEGORIA_PROBLEMA]
 AVALIACOES = ["Bom", "Regular", "Ruim"]
 SETORES = [
     "Administração", "Compras", "Contábil", "Diretoria", "Enfermaria", "Engenharia", "Expedição", "Fábrica",
@@ -168,6 +170,11 @@ class Usuario(Base):
     def cuida_inventario(self) -> bool:
         """Só administradores acessam o inventário."""
         return self.is_admin
+
+    @property
+    def classifica_chamados(self) -> bool:
+        """Reclassifica a categoria (inclusive como Problema): administradores e quem atende a T.I."""
+        return self.faz_preventiva
 
     @property
     def faz_preventiva(self) -> bool:
