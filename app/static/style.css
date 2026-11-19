@@ -638,3 +638,36 @@ a.usuario-nome { color: var(--texto); }
   .escala-nota { grid-template-columns: repeat(6, 1fr); }
 }
 .hbarras-rotulo-largo li { grid-template-columns: minmax(150px, 48%) 1fr 4ch; }
+
+/* ─── SLA ──────────────────────────────────────────────────────────────── */
+.sla {
+  display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+  vertical-align: middle; white-space: nowrap; border: 1px solid transparent;
+}
+.sla-normal, .sla-pausado { color: var(--texto-2); background: var(--superficie-2); border-color: var(--borda); }
+.sla-risco { color: var(--st-andamento-t); background: var(--st-andamento-f); }
+.sla-estourado { color: #fff; background: var(--perigo); }
+.cartao-sla .relogio { margin-bottom: 12px; }
+.relogio-cabecalho { display: flex; justify-content: space-between; gap: 8px; font-size: .88rem; }
+.relogio-trilho { height: 6px; border-radius: 999px; background: var(--superficie-2); margin: 5px 0 4px; overflow: hidden; }
+.relogio-trilho span { display: block; height: 100%; border-radius: 999px; background: var(--g-neutro, var(--texto-2)); }
+.relogio-ok .relogio-trilho span, .relogio-normal .relogio-trilho span { background: var(--primaria); }
+.relogio-risco .relogio-trilho span { background: var(--st-andamento-t); }
+.relogio-estourado .relogio-trilho span { background: var(--perigo); }
+.relogio-estourado .relogio-texto { color: var(--perigo); font-weight: 600; }
+.relogio-texto { font-size: .82rem; }
+.campos-prioridade fieldset { border: 1px solid var(--borda); border-radius: var(--raio); padding: 8px 12px 10px; margin: 0; }
+.campos-prioridade legend { font-weight: 600; font-size: .9rem; padding: 0 4px; }
+.opcao-simples { display: flex; gap: 8px; align-items: center; font-weight: normal; margin: 4px 0; cursor: pointer; }
+.prioridade-calculada { margin: 8px 0 4px; font-size: .9rem; }
+.ajuda-prioridade { margin: 0 0 12px; font-size: .88rem; }
+.ajuda-prioridade summary { cursor: pointer; color: var(--primaria); }
+.matriz-prioridade { margin: 8px 0; }
+.matriz-prioridade th, .matriz-prioridade td { font-size: .8rem; }
+.exemplos-prioridade { margin: 6px 0; padding-left: 18px; }
+.exemplos-prioridade li { margin: 4px 0; }
+.formulario .metas-sla input[name] { width: 6.5em !important; margin-right: 8px; display: inline-block; }
+.cartao-titulo-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.indicadores-sla { margin: 8px 0 14px; }
+.grade-sla { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.tabela-compacta th, .tabela-compacta td { padding: 5px 8px; font-size: .84rem; }

@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from flask import (Blueprint, abort, flash, g, redirect, render_template, request,
                    send_file, url_for)
 
-from .. import exportacao, servicos
+from .. import exportacao, servicos, sla
 from ..banco import db
 from ..modelos import PAPEIS, SETORES, Usuario
 from ..seguranca import admin_obrigatorio, login_obrigatorio, supervisor_obrigatorio
@@ -195,3 +195,31 @@ def relatorio_arquivo(formato: str):
         f"Setor {g.usuario.setor}" if g.usuario.ve_setor else "Chamados que você abriu")
     return send_file(exportacao.gerar_pdf(chamados, ini, fim, d, escopo), as_attachment=True,
                      download_name=nome + ".pdf", mimetype="application/pdf")
+
+
+# ─── METAS DE SLA ───────────────────────────────────────────────────────────
+
+@bp.route("/sla", methods=["GET", "POST"])
+@admin_obrigatorio
+def metas_sla():
+    atuais = sla.metas(db())
+    valores = {}
+    if request.method == "POST":
+        try:
+            for i, chave in enumerate(sla.METAS_PADRAO):
+                valores[chave] = (sla.ler_horas(request.form.get(f"at{i}", "")),
+                                  sla.ler_horas(request.form.get(f"sol{i}", "")))
+            sla.salvar_metas(db(), valores)
+        except ValueError as e:
+            db().rollback()
+            flash(str(e), "erro")
+        else:
+            flash("Metas de SLA salvas. Valem para os chamados abertos daqui em diante "
+                  "e para os que mudarem de categoria ou prioridade.", "ok")
+            return redirect(url_for("admin.metas_sla"))
+
+    def horas(minutos):
+        return "" if not minutos else f"{minutos / 60:g}".replace(".", ",")
+    linhas = [(i, cat, prio, horas(at), horas(sol), sla.texto_meta(at), sla.texto_meta(sol))
+              for i, ((cat, prio), (at, sol)) in enumerate(atuais.items())]
+    return render_template("admin/sla.html", linhas=linhas, form=request.form)

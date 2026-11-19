@@ -6,6 +6,7 @@
     python manage.py testar-email DESTINO   envia um e-mail de teste (confere a seção [email])
     python manage.py avisar-semanal         resumo semanal ao CPD: preventivas, contratos e tarefas (agendar no cron)
     python manage.py avisos-diarios         lembretes de avaliação, tarefas da T.I e pesquisa semestral (cron)
+    python manage.py verificar-sla          alertas de SLA em risco/estourado (cron a cada 15 min no expediente)
 """
 
 import argparse
@@ -164,6 +165,40 @@ def avisos_diarios() -> None:
             s.close()
 
 
+def verificar_sla() -> None:
+    """Alertas de SLA: em risco (75% do prazo) → responsável; estourado → responsável e CPD.
+    Cada relógio avisa no máximo uma vez por nível."""
+    from app import create_app, notificacoes, sla
+    from app.config import carregar_config
+    from app.correio import enviar_sincrono
+
+    cfg = carregar_config()
+    if not cfg.email.ativo:
+        sys.exit("E-mail desligado: preencha host e remetente na seção [email] do config.ini.")
+    app = create_app(cfg)
+    with app.test_request_context(base_url=cfg.email.url_site or "http://localhost"):
+        s = app.extensions["sessoes"]()
+        enviados = falhas = 0
+        try:
+            for c, r, nivel in sla.alertas(s):
+                ok = True
+                for msg in notificacoes.mensagens_sla(c, r, nivel):
+                    try:
+                        enviar_sincrono(cfg.email, msg)
+                        enviados += 1
+                    except Exception as e:      # tenta de novo na próxima rodada
+                        ok = False
+                        falhas += 1
+                        print(f"Falhou para {msg.para}: {type(e).__name__}: {e}")
+                if ok:
+                    sla.marcar_aviso(c, r, nivel)
+                    s.commit()
+            if enviados or falhas:
+                print(f"Alertas de SLA enviados: {enviados}" + (f" · falhas: {falhas}" if falhas else ""))
+        finally:
+            s.close()
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Administração do Ticket Manager")
     sub = p.add_subparsers(dest="comando", required=True)
@@ -175,6 +210,7 @@ def main() -> None:
     sub.add_parser("avisar-preventivas", help="mesmo que avisar-semanal (nome antigo)")
     sub.add_parser("avisos-diarios", help="lembretes de avaliação, tarefas da T.I e pesquisa semestral")
     sub.add_parser("lembrar-avaliacoes", help="mesmo que avisos-diarios (nome antigo)")
+    sub.add_parser("verificar-sla", help="alertas de SLA em risco/estourado (a cada 15 min)")
     a = p.parse_args()
     {"migrar": lambda: migrar(),
      "criar-admin": lambda: criar_admin(a.login),
@@ -183,7 +219,8 @@ def main() -> None:
      "avisar-semanal": lambda: avisar_semanal(),
      "avisar-preventivas": lambda: avisar_semanal(),
      "avisos-diarios": lambda: avisos_diarios(),
-     "lembrar-avaliacoes": lambda: avisos_diarios()}[a.comando]()
+     "lembrar-avaliacoes": lambda: avisos_diarios(),
+     "verificar-sla": lambda: verificar_sla()}[a.comando]()
 
 
 if __name__ == "__main__":

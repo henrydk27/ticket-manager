@@ -12,23 +12,31 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from . import formatos
+from . import formatos, sla
+from .modelos import IMPACTOS, URGENCIAS
 
-# (cabeçalho, valor, largura Excel em caracteres, largura PDF em mm)
+# (cabeçalho, valor, largura Excel em caracteres, largura PDF em mm; 0 = só no Excel)
 COLUNAS = [
     ("Nº", lambda c: c.id, 8, 13),
-    ("Título", lambda c: c.titulo, 40, 46),
+    ("Título", lambda c: c.titulo, 40, 38),
     ("Para o setor", lambda c: c.setor_destino, 16, 24),
     ("Status", lambda c: c.status, 18, 24),
     ("Prioridade", lambda c: c.prioridade, 11, 19),
     ("Categoria", lambda c: c.categoria or "", 12, 18),
-    ("Setor de origem", lambda c: c.setor, 16, 24),
-    ("Solicitante", lambda c: c.solicitante.nome, 22, 25),
-    ("Responsável", lambda c: c.responsavel.nome if c.responsavel else "", 22, 25),
+    ("Setor de origem", lambda c: c.setor, 16, 22),
+    ("Solicitante", lambda c: c.solicitante.nome, 22, 22),
+    ("Responsável", lambda c: c.responsavel.nome if c.responsavel else "", 22, 22),
     ("Abertura", lambda c: formatos.data(c.aberto_em), 12, 19),
     ("Fechamento", lambda c: formatos.data(c.fechado_em), 12, 21),
     ("Avaliação", lambda c: c.avaliacao or "", 11, 19),
+    ("Quem é afetado", lambda c: IMPACTOS.get(c.impacto or "", ""), 22, 0),
+    ("Quanto atrapalha", lambda c: URGENCIAS.get(c.urgencia or "", ""), 26, 0),
+    ("Meta 1º atendimento", lambda c: sla.texto_meta(c.sla_atendimento_min) if c.sla_inicio else "", 14, 0),
+    ("SLA 1º atendimento", lambda c: sla.rotulo(sla.relogio_atendimento(c)), 16, 0),
+    ("Meta solução", lambda c: sla.texto_meta(c.sla_solucao_min) if c.sla_inicio else "", 12, 0),
+    ("SLA solução", lambda c: sla.rotulo(sla.relogio_solucao(c)), 16, 16),
 ]
+COLUNAS_PDF = [x for x in COLUNAS if x[3]]
 AZUL = "1F3A5F"
 
 
@@ -66,11 +74,11 @@ def gerar_pdf(chamados: list, inicio: date, fim: date, indicadores: dict | None 
     titulo_col = estilos["BodyText"].clone("titulo_col", fontSize=8, leading=9.5, fontName="Helvetica-Bold",
                                            textColor=colors.white)
 
-    dados = [[Paragraph(escape(t), titulo_col) for t, *_ in COLUNAS]]
+    dados = [[Paragraph(escape(t), titulo_col) for t, *_ in COLUNAS_PDF]]
     for c in chamados:
-        dados.append([Paragraph(escape(str(valor(c))), celula) for _t, valor, _l, _p in COLUNAS])
+        dados.append([Paragraph(escape(str(valor(c))), celula) for _t, valor, _l, _p in COLUNAS_PDF])
 
-    tabela = Table(dados, colWidths=[p * mm for *_x, p in COLUNAS], repeatRows=1)
+    tabela = Table(dados, colWidths=[p * mm for *_x, p in COLUNAS_PDF], repeatRows=1)
     tabela.hAlign = "LEFT"
     tabela.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#" + AZUL)),

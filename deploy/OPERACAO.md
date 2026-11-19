@@ -142,6 +142,22 @@ cron do usuário do serviço (`sudo crontab -u ticketapp -e`):
 
 (Se o cron ainda usa `lembrar-avaliacoes`, o nome antigo, continua funcionando e faz a mesma coisa.)
 
+### Alertas de SLA (a cada 15 minutos)
+
+O SLA dos chamados da T.I (veja docs/SLA.md) avisa por e-mail em dois momentos:
+
+- quando **75% do prazo** foi usado, avisa o responsável;
+- quando o prazo **estoura**, avisa o responsável e o CPD.
+
+A verificação é leve. Agende a cada 15 minutos no expediente, no cron do usuário do serviço
+(`sudo crontab -u ticketapp -e`):
+
+```
+*/15 7-17 * * 1-5 cd /opt/ticket-manager && TICKET_MANAGER_CONFIG=/etc/ticket-manager/config.ini .venv/bin/python manage.py verificar-sla
+```
+
+O comando não imprime nada quando não há alerta. As metas ficam em **Painel → SLA da T.I → Metas de SLA**.
+
 ### E-mail semanal (preventivas, contratos e tarefas)
 
 Agende o resumo semanal ao CPD no cron do usuário do serviço:

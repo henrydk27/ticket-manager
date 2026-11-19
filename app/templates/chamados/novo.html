@@ -58,19 +58,43 @@
   <textarea id="descricao" name="descricao" rows="7" required
             placeholder="Descreva o que você precisa, com o máximo de detalhes.">{{ form.descricao or '' }}</textarea>
 
-  <div class="linha-campos">
-    <div>
-      <label for="prioridade">Prioridade</label>
-      <select id="prioridade" name="prioridade" required>
-        {% set prio = form.prioridade or 'Média' %}
-        {% for p in PRIORIDADES %}<option {{ 'selected' if prio == p }}>{{ p }}</option>{% endfor %}
-      </select>
-    </div>
-    <div>
-      <label for="anexos">Anexos <span class="suave">(opcional)</span></label>
-      <input id="anexos" name="anexos" type="file" multiple data-lista-arquivos>
-    </div>
+  <div class="linha-campos campos-prioridade" data-matriz-prioridade='{{ MATRIZ_JSON }}'>
+    <fieldset>
+      <legend>Quem está sendo afetado?</legend>
+      {% for chave, rotulo in IMPACTOS.items() %}
+      <label class="opcao-simples"><input type="radio" name="impacto" value="{{ chave }}" required
+             {{ 'checked' if form.impacto == chave }}> {{ rotulo }}</label>
+      {% endfor %}
+    </fieldset>
+    <fieldset>
+      <legend>Quanto isso atrapalha o trabalho?</legend>
+      {% for chave, rotulo in URGENCIAS.items() %}
+      <label class="opcao-simples"><input type="radio" name="urgencia" value="{{ chave }}" required
+             {{ 'checked' if form.urgencia == chave }}> {{ rotulo }}</label>
+      {% endfor %}
+    </fieldset>
   </div>
+  <p class="prioridade-calculada" aria-live="polite">Prioridade: <span data-prioridade-calculada>responda as duas perguntas</span></p>
+  <details class="ajuda-prioridade">
+    <summary>Como a prioridade é definida? Ver exemplos</summary>
+    <table class="tabela tabela-compacta matriz-prioridade">
+      <thead><tr><th></th>{% for u in URGENCIAS.values() %}<th>{{ u }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for ck, rotulo in IMPACTOS.items() %}
+        <tr><th>{{ rotulo }}</th>{% for uk in URGENCIAS %}<td>{{ MATRIZ_PRIORIDADE[(ck, uk)]|prioridade }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <ul class="exemplos-prioridade">
+      {% for prio, exemplos in EXEMPLOS_PRIORIDADE %}
+      <li>{{ prio|prioridade }} {{ exemplos }}</li>
+      {% endfor %}
+    </ul>
+    <p class="dica">A T.I pode ajustar a prioridade depois de analisar o chamado.</p>
+  </details>
+
+  <label for="anexos">Anexos <span class="suave">(opcional)</span></label>
+  <input id="anexos" name="anexos" type="file" multiple data-lista-arquivos>
   <ul class="lista-arquivos" aria-live="polite"></ul>
 
   <div class="acoes">

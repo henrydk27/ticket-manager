@@ -11,6 +11,8 @@ Regras: ninguém recebe aviso da própria ação, e só recebe quem tem e-mail e
 - tarefas da T.I        → responsável (ou toda a T.I): atrasadas, do dia e no prazo de aviso
 - pesquisa de satisfação → quem não é da T.I: convite em junho e dezembro e um lembrete
                           (python manage.py avisos-diarios)
+- SLA em risco (75%)    → responsável; SLA estourado → responsável e CPD
+                          (python manage.py verificar-sla, a cada 15 min no expediente)
 - resumo semanal        → CPD: preventivas pendentes, contratos vencendo/vencidos e tarefas atrasadas
                           (python manage.py avisar-semanal, agendado no cron)
 """
@@ -203,3 +205,37 @@ def mensagem_pesquisa(u: Usuario, p, lembrete: bool = False) -> "correio.Mensage
     return correio.Mensagem(para=u.email, assunto=assunto,
                             texto=render_template("email/pesquisa.txt", **dados),
                             html=render_template("email/pesquisa.html", **dados))
+
+
+def mensagens_sla(c: Chamado, r, nivel: int) -> list["correio.Mensagem"]:
+    """Alerta de SLA: em risco (75% do prazo) → responsável; estourado → responsável e CPD."""
+    from types import SimpleNamespace
+
+    from . import sla
+    estourado = nivel >= sla.NIVEL_ESTOURADO
+    if estourado:
+        assunto = f"[Chamado #{c.id}] SLA estourado ({r.nome.lower()}): {c.titulo}"
+        frase = (f"O prazo de {r.nome.lower()} deste chamado ({sla.texto(r.meta)} de expediente) "
+                 f"estourou há {sla.texto(-r.restante)}.")
+    else:
+        assunto = f"[Chamado #{c.id}] SLA em risco ({r.nome.lower()}): {c.titulo}"
+        frase = (f"Já foram usados {round(r.pct)}% do prazo de {r.nome.lower()} deste chamado. "
+                 f"Faltam {sla.texto(r.restante)} de expediente"
+                 + (f" (até {formatos.data_hora(r.prazo)})." if r.prazo else "."))
+    destinos = []
+    if c.responsavel and c.responsavel.ativo and c.responsavel.email:
+        destinos.append((c.responsavel.email, c.responsavel))
+    if estourado:
+        cfg = current_app.extensions["email"]
+        cpd = cfg.avisos_cpd or cfg.remetente
+        if cpd and cpd not in [e for e, _u in destinos]:
+            destinos.append((cpd, SimpleNamespace(nome="equipe")))
+    link = _link("chamados.detalhe", chamado_id=c.id)
+    msgs = []
+    for email, quem in destinos:
+        dados = dict(destino=quem, c=c, frase=frase, citacao="", botao="Abrir chamado", link=link,
+                     cid_marca=correio.CID_MARCA)
+        msgs.append(correio.Mensagem(para=email, assunto=assunto,
+                                     texto=render_template("email/aviso.txt", **dados),
+                                     html=render_template("email/aviso.html", **dados)))
+    return msgs

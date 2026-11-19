@@ -40,6 +40,18 @@ setor veem os chamados dele.
 
 ![Detalhe do chamado](prints/03-chamado-detalhe.png)
 
+### Prioridade e SLA (ITIL)
+
+Quem abre o chamado responde duas perguntas: quem está sendo afetado e quanto isso atrapalha o
+trabalho. O sistema calcula a prioridade com a matriz impacto × urgência. Assim, uma internet fora
+do ar para a empresa vira Alta e um mouse com defeito vira Baixa, sem depender de cada um marcar
+"urgente". A T.I pode ajustar a prioridade depois.
+
+Os chamados da T.I têm dois prazos, contados só no expediente: **primeiro atendimento** e
+**solução**. A solução pausa enquanto o chamado aguarda o usuário. As metas são por categoria e
+prioridade, editáveis pelo administrador. A lista mostra quanto tempo falta, o painel mostra a % no
+prazo, e o responsável e o CPD recebem e-mail quando o prazo está em risco ou estoura.
+
 ### Avisos por e-mail
 
 O servidor de e-mail da empresa avisa automaticamente: o funcionário quando recebe um chamado,

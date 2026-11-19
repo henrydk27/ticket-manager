@@ -159,6 +159,60 @@
   {% else %}<p class="suave">Nenhum chamado no período.</p>{% endif %}
 </div>
 
+{% if d.sla.encerrados or d.sla.abertos %}
+{% macro pct_sla(v, anterior=none) -%}
+  {%- if v is none %}—{% else %}{{ v|round|int }}%{% endif -%}
+{%- endmacro %}
+{% macro tabela_sla(titulo, linhas) %}
+<div class="tabela-rolagem"><table class="tabela tabela-compacta">
+  <thead><tr><th>{{ titulo }}</th><th title="Encerrados com SLA">Encerr.</th><th title="Primeiro atendimento no prazo">1º atend.</th><th title="Solução no prazo">Solução</th></tr></thead>
+  <tbody>
+    {% for x in linhas %}
+    <tr><td>{{ x.nome }}</td><td>{{ x.total }}</td><td>{{ pct_sla(x.atendimento) }}</td><td>{{ pct_sla(x.solucao) }}</td></tr>
+    {% else %}<tr><td colspan="4" class="suave">Nenhum encerrado com SLA no período.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endmacro %}
+<div class="cartao grafico">
+  <div class="cartao-titulo-linha">
+    <h2 class="cartao-titulo">SLA da T.I</h2>
+    {% if usuario.is_admin %}<a class="botao botao-pequeno" href="{{ url_for('admin.metas_sla') }}">Metas de SLA</a>{% endif %}
+  </div>
+  <p class="suave grafico-sub">% dos chamados encerrados no período que cumpriram o prazo (em horas de expediente)</p>
+  <div class="indicadores indicadores-sla">
+    <div class="indicador">
+      <span class="indicador-rotulo">Primeiro atendimento no prazo</span>
+      <span class="indicador-valor">{{ pct_sla(d.sla.atendimento) }}</span>
+      {% if d.sla.atendimento is not none and d.sla.atendimento_ant is not none %}{% set dif = d.sla.atendimento - d.sla.atendimento_ant %}
+      <span class="variacao {{ 'variacao-boa' if dif > 0 else ('variacao-ruim' if dif < 0 else 'suave') }}">{{ '▲' if dif > 0 else ('▼' if dif < 0 else '=') }} {{ dif|round|int|abs }} p.p. vs anterior</span>{% endif %}
+      <span class="indicador-dica">{{ d.sla.n_atendimento }} chamado{{ 's' if d.sla.n_atendimento != 1 }}</span>
+    </div>
+    <div class="indicador">
+      <span class="indicador-rotulo">Solução no prazo</span>
+      <span class="indicador-valor">{{ pct_sla(d.sla.solucao) }}</span>
+      {% if d.sla.solucao is not none and d.sla.solucao_ant is not none %}{% set dif = d.sla.solucao - d.sla.solucao_ant %}
+      <span class="variacao {{ 'variacao-boa' if dif > 0 else ('variacao-ruim' if dif < 0 else 'suave') }}">{{ '▲' if dif > 0 else ('▼' if dif < 0 else '=') }} {{ dif|round|int|abs }} p.p. vs anterior</span>{% endif %}
+      <span class="indicador-dica">{{ d.sla.n_solucao }} chamado{{ 's' if d.sla.n_solucao != 1 }}</span>
+    </div>
+    <a class="indicador {{ 'indicador-alerta' if d.sla.em_risco }}" href="{{ url_for('chamados.lista', sla='risco', **escopo) }}">
+      <span class="indicador-rotulo">Em risco agora</span>
+      <span class="indicador-valor">{{ d.sla.em_risco }}</span>
+      <span class="indicador-dica">75% do prazo já usado</span>
+    </a>
+    <a class="indicador {{ 'indicador-alerta' if d.sla.estourados }}" href="{{ url_for('chamados.lista', sla='estourado', **escopo) }}">
+      <span class="indicador-rotulo">Estourados agora</span>
+      <span class="indicador-valor">{{ d.sla.estourados }}</span>
+      <span class="indicador-dica">de {{ d.sla.abertos }} em aberto com SLA</span>
+    </a>
+  </div>
+  <div class="grade-sla">
+    {{ tabela_sla('Prioridade', d.sla.por_prioridade) }}
+    {{ tabela_sla('Categoria', d.sla.por_categoria) }}
+    {{ tabela_sla('Responsável', d.sla.por_responsavel) }}
+  </div>
+</div>
+{% endif %}
+
 <div class="cartao grafico">
   <h2 class="cartao-titulo">Em aberto por {{ 'setor' if d.por_destino else 'setor de quem pediu' }} e prioridade</h2>
   <p class="suave grafico-sub">Onde está a fila e quanto dela é urgente</p>

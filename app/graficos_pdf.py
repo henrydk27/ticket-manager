@@ -214,6 +214,34 @@ def _variacao(v, melhor=None) -> str:
     return f"{seta} {'+' if v > 0 else ''}{round(v)}% vs período anterior"
 
 
+def tabela_sla(x: dict | None, estilos, largura: float):
+    """SLA da T.I: % no prazo dos encerrados no período, por prioridade e categoria."""
+    if not x or not (x["encerrados"] or x["abertos"]):
+        return ""
+    def pct(v):
+        return "—" if v is None else f"{round(v)}%"
+    tit = estilos["BodyText"].clone("sla_t", fontName="Helvetica-Bold", fontSize=9.5, leading=12, textColor=TINTA)
+    sub = estilos["BodyText"].clone("sla_s", fontSize=7, leading=9, textColor=TINTA2)
+    cab = estilos["BodyText"].clone("sla_c", fontSize=7.5, leading=9, fontName="Helvetica-Bold", textColor=colors.white)
+    linhas = [[Paragraph(t, cab) for t in ("", "Encerrados", "1º atendimento", "Solução")],
+              ["Total", x["encerrados"], pct(x["atendimento"]), pct(x["solucao"])]]
+    destaque = [1]
+    for grupo in ("por_prioridade", "por_categoria"):
+        for g in x[grupo]:
+            linhas.append([g["nome"], g["total"], pct(g["atendimento"]), pct(g["solucao"])])
+    t = Table(linhas, colWidths=[largura * 0.34, largura * 0.2, largura * 0.23, largura * 0.23], hAlign="LEFT")
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F3A5F")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F3F5F8")]),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#C8CDD5")),
+        ("FONTSIZE", (0, 1), (-1, -1), 8), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        *[("FONTNAME", (0, i), (-1, i), "Helvetica-Bold") for i in destaque],
+    ]))
+    return [Paragraph("SLA da T.I", tit),
+            Paragraph(f"% dos encerrados no período dentro do prazo · agora: {x['em_risco']} em risco, "
+                      f"{x['estourados']} estourado(s)", sub), Spacer(1, 2 * mm), t]
+
+
 def resumo(d: dict, estilos, largura_util: float) -> list:
     """Flowables das páginas de resumo."""
     r = d["resumo"]
@@ -252,7 +280,8 @@ def resumo(d: dict, estilos, largura_util: float) -> list:
 
     baixo = Table([[calor(d["calor"], meia), avaliacao(d["avaliacoes"], d["sem_avaliacao"], meia)]],
                   colWidths=[meia + 10 * mm, meia])
-    cat = Table([[categorias(d["por_categoria"], meia), ""]], colWidths=[meia + 10 * mm, meia])
+    cat = Table([[categorias(d["por_categoria"], meia), tabela_sla(d.get("sla"), estilos, meia)]],
+                colWidths=[meia + 10 * mm, meia])
     for t in (grade, meio, baixo, cat):
         t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
                                ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))

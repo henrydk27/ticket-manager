@@ -1,0 +1,15 @@
+{# Selo do SLA na lista: tempo restante do relógio mais apertado (cinza, amarelo a partir de 75%, vermelho estourado) #}
+{% macro selo(r) -%}
+{%- if r -%}
+  {%- set dica = r.nome ~ ': meta de ' ~ sla.texto(r.meta) ~ ' de expediente' -%}
+  {%- if r.estado == 'pausado' -%}
+  <span class="sla sla-pausado" title="{{ dica }} · pausado aguardando o usuário">⏸ SLA pausado</span>
+  {%- elif r.estado == 'estourado' -%}
+  <span class="sla sla-estourado" title="{{ dica }}">SLA estourado há {{ sla.texto(-r.restante) }}</span>
+  {%- elif r.estado == 'violado' -%}
+  <span class="sla sla-estourado" title="{{ dica }} · usou {{ sla.texto(r.usado) }}">Fora do SLA</span>
+  {%- elif r.em_curso -%}
+  <span class="sla sla-{{ r.classe }}" title="{{ dica }}{{ ' · prazo ' ~ (r.prazo|data_hora) if r.prazo }}">⏱ {{ sla.texto(r.restante) }}</span>
+  {%- endif -%}
+{%- endif -%}
+{%- endmacro %}

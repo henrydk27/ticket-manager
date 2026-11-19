@@ -1,17 +1,28 @@
 """Chamados: lista, abertura, detalhes, comentários, anexos, atendimento e avaliação."""
 
+import json
 import math
 
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
 
 from .. import anexos as arquivos_disco
-from .. import notificacoes, servicos
+from .. import notificacoes, servicos, sla
 from ..anexos import TIPOS_EXIBIVEIS, AnexoInvalido, ler_anexos
 from ..banco import db
-from ..modelos import CATEGORIAS, Comentario, SETORES
+from ..modelos import CATEGORIAS, MATRIZ_PRIORIDADE, Comentario, SETORES
 from ..seguranca import admin_obrigatorio, login_obrigatorio
 
 bp = Blueprint("chamados", __name__)
+
+# Exemplos mostrados ao abrir o chamado (o catálogo completo está em docs/SLA.md)
+EXEMPLOS_PRIORIDADE = [
+    ("Alta", "Sem internet ou rede na empresa, sistema ou servidor fora do ar para um setor inteiro, "
+             "e-mail parado para todos, impressora do faturamento/expedição parada."),
+    ("Média", "Meu computador não liga, sem acesso ao sistema só para mim, impressora do setor "
+              "com falha (dá para usar outra), lentidão que atrapalha o setor."),
+    ("Baixa", "Mouse ou teclado com defeito, instalar um programa, criar uma pasta ou acesso, "
+              "dúvida no Excel ou no e-mail, troca de equipamento planejada."),
+]
 
 
 def _filtros_da_url() -> servicos.Filtros:
@@ -26,6 +37,7 @@ def _filtros_da_url() -> servicos.Filtros:
         status=a.get("status", ""),
         setor=a.get("setor", "") if a.get("setor") in SETORES else "",
         categoria=a.get("categoria", "") if a.get("categoria") in CATEGORIAS else "",
+        sla=a.get("sla", "") if a.get("sla") in servicos.FILTROS_SLA else "",
         ordenar=a.get("ordenar", "id"),
         direcao="asc" if a.get("direcao") == "asc" else "desc",
         pagina=pagina,
@@ -79,6 +91,7 @@ def lista():
         paginas=max(1, math.ceil(total / f.por_pagina)), VISOES=servicos.VISOES,
         anexos=servicos.contar_anexos(db(), [c.id for c in chamados]),
         pendentes=len(servicos.avaliacoes_pendentes(db(), g.usuario)),
+        relogio={c.id: sla.principal(c) for c in chamados}, FILTROS_SLA=servicos.FILTROS_SLA,
     )
 
 
@@ -92,7 +105,9 @@ def novo():
             c = servicos.criar_chamado(db(), g.usuario, form.get("setor_destino", ""),
                                        form.get("responsavel", ""), form.get("titulo", ""),
                                        form.get("descricao", ""), form.get("prioridade", ""), arquivos,
-                                       form.get("categoria", ""))
+                                       form.get("categoria", ""),
+                                       *((form.get("impacto", ""), form.get("urgencia", ""))
+                                         if "prioridade" not in form else ()))
         except (servicos.ErroValidacao, AnexoInvalido) as e:
             flash(str(e), "erro")
         else:
@@ -100,7 +115,9 @@ def novo():
             flash(f"Chamado #{c.id} enviado para {c.responsavel.nome} ({c.setor_destino}).", "ok")
             return _voltar(c)
     return render_template("chamados/novo.html", form=form,
-                           por_setor=servicos.atendentes_por_setor(db()))
+                           por_setor=servicos.atendentes_por_setor(db()),
+                           MATRIZ_JSON=json.dumps({f"{i}|{u}": p for (i, u), p in MATRIZ_PRIORIDADE.items()}),
+                           EXEMPLOS_PRIORIDADE=EXEMPLOS_PRIORIDADE)
 
 
 @bp.route("/chamados/<int:chamado_id>")
@@ -111,6 +128,7 @@ def detalhe(chamado_id: int):
     return render_template(
         "chamados/detalhe.html", c=c, trabalha=trabalha,
         anexos_chamado=[a for a in c.anexos if a.comentario_id is None],
+        relogios=sla.relogios(c),
         por_setor=servicos.atendentes_por_setor(db()) if trabalha else {},
     )
 
@@ -169,6 +187,21 @@ def classificar(chamado_id: int):
     try:
         if servicos.classificar(db(), c, request.form.get("categoria", ""), g.usuario):
             flash(f"Chamado #{c.id} classificado como {c.categoria}.", "ok")
+    except servicos.ErroValidacao as e:
+        flash(str(e), "erro")
+    return _voltar(c)
+
+
+@bp.route("/chamados/<int:chamado_id>/prioridade", methods=["POST"])
+@login_obrigatorio
+def repriorizar(chamado_id: int):
+    c = _chamado_atendido(chamado_id)
+    if not g.usuario.classifica_chamados:
+        abort(403)
+    try:
+        if servicos.repriorizar(db(), c, request.form.get("prioridade", ""), g.usuario):
+            flash(f"Chamado #{c.id}: prioridade {c.prioridade}" + (" (prazos do SLA recalculados)." if c.sla_inicio else "."),
+                  "ok")
     except servicos.ErroValidacao as e:
         flash(str(e), "erro")
     return _voltar(c)

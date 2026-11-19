@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titulo %}Metas de SLA{% endblock %}
+{% block conteudo %}
+<p class="migalha"><a href="{{ url_for('admin.painel') }}">‹ Painel</a></p>
+<div class="cabecalho">
+  <div>
+    <h1>Metas de SLA da T.I</h1>
+    <span class="suave">Em horas de expediente (seg a sex, 7h às 18h): 0,5 = 30 min · 11 = 1 dia útil · 33 = 3 dias úteis</span>
+  </div>
+</div>
+
+<form class="cartao formulario formulario-largo" method="post" action="{{ url_for('admin.metas_sla') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <div class="tabela-rolagem">
+  <table class="tabela metas-sla">
+    <thead><tr><th>Categoria</th><th>Prioridade</th><th>Primeiro atendimento (h)</th><th>Solução (h)</th></tr></thead>
+    <tbody>
+      {% for i, cat, prio, at, sol, at_txt, sol_txt in linhas %}
+      <tr>
+        <td><span class="categoria">{{ cat }}</span></td>
+        <td>{{ prio|prioridade }}</td>
+        <td><input name="at{{ i }}" inputmode="decimal" value="{{ form.get('at' ~ i, at) }}" aria-label="{{ cat }} {{ prio }}: primeiro atendimento em horas" placeholder="sem SLA">
+          {% if at %}<span class="suave">{{ at_txt }}</span>{% endif %}</td>
+        <td><input name="sol{{ i }}" inputmode="decimal" value="{{ form.get('sol' ~ i, sol) }}" aria-label="{{ cat }} {{ prio }}: solução em horas" placeholder="sem SLA">
+          {% if sol %}<span class="suave">{{ sol_txt }}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="dica">Deixe vazio para não ter prazo (o padrão do Problema, que é uma investigação de causa).
+    Mudar as metas não altera os chamados já abertos: cada chamado guarda a meta que valia quando foi aberto
+    (ou quando a T.I mudou a categoria ou a prioridade).</p>
+  <div class="acoes">
+    <a class="botao" href="{{ url_for('admin.painel') }}">Cancelar</a>
+    <button class="botao botao-primario" type="submit">Salvar metas</button>
+  </div>
+</form>
+{% endblock %}

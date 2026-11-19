@@ -14,8 +14,9 @@ from sqlalchemy.orm import Session, aliased
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import anexos as arquivos_disco
+from . import sla
 from .anexos import Arquivo
-from .modelos import (AVALIACOES, CATEGORIAS, CATEGORIAS_ABERTURA, PAPEIS, PAPEL_ADMIN, PAPEL_USUARIO, PRIORIDADES, SETORES, STATUS,
+from .modelos import (AVALIACOES, CATEGORIAS, CATEGORIAS_ABERTURA, IMPACTOS, MATRIZ_PRIORIDADE, URGENCIAS, PAPEIS, PAPEL_ADMIN, PAPEL_USUARIO, PRIORIDADES, SETORES, STATUS,
                       STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_FECHADO, Anexo, Chamado, Comentario,
                       Equipamento, TentativaLogin, Usuario, agora)
 
@@ -396,28 +397,9 @@ def _escopo_painel(usuario: Usuario, setor: str | None = None) -> list:
     return [Chamado.solicitante_id == usuario.id]
 
 
-# ─── HORÁRIO DE EXPEDIENTE ──────────────────────────────────────────────────
+# ─── HORÁRIO DE EXPEDIENTE (ver app/expediente.py) ──────────────────────────
 
-# O tempo até encerrar conta só o expediente: de segunda a sexta, das 7h às 18h
-EXPEDIENTE_INICIO, EXPEDIENTE_FIM = 7, 18
-DIAS_EXPEDIENTE = {0, 1, 2, 3, 4}          # segunda = 0 … domingo = 6
-
-
-def segundos_expediente(inicio: datetime, fim: datetime) -> float:
-    """Tempo entre dois momentos contando só o horário de expediente."""
-    if fim <= inicio:
-        return 0.0
-    total = 0.0
-    dia = inicio.date()
-    while dia <= fim.date():
-        if dia.weekday() in DIAS_EXPEDIENTE:
-            abre = datetime.combine(dia, datetime.min.time()).replace(hour=EXPEDIENTE_INICIO)
-            fecha = abre.replace(hour=EXPEDIENTE_FIM)
-            ini, fi = max(inicio, abre), min(fim, fecha)
-            if fi > ini:
-                total += (fi - ini).total_seconds()
-        dia += timedelta(days=1)
-    return total
+from .expediente import DIAS_EXPEDIENTE, EXPEDIENTE_FIM, EXPEDIENTE_INICIO, segundos_expediente  # noqa: E402,F401
 
 
 # ─── LISTAGEM DE CHAMADOS ───────────────────────────────────────────────────
@@ -444,13 +426,17 @@ VISOES = {
 }
 
 
+FILTROS_SLA = {"risco": "SLA em risco ou estourado", "estourado": "SLA estourado"}
+
+
 @dataclass
 class Filtros:
     visao: str = ""       # ver VISOES
     texto: str = ""
     status: str = ""      # "" = todos, "abertos" = todos menos Fechado, ou um status
     setor: str = ""       # setor de destino (só o admin filtra por setor)
-    categoria: str = ""   # Problema, Solicitação ou Dúvida
+    categoria: str = ""   # Incidente, Solicitação ou Problema
+    sla: str = ""         # ver FILTROS_SLA
     ordenar: str = "id"
     direcao: str = "desc"
     pagina: int = 1
@@ -484,6 +470,12 @@ def listar_chamados(s: Session, f: Filtros, usuario: Usuario) -> tuple[list[Cham
         cond.append(Chamado.status != STATUS_FECHADO)
     elif f.status:
         cond.append(Chamado.status == f.status)
+    if f.sla:
+        # a situação do SLA depende do expediente: calcula nos chamados em aberto com SLA
+        aceitos = ("estourado",) if f.sla == "estourado" else ("risco", "estourado")
+        candidatos = s.scalars(select(Chamado).where(*cond, Chamado.status != STATUS_FECHADO,
+                                                     Chamado.sla_inicio.is_not(None))).unique()
+        cond.append(Chamado.id.in_([c.id for c in candidatos if sla.estado_geral(c) in aceitos] or [-1]))
 
     base = (select(Chamado)
             .join(Solicitante, Solicitante.id == Chamado.solicitante_id)
@@ -530,7 +522,9 @@ def _commit_com_arquivos(s: Session, gravados: list[str]) -> None:
 
 
 def criar_chamado(s: Session, autor: Usuario, setor_destino: str, responsavel_id, titulo: str,
-                  descricao: str, prioridade: str, arquivos: list[Arquivo], categoria: str) -> Chamado:
+                  descricao: str, prioridade: str, arquivos: list[Arquivo], categoria: str,
+                  impacto: str | None = None, urgencia: str | None = None) -> Chamado:
+    """Abre o chamado. Com impacto e urgência (formulário), a prioridade sai da matriz ITIL."""
     responsavel = _responsavel_valido(s, setor_destino, responsavel_id)
     titulo, descricao = titulo.strip(), descricao.strip()
     if not titulo or not descricao:
@@ -539,12 +533,20 @@ def criar_chamado(s: Session, autor: Usuario, setor_destino: str, responsavel_id
         raise ErroValidacao("O título pode ter no máximo 150 caracteres.")
     if categoria not in (CATEGORIAS if autor.classifica_chamados else CATEGORIAS_ABERTURA):
         raise ErroValidacao("Escolha a categoria: incidente ou solicitação.")
+    if impacto is not None or urgencia is not None:
+        if impacto not in IMPACTOS:
+            raise ErroValidacao("Diga quem está sendo afetado.")
+        if urgencia not in URGENCIAS:
+            raise ErroValidacao("Diga quanto isso atrapalha o trabalho.")
+        prioridade = MATRIZ_PRIORIDADE[(impacto, urgencia)]
     if prioridade not in PRIORIDADES:
         raise ErroValidacao("Escolha a prioridade.")
 
     c = Chamado(titulo=titulo, descricao=descricao, categoria=categoria, prioridade=prioridade, setor=autor.setor,
                 setor_destino=setor_destino, responsavel_id=responsavel.id,
-                solicitante_id=autor.id, status=STATUS_ABERTO)
+                solicitante_id=autor.id, status=STATUS_ABERTO, impacto=impacto, urgencia=urgencia,
+                aberto_em=agora())
+    sla.iniciar(s, c)
     s.add(c)
     gravados = _gravar_anexos(s, c, autor, arquivos)
     _commit_com_arquivos(s, gravados)
@@ -567,6 +569,7 @@ def comentar(s: Session, c: Chamado, autor: Usuario, texto: str, arquivos: list[
         texto = "Anexou " + ", ".join(a.nome for a in arquivos) + "."
     m = Comentario(chamado=c, autor_id=autor.id, texto=texto)
     s.add(m)
+    sla.atendeu(c, autor)
     gravados = _gravar_anexos(s, c, autor, arquivos, m)
     c.atualizado_em = agora()
     _commit_com_arquivos(s, gravados)
@@ -602,6 +605,8 @@ def alterar_status(s: Session, c: Chamado, novo: str, autor: Usuario) -> bool:
         return False
     anterior = c.status
     c.status = novo
+    sla.mudou_status(c, anterior, novo)
+    sla.atendeu(c, autor)
     if novo == STATUS_FECHADO:
         c.fechado_em = agora()
     elif anterior == STATUS_FECHADO:
@@ -622,6 +627,7 @@ def classificar(s: Session, c: Chamado, categoria: str, autor: Usuario) -> bool:
         return False
     anterior = c.categoria
     c.categoria = categoria
+    sla.recalcular(s, c)
     _evento(s, c, autor, f"Categoria alterada de \"{anterior}\" para \"{categoria}\"." if anterior
             else f"Categoria definida como \"{categoria}\".")
     s.commit()
@@ -636,6 +642,10 @@ def encaminhar(s: Session, c: Chamado, setor: str, responsavel_id, autor: Usuari
     if setor != c.setor_destino:
         _evento(s, c, autor, f"Encaminhado de {c.setor_destino} para {setor} ({responsavel.nome}).")
         c.setor_destino = setor
+        if sla.aplica(c):          # chegou à T.I: o SLA começa agora
+            sla.iniciar(s, c, agora())
+        else:
+            sla.desligar(c)
     else:
         _evento(s, c, autor, f"Chamado atribuído a {responsavel.nome}.")
     c.responsavel = responsavel  # objeto, não só o id: quem usa c.responsavel já vê o novo
@@ -643,8 +653,26 @@ def encaminhar(s: Session, c: Chamado, setor: str, responsavel_id, autor: Usuari
     return True
 
 
+def repriorizar(s: Session, c: Chamado, prioridade: str, autor: Usuario) -> bool:
+    """A T.I ajusta a prioridade (quem abre só responde impacto e urgência). Recalcula o SLA."""
+    if not autor.classifica_chamados:
+        raise ErroValidacao("Só a T.I ajusta a prioridade do chamado.")
+    if prioridade not in PRIORIDADES:
+        raise ErroValidacao("Prioridade inválida.")
+    if prioridade == c.prioridade:
+        return False
+    _evento(s, c, autor, f"Prioridade alterada de \"{c.prioridade}\" para \"{prioridade}\".")
+    c.prioridade = prioridade
+    sla.recalcular(s, c)
+    s.commit()
+    return True
+
+
 def assumir(s: Session, c: Chamado, atendente: Usuario) -> None:
     encaminhar(s, c, c.setor_destino, atendente.id, atendente)
+    if c.sla_inicio is not None and c.primeiro_atendimento_em is None:
+        sla.atendeu(c, atendente)
+        s.commit()
     if c.status == STATUS_ABERTO:
         alterar_status(s, c, STATUS_ANDAMENTO, atendente)
 
@@ -833,6 +861,12 @@ def indicadores(s: Session, inicio: datetime, fim: datetime, usuario: Usuario, s
         if nome or item["abertos"] or item["em_aberto"]:      # "sem categoria" só se houver (chamados antigos)
             por_categoria.append(item)
 
+    # SLA (chamados da T.I abertos depois da ativação): % no prazo dos encerrados no período
+    sla_periodo = sla.resumo(fechados, abertos, agora_)
+    ant = sla.resumo(fechados_ant, [], agora_)
+    sla_periodo.update(atendimento_ant=ant["atendimento"], solucao_ant=ant["solucao"],
+                       abertos=sum(1 for c in abertos if c.sla_inicio is not None))
+
     def variacao(atual, anterior):
         if atual is None or anterior in (None, 0):
             return None
@@ -856,6 +890,7 @@ def indicadores(s: Session, inicio: datetime, fim: datetime, usuario: Usuario, s
         "sem_avaliacao": sum(1 for c in fechados if not c.avaliacao),
         "responsaveis": responsaveis,
         "por_categoria": por_categoria,
+        "sla": sla_periodo,
     }
 
 

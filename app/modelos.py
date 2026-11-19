@@ -22,6 +22,16 @@ STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO = (
 STATUS = [STATUS_ABERTO, STATUS_ANDAMENTO, STATUS_AGUARDANDO, STATUS_FECHADO]
 
 PRIORIDADES = ["Alta", "Média", "Baixa"]
+# Prioridade pela matriz ITIL impacto x urgência: quem abre responde duas perguntas e o sistema
+# calcula a prioridade (a T.I pode ajustar depois). Ver docs/SLA.md.
+IMPACTOS = {"pessoa": "Só eu", "setor": "Meu setor ou várias pessoas", "empresa": "A empresa toda ou vários setores"}
+URGENCIAS = {"espera": "Não atrapalha, pode esperar", "atrapalha": "Atrapalha, mas dá para continuar",
+             "parou": "O trabalho parou"}
+MATRIZ_PRIORIDADE = {
+    ("pessoa", "espera"): "Baixa", ("pessoa", "atrapalha"): "Baixa", ("pessoa", "parou"): "Média",
+    ("setor", "espera"): "Baixa", ("setor", "atrapalha"): "Média", ("setor", "parou"): "Alta",
+    ("empresa", "espera"): "Média", ("empresa", "atrapalha"): "Alta", ("empresa", "parou"): "Alta",
+}
 # Categorias (ITIL): quem abre escolhe Incidente ou Solicitação; só a T.I classifica como Problema
 CATEGORIA_INCIDENTE, CATEGORIA_SOLICITACAO, CATEGORIA_PROBLEMA = "Incidente", "Solicitação", "Problema"
 CATEGORIAS_ABERTURA = [CATEGORIA_INCIDENTE, CATEGORIA_SOLICITACAO]
@@ -198,6 +208,8 @@ class Chamado(Base):
     status: Mapped[str] = mapped_column(String(30), default=STATUS_ABERTO)
     prioridade: Mapped[str] = mapped_column(String(10))
     categoria: Mapped[str | None] = mapped_column(String(15))   # vazio nos chamados antigos
+    impacto: Mapped[str | None] = mapped_column(String(10))     # ver IMPACTOS (vazio nos antigos)
+    urgencia: Mapped[str | None] = mapped_column(String(10))    # ver URGENCIAS
     setor: Mapped[str] = mapped_column(String(50))  # setor de quem pediu (origem)
     setor_destino: Mapped[str] = mapped_column(String(50))  # setor que atende
     solicitante_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))
@@ -210,6 +222,16 @@ class Chamado(Base):
     # lembretes por e-mail para quem abriu avaliar o atendimento (manage.py avisos-diarios)
     lembretes_avaliacao: Mapped[int] = mapped_column(Integer, default=0)
     ultimo_lembrete_em: Mapped[datetime | None] = mapped_column(DateTime)
+    # SLA (ver app/sla.py). sla_inicio vazio = sem SLA (chamados antigos ou de outros setores).
+    # As metas ficam gravadas no chamado: mudar a tabela de metas não altera o passado.
+    sla_inicio: Mapped[datetime | None] = mapped_column(DateTime)
+    sla_atendimento_min: Mapped[int | None] = mapped_column(Integer)
+    sla_solucao_min: Mapped[int | None] = mapped_column(Integer)
+    primeiro_atendimento_em: Mapped[datetime | None] = mapped_column(DateTime)
+    pausado_em: Mapped[datetime | None] = mapped_column(DateTime)       # em "Aguardando usuário" ou fechado
+    pausa_segundos: Mapped[int] = mapped_column(Integer, default=0)      # pausas já encerradas (expediente)
+    sla_aviso_atendimento: Mapped[int] = mapped_column(Integer, default=0)  # 1 = em risco, 2 = estourado
+    sla_aviso_solucao: Mapped[int] = mapped_column(Integer, default=0)
 
     solicitante: Mapped[Usuario] = relationship(foreign_keys=[solicitante_id], lazy="joined")
     responsavel: Mapped[Usuario | None] = relationship(foreign_keys=[responsavel_id], lazy="joined")
@@ -223,6 +245,18 @@ class Chamado(Base):
     @property
     def fechado(self) -> bool:
         return self.status == STATUS_FECHADO
+
+
+class MetaSla(Base):
+    """Meta de SLA por categoria e prioridade, em minutos de expediente (vazio = sem SLA)."""
+    __tablename__ = "metas_sla"
+    __table_args__ = (Index("ux_metas_sla", "categoria", "prioridade", unique=True),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    categoria: Mapped[str] = mapped_column(String(15))
+    prioridade: Mapped[str] = mapped_column(String(10))
+    atendimento_min: Mapped[int | None] = mapped_column(Integer)
+    solucao_min: Mapped[int | None] = mapped_column(Integer)
 
 
 class Comentario(Base):

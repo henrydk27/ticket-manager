@@ -47,6 +47,14 @@ histórico. Tudo isso fica na tela **Editar** de cada conta.
   para todas as contas ativas fora da T.I (convite por e-mail, aviso no sistema e um lembrete). Três perguntas:
   chamados resolvidos, nota de 0 a 10 e sugestão. Resultado só para o administrador (Painel → Pesquisas de
   satisfação): nota média, NPS, gráficos, respostas com nome, comparação com a anterior, Excel e PDF.
+- **Prioridade por impacto × urgência (ITIL):** quem abre responde "quem está sendo afetado?" e "quanto isso
+  atrapalha?", e o sistema calcula Alta, Média ou Baixa. A T.I pode ajustar depois. Catálogo de exemplos
+  em docs/SLA.md.
+- **SLA da T.I:** dois prazos em horário de expediente. O primeiro atendimento para quando a T.I assume,
+  muda o status ou comenta. A solução para no Fechado e pausa em "Aguardando usuário". As metas são por
+  categoria × prioridade e o administrador as edita em `/sla`. Tem selo e filtros na lista, prazos no
+  chamado, % no prazo no painel, PDF e Excel, e alertas por e-mail a 75% e ao estourar
+  (`python manage.py verificar-sla`, cron a cada 15 min).
 - Quem atende pode **mudar o status direto na lista** de chamados, sem abrir o chamado.
 - Mudanças de status, responsável e setor ficam registradas no histórico do chamado.
 - O administrador pode **corrigir o texto de um comentário**; o histórico mostra quem editou e quando.
@@ -172,7 +180,7 @@ Para rodar contra um PostgreSQL local: copie `config.example.ini` para `config.i
 | `app/templates/`, `app/static/` | HTML, CSS e JavaScript (sem build, sem CDN); `tema.js` aplica claro/escuro e a cor |
 | `app/temas.py` | temas de cor (cor × intensidade × claro/escuro); gera `static/cores.css` (`python -m app.temas`) |
 | `migracoes/` | versões da estrutura do banco (Alembic) |
-| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-semanal`, `avisos-diarios` |
+| `manage.py` | `migrar`, `criar-admin`, `tornar-admin`, `testar-email`, `avisar-semanal`, `avisos-diarios`, `verificar-sla` |
 | `wsgi.py` | ponto de entrada do Gunicorn |
 | `deploy/` | serviço systemd, Nginx, backup e guia de instalação |
 | `tests/` | testes, dados de exemplo e modo demonstração |

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "chamados/_sla.html" import selo %}
 {% block titulo %}Chamados{% endblock %}
 
 {% macro ordenar(coluna, rotulo) -%}
@@ -53,6 +54,12 @@
     <option value="">Todas as categorias</option>
     {% for cat in CATEGORIAS %}<option {{ 'selected' if f.categoria == cat }}>{{ cat }}</option>{% endfor %}
   </select>
+  {% if usuario.ve_setor %}
+  <select name="sla" aria-label="SLA" data-enviar-ao-mudar>
+    <option value="">SLA: todos</option>
+    {% for chave, rotulo in FILTROS_SLA.items() %}<option value="{{ chave }}" {{ 'selected' if f.sla == chave }}>{{ rotulo }}</option>{% endfor %}
+  </select>
+  {% endif %}
   <select name="status" aria-label="Status" data-enviar-ao-mudar>
     <option value="">Todos os status</option>
     <option value="abertos" {{ 'selected' if f.status == 'abertos' }}>Em aberto</option>
@@ -85,6 +92,7 @@
         <a href="{{ link }}">{{ c.titulo }}</a>
         {% if c.categoria %}<span class="categoria">{{ c.categoria }}</span>{% endif %}
         {% if c.prioridade == 'Alta' %}{{ c.prioridade|prioridade }}{% endif %}
+        {% if usuario.ve_setor %}{{ selo(relogio.get(c.id)) }}{% endif %}
         {% if anexos.get(c.id) %}<span class="clipe" title="{{ anexos[c.id] }} anexo(s)">📎 {{ anexos[c.id] }}</span>{% endif %}
         {% if c.solicitante_id != usuario.id %}<div class="subtitulo">de {{ c.solicitante.nome }} · {{ c.setor }}</div>{% endif %}
       </td>

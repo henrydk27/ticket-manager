@@ -102,8 +102,38 @@
         <dt>Aberto em</dt><dd>{{ c.aberto_em|data_hora }}</dd>
         {% if c.fechado_em %}<dt>Encerrado em</dt><dd>{{ c.fechado_em|data_hora }}</dd>{% endif %}
         {% if c.fechado %}<dt>Avaliação</dt><dd>{{ c.avaliacao or 'Pendente' }}</dd>{% endif %}
+        {% if c.impacto %}<dt>Quem é afetado</dt><dd>{{ IMPACTOS.get(c.impacto, c.impacto) }}</dd>{% endif %}
+        {% if c.urgencia %}<dt>Quanto atrapalha</dt><dd>{{ URGENCIAS.get(c.urgencia, c.urgencia) }}</dd>{% endif %}
       </dl>
     </div>
+
+    {% if usuario.ve_setor and c.sla_inicio %}
+    <div class="cartao cartao-sla">
+      <h2 class="cartao-titulo">SLA <span class="suave">· {{ c.categoria or 'sem categoria' }}, {{ c.prioridade|lower }}</span></h2>
+      {% if relogios %}
+      {% for r in relogios %}
+      <div class="relogio relogio-{{ r.classe if r.em_curso else ('ok' if r.dentro else 'estourado') }}">
+        <div class="relogio-cabecalho">
+          <strong>{{ r.nome }}</strong>
+          <span class="suave">meta {{ sla.texto(r.meta) }}</span>
+        </div>
+        <div class="relogio-trilho" aria-hidden="true"><span style="width: {{ [r.pct, 100]|min|round(1) }}%"></span></div>
+        <div class="relogio-texto">
+          {% if r.estado == 'cumprido' %}✓ No prazo: {{ sla.texto(r.usado) }}
+          {% elif r.estado == 'violado' %}✗ Fora do prazo: {{ sla.texto(r.usado) }} ({{ sla.texto(-r.restante) }} a mais)
+          {% elif r.estado == 'estourado' %}Estourado há {{ sla.texto(-r.restante) }}{% if r.tipo == 'solucao' and c.pausado_em %} · pausado{% endif %}
+          {% elif r.estado == 'pausado' %}⏸ Pausado aguardando o usuário · faltam {{ sla.texto(r.restante) }}
+          {% else %}Faltam {{ sla.texto(r.restante) }} · até {{ r.prazo|data_hora }}{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% if c.pausa_segundos %}<p class="dica">Tempo pausado (aguardando o usuário): {{ sla.texto(c.pausa_segundos) }}.</p>{% endif %}
+      <p class="dica">Conta só o expediente: seg a sex, 7h às 18h (1 d = 11 h).</p>
+      {% else %}
+      <p class="suave">{{ c.categoria or 'Esta categoria' }} não tem prazo de SLA.</p>
+      {% endif %}
+    </div>
+    {% endif %}
 
     {% if trabalha %}
     <div class="cartao">
@@ -135,6 +165,19 @@
           <select id="categoria" name="categoria">
             {% if not c.categoria %}<option value="">Sem categoria</option>{% endif %}
             {% for cat in CATEGORIAS %}<option {{ 'selected' if c.categoria == cat }}>{{ cat }}</option>{% endfor %}
+          </select>
+          <button class="botao" type="submit">Salvar</button>
+        </div>
+      </form>
+      {% endif %}
+
+      {% if usuario.classifica_chamados %}
+      <form method="post" action="{{ url_for('chamados.repriorizar', chamado_id=c.id) }}" class="form-lateral">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <label for="prioridade">Prioridade</label>
+        <div class="campo-com-botao">
+          <select id="prioridade" name="prioridade">
+            {% for p in PRIORIDADES %}<option {{ 'selected' if c.prioridade == p }}>{{ p }}</option>{% endfor %}
           </select>
           <button class="botao" type="submit">Salvar</button>
         </div>

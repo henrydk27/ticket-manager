@@ -291,6 +291,24 @@ document.addEventListener("DOMContentLoaded", () => {
     aplicar();
   });
 
+  // Novo chamado: mostra a prioridade calculada pela matriz impacto x urgência
+  document.querySelectorAll("[data-matriz-prioridade]").forEach((bloco) => {
+    const matriz = JSON.parse(bloco.dataset.matrizPrioridade);
+    const form = bloco.closest("form");
+    const saida = form.querySelector("[data-prioridade-calculada]");
+    const classes = { "Alta": "alta", "Média": "media", "Baixa": "baixa" };
+    const aplicar = () => {
+      const imp = form.querySelector("input[name=impacto]:checked");
+      const urg = form.querySelector("input[name=urgencia]:checked");
+      if (!saida || !imp || !urg) return;
+      const prio = matriz[imp.value + "|" + urg.value];
+      saida.textContent = prio;
+      saida.className = "prio prio-" + (classes[prio] || "outro");
+    };
+    bloco.addEventListener("change", aplicar);
+    aplicar();
+  });
+
   // Caixa aberta a partir de um <details> (ex.: concluir tarefa): Cancelar e Esc fecham
   document.querySelectorAll("[data-fechar-detalhes]").forEach((b) => {
     b.addEventListener("click", () => { b.closest("details").open = false; });
