@@ -36,6 +36,7 @@ def test_formulario_calcula_prioridade_pela_matriz(client, s, contas):
     entrar(client, "ana", "ana12345")
     html = client.get("/chamados/novo").get_data(as_text=True)
     assert "Quem está sendo afetado?" in html and "Mouse ou teclado" in html
+    assert "Para quando você precisa?" in html and "Hoje: sem isso o trabalho não anda" in html   # solicitação
     dados = {"impacto": "empresa", "urgencia": "parou"}
     r = client.post("/chamados/novo", content_type="multipart/form-data", data={
         "csrf": csrf(client, "/chamados/novo"), "setor_destino": "T.I", "responsavel": usuario(s, "carlos").id,

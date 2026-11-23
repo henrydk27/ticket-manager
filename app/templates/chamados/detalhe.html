@@ -102,8 +102,9 @@
         <dt>Aberto em</dt><dd>{{ c.aberto_em|data_hora }}</dd>
         {% if c.fechado_em %}<dt>Encerrado em</dt><dd>{{ c.fechado_em|data_hora }}</dd>{% endif %}
         {% if c.fechado %}<dt>Avaliação</dt><dd>{{ c.avaliacao or 'Pendente' }}</dd>{% endif %}
-        {% if c.impacto %}<dt>Quem é afetado</dt><dd>{{ IMPACTOS.get(c.impacto, c.impacto) }}</dd>{% endif %}
-        {% if c.urgencia %}<dt>Quanto atrapalha</dt><dd>{{ URGENCIAS.get(c.urgencia, c.urgencia) }}</dd>{% endif %}
+        {% set pq = perguntas_prioridade(c.categoria) %}
+        {% if c.impacto %}<dt>{{ pq.rotulo_impacto }}</dt><dd>{{ pq.impactos.get(c.impacto, c.impacto) }}</dd>{% endif %}
+        {% if c.urgencia %}<dt>{{ pq.rotulo_urgencia }}</dt><dd>{{ pq.urgencias.get(c.urgencia, c.urgencia) }}</dd>{% endif %}
       </dl>
     </div>
 

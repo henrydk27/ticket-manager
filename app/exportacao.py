@@ -13,7 +13,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from . import formatos, sla
-from .modelos import IMPACTOS, URGENCIAS
+from .modelos import perguntas_prioridade
 
 # (cabeçalho, valor, largura Excel em caracteres, largura PDF em mm; 0 = só no Excel)
 COLUNAS = [
@@ -29,8 +29,8 @@ COLUNAS = [
     ("Abertura", lambda c: formatos.data(c.aberto_em), 12, 19),
     ("Fechamento", lambda c: formatos.data(c.fechado_em), 12, 21),
     ("Avaliação", lambda c: c.avaliacao or "", 11, 19),
-    ("Quem é afetado", lambda c: IMPACTOS.get(c.impacto or "", ""), 22, 0),
-    ("Quanto atrapalha", lambda c: URGENCIAS.get(c.urgencia or "", ""), 26, 0),
+    ("Impacto", lambda c: perguntas_prioridade(c.categoria)["impactos"].get(c.impacto or "", ""), 26, 0),
+    ("Urgência", lambda c: perguntas_prioridade(c.categoria)["urgencias"].get(c.urgencia or "", ""), 30, 0),
     ("Meta 1º atendimento", lambda c: sla.texto_meta(c.sla_atendimento_min) if c.sla_inicio else "", 14, 0),
     ("SLA 1º atendimento", lambda c: sla.rotulo(sla.relogio_atendimento(c)), 16, 0),
     ("Meta solução", lambda c: sla.texto_meta(c.sla_solucao_min) if c.sla_inicio else "", 12, 0),

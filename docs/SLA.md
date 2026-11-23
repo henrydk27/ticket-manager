@@ -17,6 +17,13 @@ Quem abre o chamado **não escolhe a prioridade**. Responde duas perguntas e o s
 | **Meu setor ou várias pessoas** | Baixa | Média | Alta |
 | **A empresa toda ou vários setores** | Média | Alta | Alta |
 
+Na **Solicitação** as perguntas mudam de texto, mas as respostas e a matriz continuam as mesmas:
+
+| Incidente | Solicitação |
+|---|---|
+| Quem está sendo afetado? (Só eu · Meu setor ou várias pessoas · A empresa toda) | Para quem é o pedido? (Só para mim · Para o meu setor ou várias pessoas · Para a empresa toda) |
+| Quanto isso atrapalha o trabalho? (Não atrapalha, pode esperar · Atrapalha, mas dá para continuar · O trabalho parou) | Para quando você precisa? (Sem pressa, pode levar alguns dias · Nos próximos dias · Hoje: sem isso o trabalho não anda) |
+
 A T.I pode **ajustar a prioridade** no chamado depois de analisar. Por exemplo, a pessoa diz que
 "o trabalho parou", mas tem um mouse reserva na gaveta. A mudança fica no histórico e os prazos são
 recalculados.

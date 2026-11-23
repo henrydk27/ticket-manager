@@ -32,6 +32,25 @@ MATRIZ_PRIORIDADE = {
     ("setor", "espera"): "Baixa", ("setor", "atrapalha"): "Média", ("setor", "parou"): "Alta",
     ("empresa", "espera"): "Média", ("empresa", "atrapalha"): "Alta", ("empresa", "parou"): "Alta",
 }
+# Na solicitação as mesmas duas perguntas viram "para quem é" e "para quando precisa" (mesmas chaves e matriz)
+IMPACTOS_SOLICITACAO = {"pessoa": "Só para mim", "setor": "Para o meu setor ou várias pessoas",
+                        "empresa": "Para a empresa toda ou vários setores"}
+URGENCIAS_SOLICITACAO = {"espera": "Sem pressa, pode levar alguns dias",
+                         "atrapalha": "Nos próximos dias, para não atrasar o trabalho",
+                         "parou": "Hoje: sem isso o trabalho não anda"}
+_PERGUNTAS = {
+    "Incidente": {"impacto": "Quem está sendo afetado?", "urgencia": "Quanto isso atrapalha o trabalho?",
+                  "rotulo_impacto": "Quem é afetado", "rotulo_urgencia": "Quanto atrapalha",
+                  "impactos": IMPACTOS, "urgencias": URGENCIAS},
+    "Solicitação": {"impacto": "Para quem é o pedido?", "urgencia": "Para quando você precisa?",
+                    "rotulo_impacto": "Para quem", "rotulo_urgencia": "Para quando",
+                    "impactos": IMPACTOS_SOLICITACAO, "urgencias": URGENCIAS_SOLICITACAO},
+}
+
+
+def perguntas_prioridade(categoria: str | None) -> dict:
+    """Textos das duas perguntas da prioridade para a categoria (Problema usa os do Incidente)."""
+    return _PERGUNTAS.get(categoria or "", _PERGUNTAS["Incidente"])
 # Categorias (ITIL): quem abre escolhe Incidente ou Solicitação; só a T.I classifica como Problema
 CATEGORIA_INCIDENTE, CATEGORIA_SOLICITACAO, CATEGORIA_PROBLEMA = "Incidente", "Solicitação", "Problema"
 CATEGORIAS_ABERTURA = [CATEGORIA_INCIDENTE, CATEGORIA_SOLICITACAO]

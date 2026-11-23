@@ -671,3 +671,7 @@ a.usuario-nome { color: var(--texto); }
 .indicadores-sla { margin: 8px 0 14px; }
 .grade-sla { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .tabela-compacta th, .tabela-compacta td { padding: 5px 8px; font-size: .84rem; }
+/* matriz de prioridade no formulário: cabe no cartão (texto quebra em vez de alargar a tabela) */
+.matriz-prioridade { width: 100%; table-layout: fixed; }
+.matriz-prioridade th, .matriz-prioridade td { white-space: normal; text-transform: none; letter-spacing: 0; vertical-align: middle; }
+.matriz-prioridade thead th:first-child, .matriz-prioridade tbody th { width: 30%; }

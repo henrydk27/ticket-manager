@@ -11,7 +11,7 @@ from . import pesquisas as modulo_pesquisas
 from . import sla as modulo_sla  # o nome "pesquisas" é o blueprint dentro de create_app
 from .config import Config, carregar_config
 from .modelos import (AVALIACOES, CATEGORIAS, IMPACTOS, MATRIZ_PRIORIDADE, PAPEIS, PRIORIDADES, SETORES, STATUS,
-                      URGENCIAS)
+                      URGENCIAS, perguntas_prioridade)
 
 
 def create_app(cfg: Config | None = None) -> Flask:
@@ -39,7 +39,7 @@ def create_app(cfg: Config | None = None) -> Flask:
     formatos.registrar(app)
     app.jinja_env.globals.update(csrf_token=seguranca.csrf_token, STATUS=STATUS, SETORES=SETORES,
                                  PRIORIDADES=PRIORIDADES, CATEGORIAS=CATEGORIAS, IMPACTOS=IMPACTOS,
-                                 URGENCIAS=URGENCIAS, MATRIZ_PRIORIDADE=MATRIZ_PRIORIDADE, sla=modulo_sla, AVALIACOES=AVALIACOES, PAPEIS=PAPEIS,
+                                 URGENCIAS=URGENCIAS, MATRIZ_PRIORIDADE=MATRIZ_PRIORIDADE, sla=modulo_sla, perguntas_prioridade=perguntas_prioridade, AVALIACOES=AVALIACOES, PAPEIS=PAPEIS,
                                  CORES=temas.opcoes(),
                                  INTENSIDADES=list(temas.INTENSIDADES.values()), graficos=graficos)
 

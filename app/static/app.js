@@ -309,6 +309,16 @@ document.addEventListener("DOMContentLoaded", () => {
     aplicar();
   });
 
+  // Novo chamado: textos das perguntas da prioridade conforme a categoria (Incidente x Solicitação)
+  document.querySelectorAll("input[name=categoria]").forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const cat = radio.value === "Solicitação" ? "Solicitação" : "Incidente";
+      radio.form.querySelectorAll("[data-se-categoria]").forEach((el) => {
+        el.hidden = el.dataset.seCategoria !== cat;
+      });
+    });
+  });
+
   // Caixa aberta a partir de um <details> (ex.: concluir tarefa): Cancelar e Esc fecham
   document.querySelectorAll("[data-fechar-detalhes]").forEach((b) => {
     b.addEventListener("click", () => { b.closest("details").open = false; });

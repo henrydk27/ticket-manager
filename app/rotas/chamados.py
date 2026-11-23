@@ -14,15 +14,25 @@ from ..seguranca import admin_obrigatorio, login_obrigatorio
 
 bp = Blueprint("chamados", __name__)
 
-# Exemplos mostrados ao abrir o chamado (o catálogo completo está em docs/SLA.md)
-EXEMPLOS_PRIORIDADE = [
-    ("Alta", "Sem internet ou rede na empresa, sistema ou servidor fora do ar para um setor inteiro, "
-             "e-mail parado para todos, impressora do faturamento/expedição parada."),
-    ("Média", "Meu computador não liga, sem acesso ao sistema só para mim, impressora do setor "
-              "com falha (dá para usar outra), lentidão que atrapalha o setor."),
-    ("Baixa", "Mouse ou teclado com defeito, instalar um programa, criar uma pasta ou acesso, "
-              "dúvida no Excel ou no e-mail, troca de equipamento planejada."),
-]
+# Exemplos mostrados ao abrir o chamado, por categoria (o catálogo completo está em docs/SLA.md)
+EXEMPLOS_PRIORIDADE = {
+    "Incidente": [
+        ("Alta", "Sem internet ou rede na empresa, sistema ou servidor fora do ar para um setor inteiro, "
+                 "e-mail parado para todos, impressora do faturamento/expedição parada."),
+        ("Média", "Meu computador não liga, sem acesso ao sistema só para mim, impressora do setor "
+                  "com falha (dá para usar outra), lentidão que atrapalha o setor."),
+        ("Baixa", "Mouse ou teclado com defeito, monitor com mancha, programa que trava às vezes, "
+                  "lentidão leve só para mim."),
+    ],
+    "Solicitação": [
+        ("Alta", "Acesso ou sistema que um setor inteiro precisa hoje para trabalhar, liberação urgente "
+                 "com prazo (auditoria, fiscalização)."),
+        ("Média", "Conta e acessos para funcionário que começa nos próximos dias, programa necessário "
+                  "para o trabalho da semana, configurar impressora nova no setor."),
+        ("Baixa", "Instalar um programa sem pressa, criar uma pasta, dúvida no Excel ou no e-mail, "
+                  "assinatura de e-mail, troca de equipamento planejada."),
+    ],
+}
 
 
 def _filtros_da_url() -> servicos.Filtros:

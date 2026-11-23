@@ -58,38 +58,50 @@
   <textarea id="descricao" name="descricao" rows="7" required
             placeholder="Descreva o que você precisa, com o máximo de detalhes.">{{ form.descricao or '' }}</textarea>
 
+  {# As perguntas mudam de texto conforme a categoria (Incidente x Solicitação); as respostas e a matriz são as mesmas #}
+  {% set cat_atual = form.categoria if form.categoria in ('Incidente', 'Solicitação') else 'Incidente' %}
+  {% macro por_categoria(campo, chave=none) -%}
+    {%- for cat in ('Incidente', 'Solicitação') -%}
+    {%- set pq = perguntas_prioridade(cat) -%}
+    <span data-se-categoria="{{ cat }}" {{ 'hidden' if cat != cat_atual }}>{{ pq[campo][chave] if chave else pq[campo] }}</span>
+    {%- endfor -%}
+  {%- endmacro %}
   <div class="linha-campos campos-prioridade" data-matriz-prioridade='{{ MATRIZ_JSON }}'>
     <fieldset>
-      <legend>Quem está sendo afetado?</legend>
-      {% for chave, rotulo in IMPACTOS.items() %}
+      <legend>{{ por_categoria('impacto') }}</legend>
+      {% for chave in IMPACTOS %}
       <label class="opcao-simples"><input type="radio" name="impacto" value="{{ chave }}" required
-             {{ 'checked' if form.impacto == chave }}> {{ rotulo }}</label>
+             {{ 'checked' if form.impacto == chave }}> {{ por_categoria('impactos', chave) }}</label>
       {% endfor %}
     </fieldset>
     <fieldset>
-      <legend>Quanto isso atrapalha o trabalho?</legend>
-      {% for chave, rotulo in URGENCIAS.items() %}
+      <legend>{{ por_categoria('urgencia') }}</legend>
+      {% for chave in URGENCIAS %}
       <label class="opcao-simples"><input type="radio" name="urgencia" value="{{ chave }}" required
-             {{ 'checked' if form.urgencia == chave }}> {{ rotulo }}</label>
+             {{ 'checked' if form.urgencia == chave }}> {{ por_categoria('urgencias', chave) }}</label>
       {% endfor %}
     </fieldset>
   </div>
   <p class="prioridade-calculada" aria-live="polite">Prioridade: <span data-prioridade-calculada>responda as duas perguntas</span></p>
   <details class="ajuda-prioridade">
     <summary>Como a prioridade é definida? Ver exemplos</summary>
+    <div class="tabela-rolagem">
     <table class="tabela tabela-compacta matriz-prioridade">
-      <thead><tr><th></th>{% for u in URGENCIAS.values() %}<th>{{ u }}</th>{% endfor %}</tr></thead>
+      <thead><tr><th></th>{% for uk in URGENCIAS %}<th>{{ por_categoria('urgencias', uk) }}</th>{% endfor %}</tr></thead>
       <tbody>
-        {% for ck, rotulo in IMPACTOS.items() %}
-        <tr><th>{{ rotulo }}</th>{% for uk in URGENCIAS %}<td>{{ MATRIZ_PRIORIDADE[(ck, uk)]|prioridade }}</td>{% endfor %}</tr>
+        {% for ck in IMPACTOS %}
+        <tr><th>{{ por_categoria('impactos', ck) }}</th>{% for uk in URGENCIAS %}<td>{{ MATRIZ_PRIORIDADE[(ck, uk)]|prioridade }}</td>{% endfor %}</tr>
         {% endfor %}
       </tbody>
     </table>
-    <ul class="exemplos-prioridade">
-      {% for prio, exemplos in EXEMPLOS_PRIORIDADE %}
+    </div>
+    {% for cat, lista in EXEMPLOS_PRIORIDADE.items() %}
+    <ul class="exemplos-prioridade" data-se-categoria="{{ cat }}" {{ 'hidden' if cat != cat_atual }}>
+      {% for prio, exemplos in lista %}
       <li>{{ prio|prioridade }} {{ exemplos }}</li>
       {% endfor %}
     </ul>
+    {% endfor %}
     <p class="dica">A T.I pode ajustar a prioridade depois de analisar o chamado.</p>
   </details>
 
