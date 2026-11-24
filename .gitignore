@@ -22,3 +22,8 @@ dist/
 *.drawio
 *.drawio.svg
 *.drawio.png
+
+# certificados e chaves do HTTPS interno: nunca no git
+deploy/certificado/*.crt
+deploy/certificado/*.key
+*.key

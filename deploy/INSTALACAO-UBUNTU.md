@@ -180,17 +180,19 @@ quando há preventivas atrasadas ou vencendo nos próximos 15 dias, ou contratos
 30 dias ou vencidos há até 60. (Se o cron ainda usa `avisar-preventivas`, o nome antigo, continua
 funcionando e manda o mesmo e-mail.)
 
-## HTTPS (recomendado se houver acesso de fora da rede)
+## HTTPS
 
-Com um domínio apontando para o servidor:
+- **Rede interna, nome como `ticket.internal`:** use uma autoridade certificadora própria, criada no
+  OPNsense, e instale o certificado dela nos computadores. O passo a passo está em
+  [HTTPS-INTERNO.md](HTTPS-INTERNO.md).
+- **Domínio público apontando para o servidor:**
 
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d chamados.suaempresa.com.br
-```
+  ```bash
+  sudo apt install -y certbot python3-certbot-nginx
+  sudo certbot --nginx -d chamados.suaempresa.com.br
+  ```
 
-Depois, em `/etc/ticket-manager/config.ini`, defina `cookie_seguro = true` e rode
-`sudo systemctl restart ticket-manager`.
+Nos dois casos, defina `cookie_seguro = true` no `config.ini` (e `url_site` com `https://`) e reinicie o serviço.
 
 ## Problemas comuns na instalação
 
