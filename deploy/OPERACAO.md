@@ -408,55 +408,65 @@ Se um aviso não chegar depois de configurado, o motivo aparece no log:
 
 ### Cópia para o NAS (backup diário e logs semanais)
 
-O `deploy/copia-nas.sh` leva os backups e os logs para o NAS. Ele confere o hash SHA-256 de cada
-arquivo lido de volta do NAS e **só então apaga o backup do servidor**. Se o NAS estiver fora, o
-arquivo fica no servidor e vai na próxima rodada. O `backup.sh` continua apagando o que passar de
-14 dias, então o disco não enche.
+Segue o padrão da IT "Cópia semanal de logs para o NAS", o mesmo usado no dc01 e no emailproxy.
+São dois scripts, copiados para `/usr/local/bin` no servidor:
 
-| Rotina | Horário | O que vai | Pasta no NAS |
-|---|---|---|---|
-| `copia-nas.sh backup` | Todo dia, 3h00 (depois do backup das 2h30) | `banco_*.dump` e `anexos_*.tar.gz`, que depois são apagados do servidor | `NAS_BACKUP/<servidor>/backup` |
-| `copia-nas.sh logs` | Domingo, 6h45 | Um `.tar.gz` com o journal do serviço, do Nginx e do PostgreSQL, os logs do Nginx e do PostgreSQL, o `auth.log` e o registro da cópia (últimos 8 dias) | `NAS_LOGS/<servidor>/logs` |
+| Script | Quando | O que faz | Pasta no NAS | Registro |
+|---|---|---|---|---|
+| `deploy/copia-logs-nas.sh` | Domingo, 6h45 | Script padrão da IT, com `PASTAS` de servidor web e banco: `auth.log*`, `nginx` e `postgresql`, mais o journal da semana | `cpd-log/<servidor>` | `/var/log/copia-logs-nas.log` |
+| `deploy/copia-backup-nas.sh` | Todo dia, 3h00 (depois do `backup.sh` das 2h30) | Envia `banco_*.dump` e `anexos_*.tar.gz` com o `.sha256`. **Lê de volta do NAS, confere o hash e só então apaga do servidor.** Se falhar, o arquivo fica para a próxima execução. | `cpd-backup/<servidor>` | `/var/log/copia-backup-nas.log` |
 
-- **Hash:** ao lado de cada arquivo fica um `.sha256`. No NAS dá para conferir com `sha256sum -c arquivo.sha256`.
-- **Registro:** cada execução grava OK ou ERRO, com o hash, em `/var/log/copia-nas.log`.
-- **Retenção no NAS:** 90 dias de backup e 365 de logs. Fica em `nas.conf`; 0 guarda para sempre.
+O backup vai para uma pasta própria (`cpd-backup`), com um usuário próprio, porque contém os dados
+dos chamados e os anexos. Os backups com mais de 90 dias são apagados do NAS (`RETENCAO_DIAS` no
+script; 0 = nunca).
 
 **Instalação (uma vez):**
 
 ```bash
 sudo apt install -y cifs-utils
-sudo cp /opt/ticket-manager/deploy/nas.conf.example /etc/ticket-manager/nas.conf
-sudo nano /etc/ticket-manager/nas.conf          # IP do NAS e nomes dos compartilhamentos
-sudo nano /etc/ticket-manager/nas.cred          # usuário e senha do NAS (formato abaixo)
-sudo chmod 600 /etc/ticket-manager/nas.conf /etc/ticket-manager/nas.cred
+sudo install -m 700 /opt/ticket-manager/deploy/copia-logs-nas.sh /usr/local/bin/
+sudo install -m 700 /opt/ticket-manager/deploy/copia-backup-nas.sh /usr/local/bin/
+sudo nano /usr/local/bin/copia-logs-nas.sh      # NAS_IP
+sudo nano /usr/local/bin/copia-backup-nas.sh    # NAS_IP e COMPART
 ```
 
-O `nas.cred` tem este formato:
-
-```
-username=cpd-log
-password=SENHA_DO_USUARIO
-domain=WORKGROUP
-```
-
-Teste à mão e confira o registro:
+Crie as credenciais, uma para cada pasta, no formato `username=...` e `password=...`, sem espaços
+ao redor do `=`:
 
 ```bash
-sudo bash /opt/ticket-manager/deploy/copia-nas.sh backup
-sudo bash /opt/ticket-manager/deploy/copia-nas.sh logs
-sudo tail /var/log/copia-nas.log
+sudo nano /root/.cred-nas-logs       # usuário cpd-log
+sudo nano /root/.cred-nas-backup     # usuário da pasta de backup
+sudo chmod 600 /root/.cred-nas-logs /root/.cred-nas-backup
 ```
 
-Agende no cron do root (`sudo crontab -e`), abaixo da linha do `backup.sh`:
+Teste à mão:
 
-```
-0 3 * * * /bin/bash /opt/ticket-manager/deploy/copia-nas.sh backup
-45 6 * * 0 /bin/bash /opt/ticket-manager/deploy/copia-nas.sh logs
+```bash
+sudo /usr/local/bin/copia-logs-nas.sh
+sudo /usr/local/bin/copia-backup-nas.sh
+sudo ls -lh /var/backups/ticket-manager     # os backups enviados somem daqui
 ```
 
-**Restaurar a partir do NAS:** copie o `banco_...dump` e o `anexos_...tar.gz` do NAS para
-`/var/backups/ticket-manager/` e siga "Restaurar um backup" abaixo.
+Agende no cron do root:
+
+```bash
+(sudo crontab -l 2>/dev/null; echo "45 6 * * 0 /usr/local/bin/copia-logs-nas.sh >> /var/log/copia-logs-nas.log 2>&1"; echo "0 3 * * * /usr/local/bin/copia-backup-nas.sh >> /var/log/copia-backup-nas.log 2>&1") | sudo crontab -
+sudo crontab -l
+```
+
+Para acompanhar:
+
+```bash
+sudo tail -3 /var/log/copia-logs-nas.log
+sudo tail -5 /var/log/copia-backup-nas.log
+```
+
+**Restaurar a partir do NAS:** copie o `banco_...dump` e o `anexos_...tar.gz` da pasta
+`cpd-backup/<servidor>` para `/var/backups/ticket-manager/` e siga "Restaurar um backup" abaixo.
+Antes, confira o arquivo com `sha256sum -c arquivo.sha256`.
+
+**Atualização:** depois de um `git pull` que mude os scripts, copie-os de novo para `/usr/local/bin`
+e ajuste outra vez o `NAS_IP` (e o `COMPART`).
 
 ### Copiar para fora do servidor (manual)
 

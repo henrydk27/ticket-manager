@@ -152,7 +152,7 @@ Confira com `sudo crontab -l`. O script guarda os últimos 14 dias e apaga os ma
 Para restaurar um backup, veja [OPERACAO.md](OPERACAO.md#restaurar-um-backup).
 
 **Os backups ficam no mesmo disco do servidor.** Se o disco falhar, eles vão junto. Para enviá-los
-automaticamente ao NAS, com conferência de hash, use o `deploy/copia-nas.sh`. Veja
+automaticamente ao NAS, com conferência de hash, use o `deploy/copia-backup-nas.sh`, e para os logs o `deploy/copia-logs-nas.sh`. Veja
 [OPERACAO.md](OPERACAO.md#cópia-para-o-nas-backup-diário-e-logs-semanais).
 
 ## 9. Aviso semanal das preventivas (opcional)
