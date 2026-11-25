@@ -406,7 +406,59 @@ Se um aviso não chegar depois de configurado, o motivo aparece no log:
 - **Conferir:** `sudo ls -lh /var/backups/ticket-manager` — deve haver arquivos de hoje (ou de ontem, antes das 2h30).
 - **Rodar agora:** `sudo bash /opt/ticket-manager/deploy/backup.sh`
 
-### Copiar para fora do servidor
+### Cópia para o NAS (backup diário e logs semanais)
+
+O `deploy/copia-nas.sh` leva os backups e os logs para o NAS. Ele confere o hash SHA-256 de cada
+arquivo lido de volta do NAS e **só então apaga o backup do servidor**. Se o NAS estiver fora, o
+arquivo fica no servidor e vai na próxima rodada. O `backup.sh` continua apagando o que passar de
+14 dias, então o disco não enche.
+
+| Rotina | Horário | O que vai | Pasta no NAS |
+|---|---|---|---|
+| `copia-nas.sh backup` | Todo dia, 3h00 (depois do backup das 2h30) | `banco_*.dump` e `anexos_*.tar.gz`, que depois são apagados do servidor | `NAS_BACKUP/<servidor>/backup` |
+| `copia-nas.sh logs` | Domingo, 6h45 | Um `.tar.gz` com o journal do serviço, do Nginx e do PostgreSQL, os logs do Nginx e do PostgreSQL, o `auth.log` e o registro da cópia (últimos 8 dias) | `NAS_LOGS/<servidor>/logs` |
+
+- **Hash:** ao lado de cada arquivo fica um `.sha256`. No NAS dá para conferir com `sha256sum -c arquivo.sha256`.
+- **Registro:** cada execução grava OK ou ERRO, com o hash, em `/var/log/copia-nas.log`.
+- **Retenção no NAS:** 90 dias de backup e 365 de logs. Fica em `nas.conf`; 0 guarda para sempre.
+
+**Instalação (uma vez):**
+
+```bash
+sudo apt install -y cifs-utils
+sudo cp /opt/ticket-manager/deploy/nas.conf.example /etc/ticket-manager/nas.conf
+sudo nano /etc/ticket-manager/nas.conf          # IP do NAS e nomes dos compartilhamentos
+sudo nano /etc/ticket-manager/nas.cred          # usuário e senha do NAS (formato abaixo)
+sudo chmod 600 /etc/ticket-manager/nas.conf /etc/ticket-manager/nas.cred
+```
+
+O `nas.cred` tem este formato:
+
+```
+username=cpd-log
+password=SENHA_DO_USUARIO
+domain=WORKGROUP
+```
+
+Teste à mão e confira o registro:
+
+```bash
+sudo bash /opt/ticket-manager/deploy/copia-nas.sh backup
+sudo bash /opt/ticket-manager/deploy/copia-nas.sh logs
+sudo tail /var/log/copia-nas.log
+```
+
+Agende no cron do root (`sudo crontab -e`), abaixo da linha do `backup.sh`:
+
+```
+0 3 * * * /bin/bash /opt/ticket-manager/deploy/copia-nas.sh backup
+45 6 * * 0 /bin/bash /opt/ticket-manager/deploy/copia-nas.sh logs
+```
+
+**Restaurar a partir do NAS:** copie o `banco_...dump` e o `anexos_...tar.gz` do NAS para
+`/var/backups/ticket-manager/` e siga "Restaurar um backup" abaixo.
+
+### Copiar para fora do servidor (manual)
 
 Os backups ficam no mesmo disco do servidor; copie-os regularmente para outro lugar.
 Para levar o mais recente para o seu computador (ex.: com WinSCP ou `scp`):

@@ -27,3 +27,7 @@ dist/
 deploy/certificado/*.crt
 deploy/certificado/*.key
 *.key
+
+# credenciais do NAS
+nas.cred
+nas.conf
